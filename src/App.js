@@ -141,6 +141,7 @@ function App() {
         const vibeModifier = selectedVibeDetail ? selectedVibeDetail.modifier : '';
         const searchQuery = `${vibeModifier} ${interest.searchTerm}`.trim();
         const places = await searchPlaces(searchQuery, city);
+        if (!places || places.length === 0) continue;
         const topPlaces = places.slice(0, 2);
         for (const place of topPlaces) {
           const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0].name) : null;
