@@ -1,6 +1,6 @@
 const https = require('https');
 
-const GOOGLE_API_KEY = 'AIzaSyDO7obcIDXDAw-ga891GIwUFRB_oc9OT-c';
+const FOURSQUARE_API_KEY = '03BJB5LBWKHHQV3PAEJJ21NANUAE0MSBLICYD4VEU01AXZD5';
 
 exports.handler = async (event) => {
   const headers = {
@@ -15,35 +15,72 @@ exports.handler = async (event) => {
 
   try {
     const { query, city } = JSON.parse(event.body);
-    
-    const requestBody = JSON.stringify({
-      textQuery: `${query} in ${city}`,
-      maxResultCount: 6,
-      languageCode: 'en'
-    });
+    const searchQuery = encodeURIComponent(`${query} ${city}`);
+    const near = encodeURIComponent(city);
 
     const data = await new Promise((resolve, reject) => {
       const req = https.request({
-        hostname: 'places.googleapis.com',
-        path: '/v1/places:searchText',
-        method: 'POST',
+        hostname: 'api.foursquare.com',
+        path: `/v3/places/search?query=${searchQuery}&near=${near}&limit=10`,
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GOOGLE_API_KEY,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.priceLevel,places.photos,places.regularOpeningHours,places.editorialSummary',
-          'Content-Length': Buffer.byteLength(requestBody)
+          'Authorization': FOURSQUARE_API_KEY,
+          'Accept': 'application/json'
         }
       }, (res) => {
         let body = '';
         res.on('data', chunk => body += chunk);
-        res.on('end', () => resolve(JSON.parse(body)));
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(body));
+          } catch (e) {
+            resolve({ results: [] });
+          }
+        });
       });
       req.on('error', reject);
-      req.write(requestBody);
       req.end();
     });
 
-    return { statusCode: 200, headers, body: JSON.stringify(data) };
+    // Get photos for each place
+    const placesWithPhotos = await Promise.all(
+      (data.results || []).slice(0, 6).map(async (place) => {
+        try {
+          const photos = await new Promise((resolve, reject) => {
+            const req = https.request({
+              hostname: 'api.foursquare.com',
+              path: `/v3/places/${place.fsq_id}/photos?limit=5`,
+              method: 'GET',
+              headers: {
+                'Authorization': FOURSQUARE_API_KEY,
+                'Accept': 'application/json'
+              }
+            }, (res) => {
+              let body = '';
+              res.on('data', chunk => body += chunk);
+              res.on('end', () => {
+                try {
+                  resolve(JSON.parse(body));
+                } catch (e) {
+                  resolve([]);
+                }
+              });
+            });
+            req.on('error', () => resolve([]));
+            req.end();
+          });
+          return { ...place, photos: photos || [] };
+        } catch (e) {
+          return { ...place, photos: [] };
+        }
+      })
+    );
+
+    return { 
+      statusCode: 200, 
+      headers, 
+      body: JSON.stringify({ results: placesWithPhotos }) 
+    };
   } catch (error) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }

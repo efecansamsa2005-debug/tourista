@@ -5,7 +5,7 @@ const SUPABASE_URL = 'https://xuaczwlwbsxoixosunzx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1YWN6d2x3YnN4b2l4b3N1bnp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyODc1NjYsImV4cCI6MjA4MDg2MzU2Nn0.nfqRmFe0-1t_hDrPAc2oTO-y4UfbsEjen5sYbr1lYeE';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const GOOGLE_API_KEY = 'AIzaSyDO7obcIDXDAw-ga891GIwUFRB_oc9OT-c';
+const FOURSQUARE_API_KEY = '03BJB5LBWKHHQV3PAEJJ21NANUAE0MSBLICYD4VEU01AXZD5';
 
 const INTERESTS = [
   { id: 'local-cuisine', emoji: '🍽️', label: 'Local Cuisine', searchTerm: 'best restaurant' },
@@ -39,23 +39,23 @@ const VIBES = [
 
 const searchPlaces = async (query, city) => {
   try {
-    const response = await fetch('/.netlify/functions/places', {
+    const response = await fetch('https://spontaneous-raindrop-cd0056.netlify.app/.netlify/functions/places', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, city })
     });
     const data = await response.json();
-    if (data.places && data.places.length > 0) {
-      return data.places.map(place => ({
-        id: place.id,
-        name: place.displayName?.text || 'Unknown Place',
-        address: place.formattedAddress || '',
-        rating: place.rating || 4.0,
-        totalRatings: place.userRatingCount || 0,
-        priceLevel: place.priceLevel,
+    if (data.results && data.results.length > 0) {
+      return data.results.map(place => ({
+        id: place.fsq_id,
+        name: place.name || 'Unknown Place',
+        address: place.location?.formatted_address || place.location?.address || '',
+        rating: place.rating ? place.rating / 2 : 4.0,
+        totalRatings: place.stats?.total_ratings || 0,
+        priceLevel: place.price,
         photos: place.photos || [],
-        hours: place.regularOpeningHours?.weekdayDescriptions || [],
-        description: place.editorialSummary?.text || ''
+        hours: place.hours?.display || '',
+        description: place.categories?.[0]?.name || ''
       }));
     }
     return [];
@@ -65,9 +65,9 @@ const searchPlaces = async (query, city) => {
   }
 };
 
-const getPhotoUrl = (photoName) => {
-  if (!photoName) return null;
-  return `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=800&key=${GOOGLE_API_KEY}`;
+const getPhotoUrl = (photo) => {
+  if (!photo) return null;
+  return `${photo.prefix}800x600${photo.suffix}`;
 };
 
 const getPriceSymbol = (priceLevel) => {
