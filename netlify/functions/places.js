@@ -25,75 +25,87 @@ exports.handler = async (event) => {
       }, (res) => {
         let body = '';
         res.on('data', chunk => body += chunk);
-        res.on('end', () => resolve(JSON.parse(body)));
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(body));
+          } catch(e) {
+            resolve({ features: [] });
+          }
+        });
       });
-      req.on('error', reject);
+      req.on('error', () => resolve({ features: [] }));
       req.end();
     });
 
     if (!geoData.features || geoData.features.length === 0) {
-      return { statusCode: 200, headers, body: JSON.stringify({ results: [] }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ places: [] }) };
     }
 
     const [lon, lat] = geoData.features[0].geometry.coordinates;
 
-    // Search for places
-    const categoryMap = {
-      'restaurant': 'catering.restaurant',
-      'coffee': 'catering.cafe',
-      'cafe': 'catering.cafe',
-      'bar': 'catering.bar',
-      'pub': 'catering.pub',
-      'club': 'entertainment.nightclub',
-      'nightclub': 'entertainment.nightclub',
-      'museum': 'entertainment.museum',
-      'park': 'leisure.park',
-      'hotel': 'accommodation.hotel',
-      'shop': 'commercial.shopping_mall',
-      'market': 'commercial.marketplace',
-      'bakery': 'catering.fast_food.bakery',
-      'dessert': 'catering.ice_cream',
-      'landmark': 'tourism.attraction',
-      'historic': 'tourism.sights',
-      'viewpoint': 'tourism.attraction',
-      'default': 'tourism,catering,entertainment'
-    };
-
-    let category = categoryMap['default'];
+    // Map query to category
     const queryLower = query.toLowerCase();
-    for (const [key, value] of Object.entries(categoryMap)) {
-      if (queryLower.includes(key)) {
-        category = value;
-        break;
-      }
+    let category = 'tourism,catering,entertainment';
+    
+    if (queryLower.includes('restaurant') || queryLower.includes('food') || queryLower.includes('cuisine')) {
+      category = 'catering.restaurant';
+    } else if (queryLower.includes('coffee') || queryLower.includes('cafe')) {
+      category = 'catering.cafe';
+    } else if (queryLower.includes('bar') || queryLower.includes('pub')) {
+      category = 'catering.bar,catering.pub';
+    } else if (queryLower.includes('club') || queryLower.includes('night')) {
+      category = 'entertainment.nightclub,entertainment.club';
+    } else if (queryLower.includes('museum')) {
+      category = 'entertainment.museum';
+    } else if (queryLower.includes('park') || queryLower.includes('garden')) {
+      category = 'leisure.park,natural';
+    } else if (queryLower.includes('shop') || queryLower.includes('market') || queryLower.includes('mall')) {
+      category = 'commercial';
+    } else if (queryLower.includes('hotel') || queryLower.includes('hostel')) {
+      category = 'accommodation';
+    } else if (queryLower.includes('beach')) {
+      category = 'beach';
+    } else if (queryLower.includes('historic') || queryLower.includes('landmark') || queryLower.includes('monument')) {
+      category = 'tourism.sights,tourism.attraction,building.historic';
+    } else if (queryLower.includes('dessert') || queryLower.includes('bakery') || queryLower.includes('sweet')) {
+      category = 'catering.fast_food.bakery,catering.ice_cream';
+    } else if (queryLower.includes('street food')) {
+      category = 'catering.fast_food';
     }
 
+    // Search for places
     const placesData = await new Promise((resolve, reject) => {
       const req = https.request({
         hostname: 'api.geoapify.com',
-        path: `/v2/places?categories=${category}&filter=circle:${lon},${lat},5000&limit=10&apiKey=${GEOAPIFY_API_KEY}`,
+        path: `/v2/places?categories=${category}&filter=circle:${lon},${lat},10000&limit=10&apiKey=${GEOAPIFY_API_KEY}`,
         method: 'GET'
       }, (res) => {
         let body = '';
         res.on('data', chunk => body += chunk);
-        res.on('end', () => resolve(JSON.parse(body)));
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(body));
+          } catch(e) {
+            resolve({ features: [] });
+          }
+        });
       });
-      req.on('error', reject);
+      req.on('error', () => resolve({ features: [] }));
       req.end();
     });
 
-    const results = (placesData.features || []).map(place => ({
-      id: place.properties.place_id,
-      name: place.properties.name || 'Unknown Place',
-      address: place.properties.formatted || place.properties.street || '',
+    const places = (placesData.features || []).map(place => ({
+      id: place.properties.place_id || Math.random().toString(36).substr(2, 9),
+      name: place.properties.name || 'Unnamed Place',
+      address: place.properties.formatted || place.properties.street || city,
+      category: place.properties.categories ? place.properties.categories[0] : '',
       lat: place.properties.lat,
-      lon: place.properties.lon,
-      category: place.properties.categories?.[0] || '',
-      city: place.properties.city || city
+      lon: place.properties.lon
     }));
 
-    return { statusCode: 200, headers, body: JSON.stringify({ results }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ places }) };
   } catch (error) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
+    console.error('Error:', error);
+    return { statusCode: 200, headers, body: JSON.stringify({ places: [], error: error.message }) };
   }
 };
