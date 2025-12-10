@@ -5,7 +5,7 @@ const SUPABASE_URL = 'https://xuaczwlwbsxoixosunzx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1YWN6d2x3YnN4b2l4b3N1bnp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyODc1NjYsImV4cCI6MjA4MDg2MzU2Nn0.nfqRmFe0-1t_hDrPAc2oTO-y4UfbsEjen5sYbr1lYeE';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const FOURSQUARE_API_KEY = '03BJB5LBWKHHQV3PAEJJ21NANUAE0MSBLICYD4VEU01AXZD5';
+const FOURSQUARE_API_KEY = 'fsq3ErCcd6N/WrszpSnDyV+sZtMeDOHx+oydJlUHc141q6k=';
 
 const INTERESTS = [
   { id: 'local-cuisine', emoji: '🍽️', label: 'Local Cuisine', searchTerm: 'best restaurant' },

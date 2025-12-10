@@ -1,6 +1,6 @@
 const https = require('https');
 
-const FOURSQUARE_API_KEY = '03BJB5LBWKHHQV3PAEJJ21NANUAE0MSBLICYD4VEU01AXZD5';
+const FOURSQUARE_API_KEY = 'fsq3ErCcd6N/WrszpSnDyV+sZtMeDOHx+oydJlUHc141q6k=';
 
 exports.handler = async (event) => {
   const headers = {
