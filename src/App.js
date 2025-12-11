@@ -15,6 +15,16 @@ const DAY_COLORS = [
   '#d81b60'
 ];
 
+// Spot details for modal - AI generated tips
+const SPOT_DETAILS = {
+  'Eiffel Tower': { rating: 4.7, reviews: 245890, description: 'Iconic iron lattice tower on the Champ de Mars, symbol of Paris since 1889.', tips: ['Book tickets online to skip the queue', 'Visit at sunset for stunning views', 'The summit offers 360° panoramic views', 'Cheaper to take stairs to 2nd floor', 'Light show every hour after dark'] },
+  'Louvre Museum': { rating: 4.8, reviews: 312456, description: 'World\'s largest art museum and historic monument, home to the Mona Lisa.', tips: ['Enter through Carrousel entrance to avoid crowds', 'Wednesday and Friday open until 9:45 PM', 'Download museum app for self-guided tours', 'Mona Lisa is smaller than expected', 'Don\'t miss Winged Victory of Samothrace'] },
+  'Colosseum': { rating: 4.7, reviews: 198234, description: 'Ancient amphitheater in Rome, largest ever built, iconic symbol of Imperial Rome.', tips: ['Book skip-the-line tickets in advance', 'Combined ticket includes Roman Forum', 'Best photos from upper levels', 'Underground tours available', 'Arrive early morning or late afternoon'] },
+  'Sagrada Familia': { rating: 4.8, reviews: 167543, description: 'Gaudí\'s unfinished masterpiece, a basilica blending Gothic and Art Nouveau.', tips: ['Book tickets weeks in advance', 'Morning light through east facade is magical', 'Tower visit offers great city views', 'Audio guide highly recommended', 'Construction expected to complete by 2026'] },
+  'Big Ben': { rating: 4.6, reviews: 89234, description: 'Iconic clock tower at the Palace of Westminster, symbol of London since 1859.', tips: ['Best photos from Westminster Bridge', 'UK residents can tour the interior', 'Listen for the famous chimes', 'Beautiful when lit at night', 'Combine with Houses of Parliament visit'] },
+  'default': { rating: 4.5, reviews: 10000, description: 'A must-visit attraction with unique history and cultural significance.', tips: ['Check opening hours before visiting', 'Book tickets online when possible', 'Best to visit early morning', 'Wear comfortable walking shoes', 'Check for guided tour options'] }
+};
+
 const TRIP_CATEGORIES = [
   { id: 'popular', emoji: '📍', label: 'Popular' },
   { id: 'museum', emoji: '🏛️', label: 'Museum' },
@@ -690,6 +700,8 @@ function App() {
   const [newTripPreferences, setNewTripPreferences] = useState([]);
   const [newTripDays, setNewTripDays] = useState(3);
   const [showAllDaysOnMap, setShowAllDaysOnMap] = useState(false);
+  const [mapExpanded, setMapExpanded] = useState(false);
+  const [selectedSpot, setSelectedSpot] = useState(null);
 
   // Auth effect
   useEffect(() => {
@@ -1239,6 +1251,25 @@ function App() {
                       {trip.days} days • {getTotalSpots(trip)} spots
                     </p>
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMyTrips(prev => prev.filter((_, i) => i !== index));
+                    }}
+                    style={{
+                      background: '#ffebee',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '32px',
+                      height: '32px',
+                      color: '#e53935',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      marginRight: '8px'
+                    }}
+                  >
+                    ✕
+                  </button>
                   <span style={{ color: '#4caf50' }}>→</span>
                 </div>
               ))}
@@ -1320,7 +1351,17 @@ function App() {
         </div>
 
         {/* Interactive Map */}
-        <div style={{ height: '250px', margin: '16px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
+        <div 
+          onMouseEnter={() => setMapExpanded(true)}
+          onMouseLeave={() => setMapExpanded(false)}
+          style={{ 
+            height: mapExpanded ? '50vh' : '250px', 
+            margin: '16px', 
+            borderRadius: '16px', 
+            overflow: 'hidden', 
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+            transition: 'height 0.3s ease'
+          }}>
           <TripMap guide={selectedGuide} selectedDay={showAllDaysOnMap ? null : selectedDay} onSpotClick={(day) => { setSelectedDay(day); setShowAllDaysOnMap(false); }} />
         </div>
 
@@ -1365,7 +1406,9 @@ function App() {
         <div style={{ padding: '0 16px 100px' }}>
           {currentDay.spots.map((spot, index) => (
             <div key={index}>
-              <div style={{ background: 'white', borderRadius: '14px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+              <div 
+                onClick={() => setSelectedSpot({ ...spot, city: selectedGuide.city })}
+                style={{ background: 'white', borderRadius: '14px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', cursor: 'pointer' }}>
                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
                 <div style={{ width: '55px', height: '55px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
                   <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1386,6 +1429,177 @@ function App() {
             </div>
           ))}
         </div>
+
+        {/* Spot Detail Modal */}
+        {selectedSpot && (
+          <div 
+            onClick={() => setSelectedSpot(null)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'flex-end',
+              zIndex: 1000
+            }}
+          >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'white',
+                borderRadius: '24px 24px 0 0',
+                width: '100%',
+                maxHeight: '85vh',
+                overflow: 'auto',
+                animation: 'slideUp 0.3s ease'
+              }}
+            >
+              {/* Close Button */}
+              <button 
+                onClick={() => setSelectedSpot(null)}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: '#f5f5f5',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  zIndex: 10
+                }}
+              >
+                ✕
+              </button>
+
+              {/* Header */}
+              <div style={{ padding: '24px 20px 16px' }}>
+                <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#1b5e20' }}>
+                  {selectedSpot.name}
+                </h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                  <span style={{ color: '#ffc107', fontSize: '16px' }}>★★★★★</span>
+                  <span style={{ fontWeight: '600', color: '#333' }}>
+                    {(SPOT_DETAILS[selectedSpot.name] || SPOT_DETAILS['default']).rating}
+                  </span>
+                  <span style={{ color: '#999', fontSize: '13px' }}>
+                    ({(SPOT_DETAILS[selectedSpot.name] || SPOT_DETAILS['default']).reviews.toLocaleString()})
+                  </span>
+                </div>
+                <span style={{ 
+                  display: 'inline-block',
+                  marginTop: '8px',
+                  background: '#f1f8e9', 
+                  color: '#2e7d32',
+                  padding: '4px 12px', 
+                  borderRadius: '12px', 
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}>
+                  🎯 {selectedSpot.type}
+                </span>
+              </div>
+
+              {/* Image */}
+              <div style={{ margin: '0 20px', borderRadius: '16px', overflow: 'hidden', height: '180px' }}>
+                <img 
+                  src={selectedSpot.image.replace('100&h=100', '400&h=300')} 
+                  alt={selectedSpot.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
+
+              {/* About */}
+              <div style={{ padding: '20px' }}>
+                <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '600', color: '#333' }}>
+                  About this place
+                </h3>
+                <p style={{ margin: 0, fontSize: '14px', color: '#666', lineHeight: '1.5' }}>
+                  {(SPOT_DETAILS[selectedSpot.name] || SPOT_DETAILS['default']).description}
+                </p>
+              </div>
+
+              {/* Community Notes */}
+              <div style={{ 
+                margin: '0 20px', 
+                background: '#fffde7', 
+                borderRadius: '16px', 
+                padding: '16px'
+              }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  💡 Community Notes
+                </h3>
+                <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                  {(SPOT_DETAILS[selectedSpot.name] || SPOT_DETAILS['default']).tips.map((tip, i) => (
+                    <li key={i} style={{ fontSize: '13px', color: '#555', marginBottom: '8px', lineHeight: '1.4' }}>
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Info */}
+              <div style={{ padding: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid #eee' }}>
+                  <span>📍</span>
+                  <span style={{ fontSize: '14px', color: '#333' }}>{selectedSpot.city}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid #eee' }}>
+                  <span>⏱️</span>
+                  <span style={{ fontSize: '14px', color: '#333' }}>Recommended: {selectedSpot.duration}</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ 
+                padding: '16px 20px 32px', 
+                display: 'flex', 
+                gap: '12px',
+                justifyContent: 'center'
+              }}>
+                <button 
+                  style={{
+                    background: 'white',
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '25px',
+                    padding: '12px 24px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  🔖 Save
+                </button>
+                <button 
+                  onClick={() => openGoogleMaps(selectedSpot.name, selectedSpot.city)}
+                  style={{
+                    background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
+                    border: 'none',
+                    borderRadius: '25px',
+                    padding: '12px 24px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  🧭 Direction
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
