@@ -204,7 +204,7 @@ function App() {
 
           for (const place of topPlaces) {
             const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
-            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 200)).filter(Boolean);
+            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 500)).filter(Boolean);
 
             allRecommendations.push({
               id: place.id,
@@ -273,7 +273,7 @@ function App() {
 
           for (const place of topPlaces) {
             const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
-            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 200)).filter(Boolean);
+            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 500)).filter(Boolean);
 
             newRecommendations.push({
               id: place.id,
@@ -340,7 +340,7 @@ function App() {
       if (places && places.length > 0) {
         for (const place of places.slice(0, 5)) {
           const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
-          const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 200)).filter(Boolean);
+          const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 500)).filter(Boolean);
 
           recommendations.push({
             id: place.id,
@@ -565,7 +565,7 @@ function App() {
   };
 
   // Fallback image
-  const fallbackImage = 'https://via.placeholder.com/200x150?text=No+Image';
+  const fallbackImage = 'https://via.placeholder.com/400x300?text=No+Image';
 
   // ==================== DETAIL SCREEN ====================
   if (screen === 'detail' && selectedPlace) {
@@ -625,80 +625,88 @@ function App() {
           </div>
         </div>
 
-        {/* Photo Gallery - Small Thumbnails */}
+        {/* Photo Gallery - Original Resolution, Centered */}
         <div style={{
-          background: 'white',
-          padding: '16px',
-          borderBottom: '1px solid #e8f5e9'
+          background: '#f0f0f0',
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
         }}>
-          {/* Thumbnail Row */}
-          <div style={{
-            display: 'flex',
-            gap: '10px',
-            overflowX: 'auto',
-            paddingBottom: '8px'
-          }}>
-            {images.length > 0 ? images.map((img, idx) => (
-              <div
-                key={idx}
-                onClick={() => setSelectedImageIndex(idx)}
-                style={{
-                  width: '100px',
-                  height: '75px',
-                  borderRadius: '10px',
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                  cursor: 'pointer',
-                  border: selectedImageIndex === idx ? '3px solid #4caf50' : '3px solid transparent',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <img
-                  src={img}
-                  alt={`${selectedPlace.name} ${idx + 1}`}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
-                  onError={(e) => { e.target.src = fallbackImage; }}
-                />
-              </div>
-            )) : (
-              <div style={{
-                width: '100px',
-                height: '75px',
-                borderRadius: '10px',
-                background: '#e0e0e0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#9e9e9e',
-                fontSize: '12px'
-              }}>
-                No photos
-              </div>
-            )}
-          </div>
-          
-          {/* Selected Image Preview */}
-          {images.length > 0 && (
+          {/* Main Image - Original aspect ratio, centered, not stretched */}
+          {images.length > 0 ? (
             <div style={{
-              marginTop: '12px',
               borderRadius: '12px',
               overflow: 'hidden',
-              height: '200px'
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              background: 'white',
+              padding: '4px'
             }}>
               <img
                 src={images[selectedImageIndex] || fallbackImage}
                 alt={selectedPlace.name}
                 style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover'
+                  maxWidth: '450px',
+                  maxHeight: '300px',
+                  width: 'auto',
+                  height: 'auto',
+                  display: 'block',
+                  borderRadius: '8px'
                 }}
                 onError={(e) => { e.target.src = fallbackImage; }}
               />
+            </div>
+          ) : (
+            <div style={{
+              width: '300px',
+              height: '200px',
+              background: '#e0e0e0',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#9e9e9e'
+            }}>
+              No photos available
+            </div>
+          )}
+          
+          {/* Thumbnail Row */}
+          {images.length > 1 && (
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              marginTop: '12px',
+              justifyContent: 'center',
+              flexWrap: 'wrap'
+            }}>
+              {images.map((img, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => setSelectedImageIndex(idx)}
+                  style={{
+                    width: '55px',
+                    height: '40px',
+                    borderRadius: '6px',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    border: selectedImageIndex === idx ? '3px solid #4caf50' : '3px solid transparent',
+                    opacity: selectedImageIndex === idx ? 1 : 0.6,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <img
+                    src={img}
+                    alt={`${selectedPlace.name} ${idx + 1}`}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                    onError={(e) => { e.target.src = fallbackImage; }}
+                  />
+                </div>
+              ))}
             </div>
           )}
         </div>
