@@ -984,9 +984,136 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
       console.error('AI generation error:', error);
       clearInterval(messageInterval);
       
-      // Fallback: generate mock trip
+      // Fallback: use real city itineraries
       const cityData = newTripCityData || { city: newTripCity, country: 'Unknown', flag: '📍', lat: 48.8566, lng: 2.3522 };
-      const mockTrip = {
+      
+      // Real city spots database
+      const REAL_CITY_SPOTS = {
+        'Rome': [
+          { name: 'Colosseum', type: 'Landmark', duration: '2 hours', lat: 41.8902, lng: 12.4922, image: 'https://images.pexels.com/photos/2064827/pexels-photo-2064827.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Roman Forum', type: 'History', duration: '1.5 hours', lat: 41.8925, lng: 12.4853, image: 'https://images.pexels.com/photos/2225439/pexels-photo-2225439.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Trevi Fountain', type: 'Landmark', duration: '30 min', lat: 41.9009, lng: 12.4833, image: 'https://images.pexels.com/photos/2748019/pexels-photo-2748019.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Pantheon', type: 'Landmark', duration: '45 min', lat: 41.8986, lng: 12.4769, image: 'https://images.pexels.com/photos/2676589/pexels-photo-2676589.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Vatican Museums', type: 'Museum', duration: '3 hours', lat: 41.9065, lng: 12.4536, image: 'https://images.pexels.com/photos/3004909/pexels-photo-3004909.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'St. Peters Basilica', type: 'Landmark', duration: '1.5 hours', lat: 41.9022, lng: 12.4539, image: 'https://images.pexels.com/photos/326709/pexels-photo-326709.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Spanish Steps', type: 'Landmark', duration: '30 min', lat: 41.9060, lng: 12.4828, image: 'https://images.pexels.com/photos/4819547/pexels-photo-4819547.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Piazza Navona', type: 'Square', duration: '45 min', lat: 41.8992, lng: 12.4731, image: 'https://images.pexels.com/photos/3278939/pexels-photo-3278939.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Trastevere', type: 'Neighborhood', duration: '2 hours', lat: 41.8869, lng: 12.4699, image: 'https://images.pexels.com/photos/4388167/pexels-photo-4388167.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Castel Sant Angelo', type: 'History', duration: '1 hour', lat: 41.9031, lng: 12.4663, image: 'https://images.pexels.com/photos/2928058/pexels-photo-2928058.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'Paris': [
+          { name: 'Eiffel Tower', type: 'Landmark', duration: '2 hours', lat: 48.8584, lng: 2.2945, image: 'https://images.pexels.com/photos/338515/pexels-photo-338515.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Louvre Museum', type: 'Museum', duration: '3 hours', lat: 48.8606, lng: 2.3376, image: 'https://images.pexels.com/photos/2363/france-landmark-lights-night.jpg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Arc de Triomphe', type: 'Landmark', duration: '1 hour', lat: 48.8738, lng: 2.2950, image: 'https://images.pexels.com/photos/2082103/pexels-photo-2082103.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Notre-Dame', type: 'Landmark', duration: '1 hour', lat: 48.8530, lng: 2.3499, image: 'https://images.pexels.com/photos/2344/cars-france-landmark-lights.jpg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Sacré-Cœur', type: 'Landmark', duration: '1 hour', lat: 48.8867, lng: 2.3431, image: 'https://images.pexels.com/photos/1461974/pexels-photo-1461974.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Montmartre', type: 'Neighborhood', duration: '2 hours', lat: 48.8862, lng: 2.3410, image: 'https://images.pexels.com/photos/2738173/pexels-photo-2738173.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Champs-Élysées', type: 'Shopping', duration: '2 hours', lat: 48.8698, lng: 2.3076, image: 'https://images.pexels.com/photos/2901209/pexels-photo-2901209.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Musée d\'Orsay', type: 'Museum', duration: '2 hours', lat: 48.8600, lng: 2.3266, image: 'https://images.pexels.com/photos/2363/france-landmark-lights-night.jpg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'Vienna': [
+          { name: 'Schönbrunn Palace', type: 'Landmark', duration: '3 hours', lat: 48.1845, lng: 16.3122, image: 'https://images.pexels.com/photos/2351425/pexels-photo-2351425.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'St. Stephens Cathedral', type: 'Landmark', duration: '1 hour', lat: 48.2082, lng: 16.3738, image: 'https://images.pexels.com/photos/2422259/pexels-photo-2422259.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Belvedere Palace', type: 'Museum', duration: '2 hours', lat: 48.1914, lng: 16.3805, image: 'https://images.pexels.com/photos/2351425/pexels-photo-2351425.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Vienna State Opera', type: 'Culture', duration: '1.5 hours', lat: 48.2035, lng: 16.3689, image: 'https://images.pexels.com/photos/2893177/pexels-photo-2893177.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Hofburg Palace', type: 'History', duration: '2 hours', lat: 48.2066, lng: 16.3656, image: 'https://images.pexels.com/photos/2422259/pexels-photo-2422259.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Prater Park', type: 'Park', duration: '2 hours', lat: 48.2166, lng: 16.3999, image: 'https://images.pexels.com/photos/2893177/pexels-photo-2893177.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Naschmarkt', type: 'Market', duration: '1.5 hours', lat: 48.1986, lng: 16.3633, image: 'https://images.pexels.com/photos/2351425/pexels-photo-2351425.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Kunsthistorisches Museum', type: 'Museum', duration: '2 hours', lat: 48.2038, lng: 16.3616, image: 'https://images.pexels.com/photos/2422259/pexels-photo-2422259.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'Istanbul': [
+          { name: 'Hagia Sophia', type: 'Landmark', duration: '1.5 hours', lat: 41.0086, lng: 28.9802, image: 'https://images.pexels.com/photos/3889843/pexels-photo-3889843.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Blue Mosque', type: 'Landmark', duration: '1 hour', lat: 41.0054, lng: 28.9768, image: 'https://images.pexels.com/photos/3889704/pexels-photo-3889704.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Topkapi Palace', type: 'Museum', duration: '2.5 hours', lat: 41.0115, lng: 28.9833, image: 'https://images.pexels.com/photos/4825701/pexels-photo-4825701.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Grand Bazaar', type: 'Market', duration: '2 hours', lat: 41.0107, lng: 28.9680, image: 'https://images.pexels.com/photos/3889855/pexels-photo-3889855.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Galata Tower', type: 'Landmark', duration: '1 hour', lat: 41.0256, lng: 28.9741, image: 'https://images.pexels.com/photos/4916559/pexels-photo-4916559.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Bosphorus Cruise', type: 'Activity', duration: '2 hours', lat: 41.0256, lng: 28.9744, image: 'https://images.pexels.com/photos/3889891/pexels-photo-3889891.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Spice Bazaar', type: 'Market', duration: '1 hour', lat: 41.0166, lng: 28.9706, image: 'https://images.pexels.com/photos/3889855/pexels-photo-3889855.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Basilica Cistern', type: 'History', duration: '45 min', lat: 41.0084, lng: 28.9779, image: 'https://images.pexels.com/photos/3889843/pexels-photo-3889843.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'Tokyo': [
+          { name: 'Senso-ji Temple', type: 'Temple', duration: '1.5 hours', lat: 35.7148, lng: 139.7967, image: 'https://images.pexels.com/photos/5169479/pexels-photo-5169479.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Shibuya Crossing', type: 'Landmark', duration: '30 min', lat: 35.6595, lng: 139.7004, image: 'https://images.pexels.com/photos/2614818/pexels-photo-2614818.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Meiji Shrine', type: 'Temple', duration: '1 hour', lat: 35.6764, lng: 139.6993, image: 'https://images.pexels.com/photos/5169056/pexels-photo-5169056.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Tokyo Tower', type: 'Landmark', duration: '1.5 hours', lat: 35.6586, lng: 139.7454, image: 'https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Shinjuku Gyoen', type: 'Park', duration: '2 hours', lat: 35.6852, lng: 139.7100, image: 'https://images.pexels.com/photos/5169479/pexels-photo-5169479.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Akihabara', type: 'Neighborhood', duration: '2 hours', lat: 35.7023, lng: 139.7745, image: 'https://images.pexels.com/photos/2614818/pexels-photo-2614818.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Harajuku', type: 'Neighborhood', duration: '2 hours', lat: 35.6702, lng: 139.7027, image: 'https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Tokyo Skytree', type: 'Landmark', duration: '1.5 hours', lat: 35.7101, lng: 139.8107, image: 'https://images.pexels.com/photos/2614818/pexels-photo-2614818.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'Barcelona': [
+          { name: 'Sagrada Familia', type: 'Landmark', duration: '2 hours', lat: 41.4036, lng: 2.1744, image: 'https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Park Güell', type: 'Park', duration: '2 hours', lat: 41.4145, lng: 2.1527, image: 'https://images.pexels.com/photos/1655028/pexels-photo-1655028.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Casa Batlló', type: 'Architecture', duration: '1.5 hours', lat: 41.3916, lng: 2.1649, image: 'https://images.pexels.com/photos/1874675/pexels-photo-1874675.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'La Rambla', type: 'Street', duration: '1.5 hours', lat: 41.3809, lng: 2.1734, image: 'https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Gothic Quarter', type: 'Neighborhood', duration: '2 hours', lat: 41.3833, lng: 2.1767, image: 'https://images.pexels.com/photos/1874675/pexels-photo-1874675.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'La Boqueria Market', type: 'Market', duration: '1 hour', lat: 41.3816, lng: 2.1719, image: 'https://images.pexels.com/photos/1655028/pexels-photo-1655028.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Barceloneta Beach', type: 'Beach', duration: '2 hours', lat: 41.3782, lng: 2.1925, image: 'https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Camp Nou', type: 'Stadium', duration: '2 hours', lat: 41.3809, lng: 2.1228, image: 'https://images.pexels.com/photos/1874675/pexels-photo-1874675.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'London': [
+          { name: 'Big Ben', type: 'Landmark', duration: '30 min', lat: 51.5007, lng: -0.1246, image: 'https://images.pexels.com/photos/77171/pexels-photo-77171.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Tower Bridge', type: 'Landmark', duration: '1 hour', lat: 51.5055, lng: -0.0754, image: 'https://images.pexels.com/photos/672532/pexels-photo-672532.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'British Museum', type: 'Museum', duration: '3 hours', lat: 51.5194, lng: -0.1270, image: 'https://images.pexels.com/photos/2570063/pexels-photo-2570063.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Buckingham Palace', type: 'Landmark', duration: '1 hour', lat: 51.5014, lng: -0.1419, image: 'https://images.pexels.com/photos/460672/pexels-photo-460672.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'London Eye', type: 'Attraction', duration: '1 hour', lat: 51.5033, lng: -0.1195, image: 'https://images.pexels.com/photos/460672/pexels-photo-460672.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Tower of London', type: 'History', duration: '2.5 hours', lat: 51.5081, lng: -0.0759, image: 'https://images.pexels.com/photos/77171/pexels-photo-77171.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Westminster Abbey', type: 'Landmark', duration: '1.5 hours', lat: 51.4994, lng: -0.1273, image: 'https://images.pexels.com/photos/672532/pexels-photo-672532.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Covent Garden', type: 'Shopping', duration: '1.5 hours', lat: 51.5117, lng: -0.1240, image: 'https://images.pexels.com/photos/2570063/pexels-photo-2570063.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'New York': [
+          { name: 'Statue of Liberty', type: 'Landmark', duration: '3 hours', lat: 40.6892, lng: -74.0445, image: 'https://images.pexels.com/photos/64271/queen-of-liberty-statue-of-liberty-new-york-liberty-64271.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Empire State Building', type: 'Landmark', duration: '1.5 hours', lat: 40.7484, lng: -73.9857, image: 'https://images.pexels.com/photos/2190283/pexels-photo-2190283.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Central Park', type: 'Park', duration: '3 hours', lat: 40.7829, lng: -73.9654, image: 'https://images.pexels.com/photos/76969/cold-front-warm-front-central-park-background-76969.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Times Square', type: 'Square', duration: '1 hour', lat: 40.7580, lng: -73.9855, image: 'https://images.pexels.com/photos/802024/pexels-photo-802024.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Brooklyn Bridge', type: 'Landmark', duration: '1 hour', lat: 40.7061, lng: -73.9969, image: 'https://images.pexels.com/photos/1239162/pexels-photo-1239162.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Metropolitan Museum', type: 'Museum', duration: '3 hours', lat: 40.7794, lng: -73.9632, image: 'https://images.pexels.com/photos/2190283/pexels-photo-2190283.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: '9/11 Memorial', type: 'Memorial', duration: '1.5 hours', lat: 40.7115, lng: -74.0134, image: 'https://images.pexels.com/photos/802024/pexels-photo-802024.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'High Line', type: 'Park', duration: '1.5 hours', lat: 40.7480, lng: -74.0048, image: 'https://images.pexels.com/photos/1239162/pexels-photo-1239162.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'Valencia': [
+          { name: 'City of Arts and Sciences', type: 'Landmark', duration: '3 hours', lat: 39.4541, lng: -0.3507, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'La Lonja de la Seda', type: 'History', duration: '1 hour', lat: 39.4743, lng: -0.3787, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Valencia Cathedral', type: 'Landmark', duration: '1 hour', lat: 39.4753, lng: -0.3754, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Central Market', type: 'Market', duration: '1.5 hours', lat: 39.4737, lng: -0.3791, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Turia Gardens', type: 'Park', duration: '2 hours', lat: 39.4800, lng: -0.3700, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Malvarrosa Beach', type: 'Beach', duration: '2 hours', lat: 39.4789, lng: -0.3225, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Bioparc Valencia', type: 'Zoo', duration: '3 hours', lat: 39.4784, lng: -0.4074, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'El Carmen Neighborhood', type: 'Neighborhood', duration: '2 hours', lat: 39.4795, lng: -0.3815, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ]
+      };
+      
+      // Get spots for this city or generate generic ones
+      const cityName = cityData.city;
+      let allSpots = REAL_CITY_SPOTS[cityName];
+      
+      if (!allSpots) {
+        // Generate generic spots for unknown cities
+        allSpots = Array.from({ length: 8 }, (_, j) => ({
+          name: `${cityName} Top Attraction ${j + 1}`,
+          type: ['Landmark', 'Museum', 'Restaurant', 'Park', 'Market', 'Neighborhood'][j % 6],
+          duration: `${1 + (j % 3)} hours`,
+          lat: cityData.lat + (Math.random() - 0.5) * 0.03,
+          lng: cityData.lng + (Math.random() - 0.5) * 0.03,
+          image: 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300'
+        }));
+      }
+      
+      // Distribute spots across days
+      const spotsPerDay = Math.ceil(allSpots.length / newTripDays);
+      const itinerary = Array.from({ length: newTripDays }, (_, dayIndex) => {
+        const daySpots = allSpots.slice(dayIndex * spotsPerDay, (dayIndex + 1) * spotsPerDay);
+        return {
+          day: dayIndex + 1,
+          title: ['Historic Center', 'Culture & Art', 'Local Life', 'Hidden Gems', 'Day Trip'][dayIndex % 5],
+          spots: daySpots.map((spot, spotIndex) => ({
+            ...spot,
+            walkTime: spotIndex === 0 ? null : `${8 + (spotIndex * 3)} min walk`
+          }))
+        };
+      });
+      
+      const realTrip = {
         id: 'ai-' + Date.now(),
         city: cityData.city,
         country: cityData.country,
@@ -994,24 +1121,12 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
         title: `${newTripDays}-Day ${cityData.city} Trip`,
         days: newTripDays,
         center: [cityData.lat, cityData.lng],
-        image: `https://source.unsplash.com/400x300/?${encodeURIComponent(cityData.city)},travel`,
-        itinerary: Array.from({ length: newTripDays }, (_, i) => ({
-          day: i + 1,
-          title: ['Exploration', 'Discovery', 'Adventure', 'Culture', 'Local Life'][i % 5],
-          spots: Array.from({ length: 4 }, (_, j) => ({
-            name: `${cityData.city} Attraction ${i * 4 + j + 1}`,
-            type: ['Landmark', 'Museum', 'Restaurant', 'Park'][j % 4],
-            duration: `${1 + j} hours`,
-            walkTime: j === 0 ? null : `${5 + j * 3} min`,
-            lat: cityData.lat + (Math.random() - 0.5) * 0.05,
-            lng: cityData.lng + (Math.random() - 0.5) * 0.05,
-            image: `https://source.unsplash.com/100x100/?${encodeURIComponent(cityData.city)},landmark`
-          }))
-        })),
+        image: allSpots[0]?.image || 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
+        itinerary: itinerary,
         isAiGenerated: true
       };
       
-      setGeneratedTrip(mockTrip);
+      setGeneratedTrip(realTrip);
       setAiGenerating(false);
       setScreen('tripResult');
     }
@@ -1209,8 +1324,10 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
                   { city: 'Tokyo', country: 'Japan', flag: '🇯🇵', lat: 35.6762, lng: 139.6503 },
                   { city: 'Rome', country: 'Italy', flag: '🇮🇹', lat: 41.9028, lng: 12.4964 },
                   { city: 'Istanbul', country: 'Turkey', flag: '🇹🇷', lat: 41.0082, lng: 28.9784 },
+                  { city: 'Vienna', country: 'Austria', flag: '🇦🇹', lat: 48.2082, lng: 16.3738 },
                   { city: 'Barcelona', country: 'Spain', flag: '🇪🇸', lat: 41.3851, lng: 2.1734 },
-                  { city: 'New York', country: 'USA', flag: '🇺🇸', lat: 40.7128, lng: -74.0060 }
+                  { city: 'London', country: 'UK', flag: '🇬🇧', lat: 51.5074, lng: -0.1278 },
+                  { city: 'Valencia', country: 'Spain', flag: '🇪🇸', lat: 39.4699, lng: -0.3763 }
                 ].map((city) => (
                   <button 
                     key={city.city} 
