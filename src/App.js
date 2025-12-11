@@ -454,9 +454,18 @@ const TRAVEL_GUIDES = [
 // MAP COMPONENTS
 // ============================================
 
-const TripMap = ({ guide, selectedDay, onSpotClick }) => {
+const TripMap = ({ guide, selectedDay, onSpotClick, expanded }) => {
   const mapRef = React.useRef(null);
   const mapInstanceRef = React.useRef(null);
+
+  // Handle map resize when expanded changes
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      setTimeout(() => {
+        mapInstanceRef.current.invalidateSize();
+      }, 350);
+    }
+  }, [expanded]);
 
   useEffect(() => {
     // Load Leaflet CSS
@@ -1362,7 +1371,7 @@ function App() {
             boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
             transition: 'height 0.3s ease'
           }}>
-          <TripMap guide={selectedGuide} selectedDay={showAllDaysOnMap ? null : selectedDay} onSpotClick={(day) => { setSelectedDay(day); setShowAllDaysOnMap(false); }} />
+          <TripMap guide={selectedGuide} selectedDay={showAllDaysOnMap ? null : selectedDay} onSpotClick={(day) => { setSelectedDay(day); setShowAllDaysOnMap(false); }} expanded={mapExpanded} />
         </div>
 
         {/* Day Legend */}
