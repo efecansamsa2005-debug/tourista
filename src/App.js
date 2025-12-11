@@ -458,6 +458,17 @@ const TripMap = ({ guide, selectedDay, onSpotClick, expanded }) => {
   const mapRef = React.useRef(null);
   const mapInstanceRef = React.useRef(null);
 
+  // Listen for resize events to invalidate map size
+  useEffect(() => {
+    const handleResize = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     // Load Leaflet CSS
     if (!document.getElementById('leaflet-css')) {
@@ -1352,18 +1363,29 @@ function App() {
 
         {/* Interactive Map */}
         <div 
-          onMouseEnter={() => setMapExpanded(true)}
-          onMouseLeave={() => setMapExpanded(false)}
+          onClick={() => {
+            setMapExpanded(!mapExpanded);
+            // Force map to recalculate size after animation
+            setTimeout(() => {
+              window.dispatchEvent(new Event('resize'));
+            }, 350);
+          }}
           style={{ 
             height: mapExpanded ? '50vh' : '250px', 
             margin: '16px', 
             borderRadius: '16px', 
             overflow: 'hidden', 
             boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-            transition: 'height 0.3s ease'
+            transition: 'height 0.3s ease',
+            cursor: 'pointer'
           }}>
           <TripMap guide={selectedGuide} selectedDay={showAllDaysOnMap ? null : selectedDay} onSpotClick={(day) => { setSelectedDay(day); setShowAllDaysOnMap(false); }} expanded={mapExpanded} />
         </div>
+        
+        {/* Map expand hint */}
+        <p style={{ textAlign: 'center', fontSize: '11px', color: '#999', margin: '-8px 0 8px' }}>
+          {mapExpanded ? '📍 Click map to shrink' : '📍 Click map to expand'}
+        </p>
 
         {/* Day Legend */}
         <div style={{ padding: '0 16px 8px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
