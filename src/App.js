@@ -1,39 +1,62 @@
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://xuaczwlwbsxoixosunzx.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1YWN6d2x3YnN4b2l4b3N1bnp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyODc1NjYsImV4cCI6MjA4MDg2MzU2Nn0.nfqRmFe0-1t_hDrPAc2oTO-y4UfbsEjen5sYbr1lYeE';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Demo mode - no Supabase needed for artifact preview
+const DEMO_MODE = true;
 
-const DAY_COLORS = [
-  '#e53935', 
-  '#1e88e5', 
-  '#43a047', 
-  '#fb8c00', 
-  '#8e24aa', 
-  '#00acc1', 
-  '#d81b60'
+const DAY_COLORS = ['#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa', '#00acc1', '#d81b60'];
+
+const CITY_DATABASE = [
+  { city: 'Paris', country: 'France', flag: '🇫🇷', lat: 48.8566, lng: 2.3522 },
+  { city: 'London', country: 'United Kingdom', flag: '🇬🇧', lat: 51.5074, lng: -0.1278 },
+  { city: 'Rome', country: 'Italy', flag: '🇮🇹', lat: 41.9028, lng: 12.4964 },
+  { city: 'Barcelona', country: 'Spain', flag: '🇪🇸', lat: 41.3851, lng: 2.1734 },
+  { city: 'Amsterdam', country: 'Netherlands', flag: '🇳🇱', lat: 52.3676, lng: 4.9041 },
+  { city: 'Prague', country: 'Czech Republic', flag: '🇨🇿', lat: 50.0755, lng: 14.4378 },
+  { city: 'Istanbul', country: 'Turkey', flag: '🇹🇷', lat: 41.0082, lng: 28.9784 },
+  { city: 'Tokyo', country: 'Japan', flag: '🇯🇵', lat: 35.6762, lng: 139.6503 },
+  { city: 'New York', country: 'USA', flag: '🇺🇸', lat: 40.7128, lng: -74.0060 },
+  { city: 'Los Angeles', country: 'USA', flag: '🇺🇸', lat: 34.0522, lng: -118.2437 },
+  { city: 'Dubai', country: 'UAE', flag: '🇦🇪', lat: 25.2048, lng: 55.2708 },
+  { city: 'Singapore', country: 'Singapore', flag: '🇸🇬', lat: 1.3521, lng: 103.8198 },
+  { city: 'Bangkok', country: 'Thailand', flag: '🇹🇭', lat: 13.7563, lng: 100.5018 },
+  { city: 'Berlin', country: 'Germany', flag: '🇩🇪', lat: 52.5200, lng: 13.4050 },
+  { city: 'Vienna', country: 'Austria', flag: '🇦🇹', lat: 48.2082, lng: 16.3738 },
+  { city: 'Madrid', country: 'Spain', flag: '🇪🇸', lat: 40.4168, lng: -3.7038 },
+  { city: 'Lisbon', country: 'Portugal', flag: '🇵🇹', lat: 38.7223, lng: -9.1393 },
+  { city: 'Athens', country: 'Greece', flag: '🇬🇷', lat: 37.9838, lng: 23.7275 },
+  { city: 'Budapest', country: 'Hungary', flag: '🇭🇺', lat: 47.4979, lng: 19.0402 },
+  { city: 'Seoul', country: 'South Korea', flag: '🇰🇷', lat: 37.5665, lng: 126.9780 },
+  { city: 'Bali', country: 'Indonesia', flag: '🇮🇩', lat: -8.3405, lng: 115.0920 },
+  { city: 'Cairo', country: 'Egypt', flag: '🇪🇬', lat: 30.0444, lng: 31.2357 },
+  { city: 'Marrakech', country: 'Morocco', flag: '🇲🇦', lat: 31.6295, lng: -7.9811 },
+  { city: 'Miami', country: 'USA', flag: '🇺🇸', lat: 25.7617, lng: -80.1918 },
+  { city: 'Santorini', country: 'Greece', flag: '🇬🇷', lat: 36.3932, lng: 25.4615 },
+  { city: 'Dubrovnik', country: 'Croatia', flag: '🇭🇷', lat: 42.6507, lng: 18.0944 },
+  { city: 'Antalya', country: 'Turkey', flag: '🇹🇷', lat: 36.8969, lng: 30.7133 },
+  { city: 'Bodrum', country: 'Turkey', flag: '🇹🇷', lat: 37.0343, lng: 27.4305 },
+  { city: 'Cappadocia', country: 'Turkey', flag: '🇹🇷', lat: 38.6431, lng: 34.8289 },
+  { city: 'Maldives', country: 'Maldives', flag: '🇲🇻', lat: 3.2028, lng: 73.2207 },
 ];
-
-// Spot details for modal - AI generated tips
-const SPOT_DETAILS = {
-  'Eiffel Tower': { rating: 4.7, reviews: 245890, description: 'Iconic iron lattice tower on the Champ de Mars, symbol of Paris since 1889.', tips: ['Book tickets online to skip the queue', 'Visit at sunset for stunning views', 'The summit offers 360° panoramic views', 'Cheaper to take stairs to 2nd floor', 'Light show every hour after dark'] },
-  'Louvre Museum': { rating: 4.8, reviews: 312456, description: 'World\'s largest art museum and historic monument, home to the Mona Lisa.', tips: ['Enter through Carrousel entrance to avoid crowds', 'Wednesday and Friday open until 9:45 PM', 'Download museum app for self-guided tours', 'Mona Lisa is smaller than expected', 'Don\'t miss Winged Victory of Samothrace'] },
-  'Colosseum': { rating: 4.7, reviews: 198234, description: 'Ancient amphitheater in Rome, largest ever built, iconic symbol of Imperial Rome.', tips: ['Book skip-the-line tickets in advance', 'Combined ticket includes Roman Forum', 'Best photos from upper levels', 'Underground tours available', 'Arrive early morning or late afternoon'] },
-  'Sagrada Familia': { rating: 4.8, reviews: 167543, description: 'Gaudí\'s unfinished masterpiece, a basilica blending Gothic and Art Nouveau.', tips: ['Book tickets weeks in advance', 'Morning light through east facade is magical', 'Tower visit offers great city views', 'Audio guide highly recommended', 'Construction expected to complete by 2026'] },
-  'Big Ben': { rating: 4.6, reviews: 89234, description: 'Iconic clock tower at the Palace of Westminster, symbol of London since 1859.', tips: ['Best photos from Westminster Bridge', 'UK residents can tour the interior', 'Listen for the famous chimes', 'Beautiful when lit at night', 'Combine with Houses of Parliament visit'] },
-  'default': { rating: 4.5, reviews: 10000, description: 'A must-visit attraction with unique history and cultural significance.', tips: ['Check opening hours before visiting', 'Book tickets online when possible', 'Best to visit early morning', 'Wear comfortable walking shoes', 'Check for guided tour options'] }
-};
 
 const TRIP_CATEGORIES = [
-  { id: 'popular', emoji: '📍', label: 'Popular' },
-  { id: 'museum', emoji: '🏛️', label: 'Museum' },
-  { id: 'nature', emoji: '🌿', label: 'Nature' },
-  { id: 'foodie', emoji: '🍕', label: 'Foodie' },
-  { id: 'history', emoji: '🏰', label: 'History' },
-  { id: 'shopping', emoji: '🛍️', label: 'Shopping' }
+  { id: 'architecture', emoji: '🏛️', label: 'Architecture' },
+  { id: 'nightlife', emoji: '🌙', label: 'Nightlife' },
+  { id: 'art', emoji: '🎨', label: 'Art & Culture' },
+  { id: 'cuisine', emoji: '🍽️', label: 'Local Cuisine' },
+  { id: 'adventure', emoji: '🏔️', label: 'Adventure' },
+  { id: 'instagram', emoji: '📸', label: 'Instagram Spots' }
 ];
 
+const SPOT_DETAILS = {
+  'default': { 
+    rating: 4.5, 
+    reviews: 10000, 
+    description: 'A must-visit attraction with unique history.', 
+    tips: ['Check opening hours', 'Book tickets online', 'Visit early morning'] 
+  }
+};
+
+// Sample pre-built guides
 const TRAVEL_GUIDES = [
   {
     id: 'paris',
@@ -50,10 +73,8 @@ const TRAVEL_GUIDES = [
         title: 'Iconic Paris',
         spots: [
           { name: 'Eiffel Tower', type: 'Landmark', duration: '2 hours', walkTime: null, lat: 48.8584, lng: 2.2945, image: 'https://images.unsplash.com/photo-1511739001486-6bfe10ce65f4?w=100&h=100&fit=crop' },
-          { name: 'Champ de Mars', type: 'Park', duration: '30 min', walkTime: '5 min', lat: 48.8556, lng: 2.2986, image: 'https://images.unsplash.com/photo-1509439581779-6298f75bf6e5?w=100&h=100&fit=crop' },
           { name: 'Arc de Triomphe', type: 'Landmark', duration: '1 hour', walkTime: '25 min', lat: 48.8738, lng: 2.2950, image: 'https://images.unsplash.com/photo-1518805208834-71ae392e0804?w=100&h=100&fit=crop' },
-          { name: 'Champs-Élysées', type: 'Shopping', duration: '2 hours', walkTime: '2 min', lat: 48.8698, lng: 2.3076, image: 'https://images.unsplash.com/photo-1520939817895-060bdaf4fe1b?w=100&h=100&fit=crop' },
-          { name: 'Place de la Concorde', type: 'Square', duration: '30 min', walkTime: '15 min', lat: 48.8656, lng: 2.3212, image: 'https://images.unsplash.com/photo-1555992828-ca4dbe41d294?w=100&h=100&fit=crop' }
+          { name: 'Champs-Élysées', type: 'Shopping', duration: '2 hours', walkTime: '5 min', lat: 48.8698, lng: 2.3076, image: 'https://images.unsplash.com/photo-1520939817895-060bdaf4fe1b?w=100&h=100&fit=crop' },
         ]
       },
       {
@@ -61,170 +82,15 @@ const TRAVEL_GUIDES = [
         title: 'Art & Culture',
         spots: [
           { name: 'Louvre Museum', type: 'Museum', duration: '4 hours', walkTime: null, lat: 48.8606, lng: 2.3376, image: 'https://images.unsplash.com/photo-1499426600726-7f1e2d5c39ce?w=100&h=100&fit=crop' },
-          { name: 'Tuileries Garden', type: 'Park', duration: '1 hour', walkTime: '3 min', lat: 48.8634, lng: 2.3275, image: 'https://images.unsplash.com/photo-1555992457-b8fefdd09069?w=100&h=100&fit=crop' },
-          { name: 'Musée d Orsay', type: 'Museum', duration: '2 hours', walkTime: '15 min', lat: 48.8600, lng: 2.3266, image: 'https://images.unsplash.com/photo-1591289009723-aef0a1a8a211?w=100&h=100&fit=crop' },
-          { name: 'Notre-Dame', type: 'Landmark', duration: '1 hour', walkTime: '12 min', lat: 48.8530, lng: 2.3499, image: 'https://images.unsplash.com/photo-1478391679764-b2d8b3cd1e94?w=100&h=100&fit=crop' },
-          { name: 'Latin Quarter', type: 'Neighborhood', duration: '2 hours', walkTime: '5 min', lat: 48.8510, lng: 2.3470, image: 'https://images.unsplash.com/photo-1550340499-a6c60fc8287c?w=100&h=100&fit=crop' }
+          { name: 'Notre-Dame', type: 'Landmark', duration: '1 hour', walkTime: '15 min', lat: 48.8530, lng: 2.3499, image: 'https://images.unsplash.com/photo-1478391679764-b2d8b3cd1e94?w=100&h=100&fit=crop' },
         ]
       },
       {
         day: 3,
-        title: 'Montmartre & Le Marais',
+        title: 'Montmartre',
         spots: [
           { name: 'Sacré-Cœur', type: 'Landmark', duration: '1 hour', walkTime: null, lat: 48.8867, lng: 2.3431, image: 'https://images.unsplash.com/photo-1551634979-2b11f8c946fe?w=100&h=100&fit=crop' },
-          { name: 'Montmartre', type: 'Neighborhood', duration: '2 hours', walkTime: '3 min', lat: 48.8862, lng: 2.3410, image: 'https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=100&h=100&fit=crop' },
           { name: 'Moulin Rouge', type: 'Entertainment', duration: '30 min', walkTime: '10 min', lat: 48.8842, lng: 2.3322, image: 'https://images.unsplash.com/photo-1556610961-2fecc5927173?w=100&h=100&fit=crop' },
-          { name: 'Le Marais', type: 'Neighborhood', duration: '2 hours', walkTime: 'Metro', lat: 48.8598, lng: 2.3623, image: 'https://images.unsplash.com/photo-1560448205-4d9b3e6bb6db?w=100&h=100&fit=crop' },
-          { name: 'Seine River Cruise', type: 'Activity', duration: '1 hour', walkTime: '15 min', lat: 48.8584, lng: 2.3378, image: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=100&h=100&fit=crop' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'rome',
-    city: 'Rome',
-    country: 'Italy',
-    flag: '🇮🇹',
-    title: '3-Day Rome Trip',
-    days: 3,
-    center: [41.9028, 12.4964],
-    image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&h=300&fit=crop',
-    itinerary: [
-      {
-        day: 1,
-        title: 'Ancient Rome',
-        spots: [
-          { name: 'Colosseum', type: 'Landmark', duration: '2 hours', walkTime: null, lat: 41.8902, lng: 12.4922, image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=100&h=100&fit=crop' },
-          { name: 'Roman Forum', type: 'History', duration: '2 hours', walkTime: '5 min', lat: 41.8925, lng: 12.4853, image: 'https://images.unsplash.com/photo-1555992828-017f4f3b9859?w=100&h=100&fit=crop' },
-          { name: 'Palatine Hill', type: 'History', duration: '1.5 hours', walkTime: '3 min', lat: 41.8892, lng: 12.4875, image: 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=100&h=100&fit=crop' },
-          { name: 'Piazza Venezia', type: 'Square', duration: '30 min', walkTime: '10 min', lat: 41.8964, lng: 12.4823, image: 'https://images.unsplash.com/photo-1529260830199-42c24126f198?w=100&h=100&fit=crop' }
-        ]
-      },
-      {
-        day: 2,
-        title: 'Vatican City',
-        spots: [
-          { name: 'Vatican Museums', type: 'Museum', duration: '3 hours', walkTime: null, lat: 41.9065, lng: 12.4536, image: 'https://images.unsplash.com/photo-1533154683836-84ea7a0bc310?w=100&h=100&fit=crop' },
-          { name: 'Sistine Chapel', type: 'Art', duration: '1 hour', walkTime: '2 min', lat: 41.9029, lng: 12.4545, image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=100&h=100&fit=crop' },
-          { name: 'St Peters Basilica', type: 'Landmark', duration: '2 hours', walkTime: '5 min', lat: 41.9022, lng: 12.4539, image: 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=100&h=100&fit=crop' },
-          { name: 'Castel Sant Angelo', type: 'History', duration: '1.5 hours', walkTime: '10 min', lat: 41.9031, lng: 12.4663, image: 'https://images.unsplash.com/photo-1555992457-b8fefdd09069?w=100&h=100&fit=crop' }
-        ]
-      },
-      {
-        day: 3,
-        title: 'Fountains & Piazzas',
-        spots: [
-          { name: 'Trevi Fountain', type: 'Landmark', duration: '45 min', walkTime: null, lat: 41.9009, lng: 12.4833, image: 'https://images.unsplash.com/photo-1525874684015-58379d421a52?w=100&h=100&fit=crop' },
-          { name: 'Spanish Steps', type: 'Landmark', duration: '30 min', walkTime: '5 min', lat: 41.9060, lng: 12.4828, image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=100&h=100&fit=crop' },
-          { name: 'Pantheon', type: 'Landmark', duration: '1 hour', walkTime: '10 min', lat: 41.8986, lng: 12.4769, image: 'https://images.unsplash.com/photo-1548585744-2b76a8c73426?w=100&h=100&fit=crop' },
-          { name: 'Piazza Navona', type: 'Square', duration: '45 min', walkTime: '5 min', lat: 41.8992, lng: 12.4731, image: 'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=100&h=100&fit=crop' },
-          { name: 'Trastevere', type: 'Neighborhood', duration: '2 hours', walkTime: '15 min', lat: 41.8869, lng: 12.4699, image: 'https://images.unsplash.com/photo-1529260830199-42c24126f198?w=100&h=100&fit=crop' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'london',
-    city: 'London',
-    country: 'UK',
-    flag: '🇬🇧',
-    title: '3-Day London Trip',
-    days: 3,
-    center: [51.5074, -0.1278],
-    image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400&h=300&fit=crop',
-    itinerary: [
-      {
-        day: 1,
-        title: 'Royal London',
-        spots: [
-          { name: 'Buckingham Palace', type: 'Landmark', duration: '1.5 hours', walkTime: null, lat: 51.5014, lng: -0.1419, image: 'https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=100&h=100&fit=crop' },
-          { name: 'Westminster Abbey', type: 'Landmark', duration: '1.5 hours', walkTime: '10 min', lat: 51.4994, lng: -0.1273, image: 'https://images.unsplash.com/photo-1529655683826-aba9b3e77383?w=100&h=100&fit=crop' },
-          { name: 'Big Ben', type: 'Landmark', duration: '30 min', walkTime: '3 min', lat: 51.5007, lng: -0.1246, image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=100&h=100&fit=crop' },
-          { name: 'London Eye', type: 'Attraction', duration: '1 hour', walkTime: '5 min', lat: 51.5033, lng: -0.1195, image: 'https://images.unsplash.com/photo-1520986606214-8b456906c813?w=100&h=100&fit=crop' }
-        ]
-      },
-      {
-        day: 2,
-        title: 'Museums & Culture',
-        spots: [
-          { name: 'British Museum', type: 'Museum', duration: '3 hours', walkTime: null, lat: 51.5194, lng: -0.1270, image: 'https://images.unsplash.com/photo-1580086319619-3ed498161c77?w=100&h=100&fit=crop' },
-          { name: 'Covent Garden', type: 'Shopping', duration: '1.5 hours', walkTime: '10 min', lat: 51.5117, lng: -0.1240, image: 'https://images.unsplash.com/photo-1534695215921-52f8a19e7909?w=100&h=100&fit=crop' },
-          { name: 'National Gallery', type: 'Museum', duration: '2 hours', walkTime: '8 min', lat: 51.5089, lng: -0.1283, image: 'https://images.unsplash.com/photo-1526129318478-62ed807ebdf9?w=100&h=100&fit=crop' },
-          { name: 'Trafalgar Square', type: 'Square', duration: '30 min', walkTime: '1 min', lat: 51.5080, lng: -0.1281, image: 'https://images.unsplash.com/photo-1520986606214-8b456906c813?w=100&h=100&fit=crop' }
-        ]
-      },
-      {
-        day: 3,
-        title: 'Tower & Markets',
-        spots: [
-          { name: 'Tower of London', type: 'History', duration: '3 hours', walkTime: null, lat: 51.5081, lng: -0.0759, image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=100&h=100&fit=crop' },
-          { name: 'Tower Bridge', type: 'Landmark', duration: '1 hour', walkTime: '5 min', lat: 51.5055, lng: -0.0754, image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=100&h=100&fit=crop' },
-          { name: 'Borough Market', type: 'Market', duration: '1.5 hours', walkTime: '10 min', lat: 51.5055, lng: -0.0910, image: 'https://images.unsplash.com/photo-1534695215921-52f8a19e7909?w=100&h=100&fit=crop' },
-          { name: 'Tate Modern', type: 'Museum', duration: '2 hours', walkTime: '8 min', lat: 51.5076, lng: -0.0994, image: 'https://images.unsplash.com/photo-1526129318478-62ed807ebdf9?w=100&h=100&fit=crop' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'barcelona',
-    city: 'Barcelona',
-    country: 'Spain',
-    flag: '🇪🇸',
-    title: '2-Day Barcelona Trip',
-    days: 2,
-    center: [41.3851, 2.1734],
-    image: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=400&h=300&fit=crop',
-    itinerary: [
-      {
-        day: 1,
-        title: 'Gaudi Masterpieces',
-        spots: [
-          { name: 'Sagrada Familia', type: 'Landmark', duration: '2 hours', walkTime: null, lat: 41.4036, lng: 2.1744, image: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=100&h=100&fit=crop' },
-          { name: 'Park Guell', type: 'Park', duration: '2 hours', walkTime: 'Bus', lat: 41.4145, lng: 2.1527, image: 'https://images.unsplash.com/photo-1564221710304-0b37c8b9d729?w=100&h=100&fit=crop' },
-          { name: 'Casa Batllo', type: 'Architecture', duration: '1.5 hours', walkTime: 'Metro', lat: 41.3916, lng: 2.1649, image: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=100&h=100&fit=crop' },
-          { name: 'La Pedrera', type: 'Architecture', duration: '1.5 hours', walkTime: '3 min', lat: 41.3953, lng: 2.1619, image: 'https://images.unsplash.com/photo-1564221710304-0b37c8b9d729?w=100&h=100&fit=crop' }
-        ]
-      },
-      {
-        day: 2,
-        title: 'Gothic & Beach',
-        spots: [
-          { name: 'Gothic Quarter', type: 'Neighborhood', duration: '2 hours', walkTime: null, lat: 41.3833, lng: 2.1767, image: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=100&h=100&fit=crop' },
-          { name: 'La Rambla', type: 'Street', duration: '1.5 hours', walkTime: '5 min', lat: 41.3809, lng: 2.1734, image: 'https://images.unsplash.com/photo-1564221710304-0b37c8b9d729?w=100&h=100&fit=crop' },
-          { name: 'La Boqueria Market', type: 'Market', duration: '1 hour', walkTime: '2 min', lat: 41.3816, lng: 2.1719, image: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=100&h=100&fit=crop' },
-          { name: 'Barceloneta Beach', type: 'Beach', duration: '2 hours', walkTime: '15 min', lat: 41.3782, lng: 2.1925, image: 'https://images.unsplash.com/photo-1564221710304-0b37c8b9d729?w=100&h=100&fit=crop' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'amsterdam',
-    city: 'Amsterdam',
-    country: 'Netherlands',
-    flag: '🇳🇱',
-    title: '2-Day Amsterdam Trip',
-    days: 2,
-    center: [52.3676, 4.9041],
-    image: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=400&h=300&fit=crop',
-    itinerary: [
-      {
-        day: 1,
-        title: 'Museums & Canals',
-        spots: [
-          { name: 'Rijksmuseum', type: 'Museum', duration: '3 hours', walkTime: null, lat: 52.3600, lng: 4.8852, image: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=100&h=100&fit=crop' },
-          { name: 'Van Gogh Museum', type: 'Museum', duration: '2 hours', walkTime: '5 min', lat: 52.3584, lng: 4.8811, image: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=100&h=100&fit=crop' },
-          { name: 'Vondelpark', type: 'Park', duration: '1 hour', walkTime: '3 min', lat: 52.3579, lng: 4.8686, image: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=100&h=100&fit=crop' },
-          { name: 'Canal Cruise', type: 'Activity', duration: '1 hour', walkTime: '10 min', lat: 52.3702, lng: 4.8952, image: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=100&h=100&fit=crop' }
-        ]
-      },
-      {
-        day: 2,
-        title: 'Historic Center',
-        spots: [
-          { name: 'Anne Frank House', type: 'Museum', duration: '1.5 hours', walkTime: null, lat: 52.3752, lng: 4.8840, image: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=100&h=100&fit=crop' },
-          { name: 'Dam Square', type: 'Square', duration: '30 min', walkTime: '8 min', lat: 52.3731, lng: 4.8932, image: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=100&h=100&fit=crop' },
-          { name: 'Royal Palace', type: 'Landmark', duration: '1 hour', walkTime: '1 min', lat: 52.3738, lng: 4.8910, image: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=100&h=100&fit=crop' },
-          { name: 'Jordaan', type: 'Neighborhood', duration: '2 hours', walkTime: '10 min', lat: 52.3748, lng: 4.8788, image: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=100&h=100&fit=crop' }
         ]
       }
     ]
@@ -244,19 +110,16 @@ const TRAVEL_GUIDES = [
         title: 'Sultanahmet',
         spots: [
           { name: 'Hagia Sophia', type: 'Landmark', duration: '2 hours', walkTime: null, lat: 41.0086, lng: 28.9802, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' },
-          { name: 'Blue Mosque', type: 'Landmark', duration: '1 hour', walkTime: '3 min', lat: 41.0054, lng: 28.9768, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' },
-          { name: 'Topkapi Palace', type: 'Museum', duration: '3 hours', walkTime: '8 min', lat: 41.0115, lng: 28.9833, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' },
-          { name: 'Basilica Cistern', type: 'History', duration: '1 hour', walkTime: '5 min', lat: 41.0084, lng: 28.9779, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' }
+          { name: 'Blue Mosque', type: 'Landmark', duration: '1 hour', walkTime: '5 min', lat: 41.0054, lng: 28.9768, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' },
+          { name: 'Topkapi Palace', type: 'Museum', duration: '3 hours', walkTime: '10 min', lat: 41.0115, lng: 28.9833, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' },
         ]
       },
       {
         day: 2,
-        title: 'Bazaars & Bosphorus',
+        title: 'Bazaars',
         spots: [
           { name: 'Grand Bazaar', type: 'Market', duration: '2 hours', walkTime: null, lat: 41.0107, lng: 28.9680, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' },
           { name: 'Spice Bazaar', type: 'Market', duration: '1 hour', walkTime: '10 min', lat: 41.0166, lng: 28.9706, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' },
-          { name: 'Galata Bridge', type: 'Landmark', duration: '30 min', walkTime: '5 min', lat: 41.0202, lng: 28.9736, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' },
-          { name: 'Bosphorus Cruise', type: 'Activity', duration: '2 hours', walkTime: '3 min', lat: 41.0256, lng: 28.9744, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' }
         ]
       },
       {
@@ -265,134 +128,6 @@ const TRAVEL_GUIDES = [
         spots: [
           { name: 'Galata Tower', type: 'Landmark', duration: '1 hour', walkTime: null, lat: 41.0256, lng: 28.9741, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' },
           { name: 'Istiklal Avenue', type: 'Shopping', duration: '2 hours', walkTime: '5 min', lat: 41.0340, lng: 28.9770, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' },
-          { name: 'Taksim Square', type: 'Square', duration: '30 min', walkTime: '10 min', lat: 41.0370, lng: 28.9850, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' },
-          { name: 'Dolmabahce Palace', type: 'Museum', duration: '2 hours', walkTime: '15 min', lat: 41.0391, lng: 29.0005, image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=100&h=100&fit=crop' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'prague',
-    city: 'Prague',
-    country: 'Czech Republic',
-    flag: '🇨🇿',
-    title: '2-Day Prague Trip',
-    days: 2,
-    center: [50.0755, 14.4378],
-    image: 'https://images.unsplash.com/photo-1541849546-216549ae216d?w=400&h=300&fit=crop',
-    itinerary: [
-      {
-        day: 1,
-        title: 'Old Town',
-        spots: [
-          { name: 'Old Town Square', type: 'Square', duration: '1 hour', walkTime: null, lat: 50.0873, lng: 14.4213, image: 'https://images.unsplash.com/photo-1541849546-216549ae216d?w=100&h=100&fit=crop' },
-          { name: 'Astronomical Clock', type: 'Landmark', duration: '30 min', walkTime: '1 min', lat: 50.0870, lng: 14.4207, image: 'https://images.unsplash.com/photo-1541849546-216549ae216d?w=100&h=100&fit=crop' },
-          { name: 'Charles Bridge', type: 'Landmark', duration: '1 hour', walkTime: '8 min', lat: 50.0865, lng: 14.4114, image: 'https://images.unsplash.com/photo-1541849546-216549ae216d?w=100&h=100&fit=crop' },
-          { name: 'Jewish Quarter', type: 'Neighborhood', duration: '2 hours', walkTime: '10 min', lat: 50.0901, lng: 14.4178, image: 'https://images.unsplash.com/photo-1541849546-216549ae216d?w=100&h=100&fit=crop' }
-        ]
-      },
-      {
-        day: 2,
-        title: 'Castle District',
-        spots: [
-          { name: 'Prague Castle', type: 'Landmark', duration: '3 hours', walkTime: null, lat: 50.0909, lng: 14.4012, image: 'https://images.unsplash.com/photo-1541849546-216549ae216d?w=100&h=100&fit=crop' },
-          { name: 'St Vitus Cathedral', type: 'Landmark', duration: '1 hour', walkTime: '2 min', lat: 50.0908, lng: 14.4003, image: 'https://images.unsplash.com/photo-1541849546-216549ae216d?w=100&h=100&fit=crop' },
-          { name: 'Golden Lane', type: 'History', duration: '45 min', walkTime: '5 min', lat: 50.0912, lng: 14.4044, image: 'https://images.unsplash.com/photo-1541849546-216549ae216d?w=100&h=100&fit=crop' },
-          { name: 'Petrin Hill', type: 'Park', duration: '1.5 hours', walkTime: '15 min', lat: 50.0833, lng: 14.3953, image: 'https://images.unsplash.com/photo-1541849546-216549ae216d?w=100&h=100&fit=crop' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'newyork',
-    city: 'New York',
-    country: 'USA',
-    flag: '🇺🇸',
-    title: '4-Day NYC Trip',
-    days: 4,
-    center: [40.7128, -74.0060],
-    image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&h=300&fit=crop',
-    itinerary: [
-      {
-        day: 1,
-        title: 'Downtown Manhattan',
-        spots: [
-          { name: 'Statue of Liberty', type: 'Landmark', duration: '4 hours', walkTime: null, lat: 40.6892, lng: -74.0445, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' },
-          { name: 'Ellis Island', type: 'Museum', duration: '2 hours', walkTime: 'Ferry', lat: 40.6995, lng: -74.0396, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' },
-          { name: '9/11 Memorial', type: 'Memorial', duration: '1.5 hours', walkTime: 'Ferry', lat: 40.7115, lng: -74.0134, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' },
-          { name: 'Wall Street', type: 'Landmark', duration: '30 min', walkTime: '10 min', lat: 40.7074, lng: -74.0113, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' }
-        ]
-      },
-      {
-        day: 2,
-        title: 'Midtown',
-        spots: [
-          { name: 'Empire State Building', type: 'Landmark', duration: '1.5 hours', walkTime: null, lat: 40.7484, lng: -73.9857, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' },
-          { name: 'Times Square', type: 'Square', duration: '1 hour', walkTime: '10 min', lat: 40.7580, lng: -73.9855, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' },
-          { name: 'Grand Central', type: 'Landmark', duration: '45 min', walkTime: '8 min', lat: 40.7527, lng: -73.9772, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' },
-          { name: 'Rockefeller Center', type: 'Landmark', duration: '1 hour', walkTime: '5 min', lat: 40.7587, lng: -73.9787, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' },
-          { name: 'Broadway Show', type: 'Entertainment', duration: '3 hours', walkTime: '5 min', lat: 40.7590, lng: -73.9845, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' }
-        ]
-      },
-      {
-        day: 3,
-        title: 'Central Park & Museums',
-        spots: [
-          { name: 'Central Park', type: 'Park', duration: '3 hours', walkTime: null, lat: 40.7829, lng: -73.9654, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' },
-          { name: 'Met Museum', type: 'Museum', duration: '3 hours', walkTime: '5 min', lat: 40.7794, lng: -73.9632, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' },
-          { name: 'Natural History Museum', type: 'Museum', duration: '2 hours', walkTime: '20 min', lat: 40.7813, lng: -73.9740, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' }
-        ]
-      },
-      {
-        day: 4,
-        title: 'Brooklyn',
-        spots: [
-          { name: 'Brooklyn Bridge', type: 'Landmark', duration: '1 hour', walkTime: null, lat: 40.7061, lng: -73.9969, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' },
-          { name: 'DUMBO', type: 'Neighborhood', duration: '1.5 hours', walkTime: '5 min', lat: 40.7033, lng: -73.9890, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' },
-          { name: 'Williamsburg', type: 'Neighborhood', duration: '2 hours', walkTime: 'Metro', lat: 40.7081, lng: -73.9571, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' },
-          { name: 'High Line', type: 'Park', duration: '1.5 hours', walkTime: 'Metro', lat: 40.7480, lng: -74.0048, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=100&h=100&fit=crop' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'losangeles',
-    city: 'Los Angeles',
-    country: 'USA',
-    flag: '🇺🇸',
-    title: '3-Day LA Trip',
-    days: 3,
-    center: [34.0522, -118.2437],
-    image: 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=400&h=300&fit=crop',
-    itinerary: [
-      {
-        day: 1,
-        title: 'Hollywood',
-        spots: [
-          { name: 'Hollywood Sign', type: 'Landmark', duration: '2 hours', walkTime: null, lat: 34.1341, lng: -118.3215, image: 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=100&h=100&fit=crop' },
-          { name: 'Walk of Fame', type: 'Landmark', duration: '1 hour', walkTime: 'Drive', lat: 34.1017, lng: -118.3270, image: 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=100&h=100&fit=crop' },
-          { name: 'TCL Chinese Theatre', type: 'Landmark', duration: '30 min', walkTime: '2 min', lat: 34.1022, lng: -118.3416, image: 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=100&h=100&fit=crop' },
-          { name: 'Griffith Observatory', type: 'Viewpoint', duration: '2 hours', walkTime: 'Drive', lat: 34.1184, lng: -118.3004, image: 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=100&h=100&fit=crop' }
-        ]
-      },
-      {
-        day: 2,
-        title: 'Beaches',
-        spots: [
-          { name: 'Santa Monica Pier', type: 'Landmark', duration: '2 hours', walkTime: null, lat: 34.0095, lng: -118.4970, image: 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=100&h=100&fit=crop' },
-          { name: 'Venice Beach', type: 'Beach', duration: '2 hours', walkTime: '15 min', lat: 33.9850, lng: -118.4695, image: 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=100&h=100&fit=crop' },
-          { name: 'Venice Canals', type: 'Neighborhood', duration: '1 hour', walkTime: '10 min', lat: 33.9803, lng: -118.4645, image: 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=100&h=100&fit=crop' },
-          { name: 'Malibu', type: 'Beach', duration: '3 hours', walkTime: 'Drive', lat: 34.0259, lng: -118.7798, image: 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=100&h=100&fit=crop' }
-        ]
-      },
-      {
-        day: 3,
-        title: 'Culture & Shopping',
-        spots: [
-          { name: 'The Getty Center', type: 'Museum', duration: '3 hours', walkTime: null, lat: 34.0780, lng: -118.4741, image: 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=100&h=100&fit=crop' },
-          { name: 'Beverly Hills', type: 'Neighborhood', duration: '1.5 hours', walkTime: 'Drive', lat: 34.0736, lng: -118.4004, image: 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=100&h=100&fit=crop' },
-          { name: 'Rodeo Drive', type: 'Shopping', duration: '1 hour', walkTime: '5 min', lat: 34.0674, lng: -118.4003, image: 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=100&h=100&fit=crop' },
-          { name: 'The Grove', type: 'Shopping', duration: '1.5 hours', walkTime: 'Drive', lat: 34.0720, lng: -118.3577, image: 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=100&h=100&fit=crop' }
         ]
       }
     ]
@@ -402,772 +137,319 @@ const TRAVEL_GUIDES = [
     city: 'Tokyo',
     country: 'Japan',
     flag: '🇯🇵',
-    title: '4-Day Tokyo Trip',
-    days: 4,
+    title: '3-Day Tokyo Trip',
+    days: 3,
     center: [35.6762, 139.6503],
     image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop',
     itinerary: [
       {
         day: 1,
-        title: 'Traditional Tokyo',
+        title: 'Traditional',
         spots: [
-          { name: 'Senso-ji Temple', type: 'Temple', duration: '1.5 hours', walkTime: null, lat: 35.7148, lng: 139.7967, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
-          { name: 'Nakamise Street', type: 'Shopping', duration: '1 hour', walkTime: '1 min', lat: 35.7118, lng: 139.7963, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
+          { name: 'Senso-ji Temple', type: 'Temple', duration: '2 hours', walkTime: null, lat: 35.7148, lng: 139.7967, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
           { name: 'Tokyo Skytree', type: 'Viewpoint', duration: '1.5 hours', walkTime: '15 min', lat: 35.7101, lng: 139.8107, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
-          { name: 'Meiji Shrine', type: 'Shrine', duration: '1 hour', walkTime: 'Metro', lat: 35.6764, lng: 139.6993, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' }
         ]
       },
       {
         day: 2,
-        title: 'Modern Tokyo',
+        title: 'Modern',
         spots: [
           { name: 'Shibuya Crossing', type: 'Landmark', duration: '30 min', walkTime: null, lat: 35.6595, lng: 139.7004, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
-          { name: 'Harajuku', type: 'Neighborhood', duration: '2 hours', walkTime: '15 min', lat: 35.6702, lng: 139.7027, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
-          { name: 'Shinjuku', type: 'Neighborhood', duration: '2 hours', walkTime: 'Metro', lat: 35.6938, lng: 139.7034, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
-          { name: 'Golden Gai', type: 'Nightlife', duration: '2 hours', walkTime: '5 min', lat: 35.6944, lng: 139.7050, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' }
+          { name: 'Harajuku', type: 'Shopping', duration: '2 hours', walkTime: '15 min', lat: 35.6702, lng: 139.7027, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
         ]
       },
       {
         day: 3,
-        title: 'Culture & Food',
+        title: 'Culture',
         spots: [
-          { name: 'Tsukiji Market', type: 'Market', duration: '1.5 hours', walkTime: null, lat: 35.6654, lng: 139.7707, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
+          { name: 'Tsukiji Market', type: 'Market', duration: '2 hours', walkTime: null, lat: 35.6654, lng: 139.7707, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
           { name: 'Imperial Palace', type: 'Landmark', duration: '1.5 hours', walkTime: 'Metro', lat: 35.6852, lng: 139.7528, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
-          { name: 'Akihabara', type: 'Neighborhood', duration: '2 hours', walkTime: 'Metro', lat: 35.7023, lng: 139.7745, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
-          { name: 'TeamLab Planets', type: 'Museum', duration: '2.5 hours', walkTime: 'Metro', lat: 35.6512, lng: 139.7867, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' }
-        ]
-      },
-      {
-        day: 4,
-        title: 'Day Trip to Mt Fuji',
-        spots: [
-          { name: 'Mt Fuji View', type: 'Nature', duration: '4 hours', walkTime: null, lat: 35.3606, lng: 138.7274, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
-          { name: 'Lake Kawaguchi', type: 'Nature', duration: '2 hours', walkTime: 'Bus', lat: 35.5165, lng: 138.7519, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' },
-          { name: 'Onsen Experience', type: 'Spa', duration: '2 hours', walkTime: 'Bus', lat: 35.4998, lng: 138.7533, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=100&h=100&fit=crop' }
         ]
       }
     ]
   }
 ];
 
-// ============================================
-// MAP COMPONENTS
-// ============================================
-
-const TripMap = ({ guide, selectedDay, onSpotClick, expanded }) => {
-  const mapRef = React.useRef(null);
-  const mapInstanceRef = React.useRef(null);
-
-  // Listen for resize events to invalidate map size
-  useEffect(() => {
-    const handleResize = () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    // Load Leaflet CSS
-    if (!document.getElementById('leaflet-css')) {
-      const link = document.createElement('link');
-      link.id = 'leaflet-css';
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
-    }
-
-    // Load Leaflet JS
-    const loadLeaflet = () => {
-      return new Promise((resolve) => {
-        if (window.L) {
-          resolve(window.L);
-          return;
-        }
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.onload = () => resolve(window.L);
-        document.head.appendChild(script);
-      });
-    };
-
-    loadLeaflet().then((L) => {
-      if (!mapRef.current) return;
-
-      // Clear existing map
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-      }
-
-      // Create map
-      const map = L.map(mapRef.current).setView(guide.center, 13);
-      mapInstanceRef.current = map;
-
-      // Add tile layer
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '©OpenStreetMap, ©CartoDB'
-      }).addTo(map);
-
-      // Add markers and routes for each day
-      guide.itinerary.forEach((day, dayIndex) => {
-        const dayColor = DAY_COLORS[dayIndex % DAY_COLORS.length];
-        const coords = day.spots.map(spot => [spot.lat, spot.lng]);
-
-        // Draw route line
-        if (coords.length > 1) {
-          L.polyline(coords, {
-            color: dayColor,
-            weight: 4,
-            opacity: selectedDay === null || selectedDay === day.day ? 0.8 : 0.2,
-            dashArray: selectedDay === day.day ? null : '5, 10'
-          }).addTo(map);
-        }
-
-        // Add markers
-        day.spots.forEach((spot, spotIndex) => {
-          const isActive = selectedDay === null || selectedDay === day.day;
-
-          const markerHtml = `
-            <div style="
-              background: ${isActive ? dayColor : '#ccc'};
-              color: white;
-              width: 28px;
-              height: 28px;
-              border-radius: 50%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-weight: bold;
-              font-size: 12px;
-              border: 3px solid white;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            ">${spotIndex + 1}</div>
-          `;
-
-          const markerIcon = L.divIcon({
-            className: 'custom-marker',
-            html: markerHtml,
-            iconSize: [28, 28],
-            iconAnchor: [14, 14]
-          });
-
-          const marker = L.marker([spot.lat, spot.lng], { icon: markerIcon }).addTo(map);
-
-          // Popup content
-          const popupContent = `
-            <div style="text-align: center; min-width: 120px;">
-              <strong style="color: ${dayColor};">${spot.name}</strong><br/>
-              <span style="color: #666; font-size: 11px;">Day ${day.day} • ${spot.type}</span>
-            </div>
-          `;
-          marker.bindPopup(popupContent);
-
-          marker.on('click', () => {
-            if (onSpotClick) {
-              onSpotClick(day.day, spotIndex);
-            }
-          });
-        });
-      });
-
-      // Fit bounds to show all markers
-      const allCoords = guide.itinerary.flatMap(day => 
-        day.spots.map(spot => [spot.lat, spot.lng])
-      );
-      if (allCoords.length > 0) {
-        map.fitBounds(allCoords, { padding: [30, 30] });
-      }
-    });
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, [guide, selectedDay, onSpotClick, expanded]);
-
-  return (
-    <div 
-      ref={mapRef} 
-      style={{ 
-        width: '100%', 
-        height: '100%', 
-        borderRadius: '16px' 
-      }} 
-    />
-  );
-};
-
-const MiniMap = ({ guides }) => {
-  const mapRef = React.useRef(null);
-  const mapInstanceRef = React.useRef(null);
-
-  useEffect(() => {
-    if (!document.getElementById('leaflet-css')) {
-      const link = document.createElement('link');
-      link.id = 'leaflet-css';
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
-    }
-
-    const loadLeaflet = () => {
-      return new Promise((resolve) => {
-        if (window.L) {
-          resolve(window.L);
-          return;
-        }
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.onload = () => resolve(window.L);
-        document.head.appendChild(script);
-      });
-    };
-
-    loadLeaflet().then((L) => {
-      if (!mapRef.current) return;
-
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-      }
-
-      const map = L.map(mapRef.current, {
-        zoomControl: false,
-        attributionControl: false,
-        dragging: false,
-        scrollWheelZoom: false
-      }).setView([30, 0], 1);
-
-      mapInstanceRef.current = map;
-
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
-
-      // Add city markers
-      guides.forEach((guide) => {
-        const markerHtml = `
-          <div style="
-            background: #2e7d32;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-          "></div>
-        `;
-
-        const markerIcon = L.divIcon({
-          className: 'mini-marker',
-          html: markerHtml,
-          iconSize: [12, 12],
-          iconAnchor: [6, 6]
-        });
-
-        L.marker(guide.center, { icon: markerIcon }).addTo(map);
-      });
-    });
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, [guides]);
-
-  return (
-    <div 
-      ref={mapRef} 
-      style={{ 
-        width: '100%', 
-        height: '100%', 
-        borderRadius: '12px' 
-      }} 
-    />
-  );
-};
-
-// ============================================
-// MAIN APP COMPONENT
-// ============================================
-
-function App() {
-  // State
-  const [screen, setScreen] = useState('auth');
-  const [authMode, setAuthMode] = useState('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [authError, setAuthError] = useState('');
-  const [authSuccess, setAuthSuccess] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [myTrips, setMyTrips] = useState([]);
-  const [selectedGuide, setSelectedGuide] = useState(null);
-  const [selectedDay, setSelectedDay] = useState(1);
-  const [newTripCity, setNewTripCity] = useState('');
-  const [newTripPreferences, setNewTripPreferences] = useState([]);
-  const [newTripDays, setNewTripDays] = useState(3);
-  const [showAllDaysOnMap, setShowAllDaysOnMap] = useState(false);
-  const [mapExpanded, setMapExpanded] = useState(false);
-  const [selectedSpot, setSelectedSpot] = useState(null);
-  const [tripToDelete, setTripToDelete] = useState(null);
-
-  // Auth effect
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setCurrentUser(session.user);
-        setScreen('home');
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setCurrentUser(session.user);
-        setScreen('home');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Auth handlers
-  const handleSignup = async () => {
-    setAuthError('');
-    setAuthSuccess('');
-    setAuthLoading(true);
-
-    if (!email.trim() || !password.trim()) {
-      setAuthError('Please fill in all fields');
-      setAuthLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      setAuthError('Password must be at least 6 characters');
-      setAuthLoading(false);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setAuthError('Passwords do not match');
-      setAuthLoading(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) {
-        setAuthError(error.message);
-      } else if (data.user && !data.session) {
-        setAuthSuccess('Check your email to confirm!');
-        setAuthMode('login');
-        setPassword('');
-        setConfirmPassword('');
-      } else if (data.session) {
-        setCurrentUser(data.user);
-        setScreen('home');
-      }
-    } catch (err) {
-      setAuthError('Connection error');
-    }
-
-    setAuthLoading(false);
+// Calendar Picker Component
+function CalendarPicker({ selectedDates, onSelectDates }) {
+  const [currentMonth] = useState(new Date());
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const days = [];
+    for (let i = 0; i < firstDay.getDay(); i++) days.push(null);
+    for (let i = 1; i <= lastDay.getDate(); i++) days.push(new Date(year, month, i));
+    return days;
   };
 
-  const handleLogin = async () => {
-    setAuthError('');
-    setAuthLoading(true);
-
-    if (!email.trim() || !password.trim()) {
-      setAuthError('Please fill in all fields');
-      setAuthLoading(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setAuthError(error.message);
-      } else if (data.user) {
-        setCurrentUser(data.user);
-        setScreen('home');
+  const handleDateClick = (date) => {
+    if (!date) return;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (date < today) return;
+    
+    if (!selectedDates.start || (selectedDates.start && selectedDates.end)) {
+      onSelectDates({ start: date, end: null });
+    } else {
+      if (date < selectedDates.start) {
+        onSelectDates({ start: date, end: selectedDates.start });
+      } else {
+        onSelectDates({ ...selectedDates, end: date });
       }
-    } catch (err) {
-      setAuthError('Connection error');
     }
-
-    setAuthLoading(false);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setCurrentUser(null);
-    setEmail('');
-    setPassword('');
-    setMyTrips([]);
-    setScreen('auth');
+  const isSelected = (date) => {
+    if (!date) return false;
+    if (selectedDates.start && date.toDateString() === selectedDates.start.toDateString()) return true;
+    if (selectedDates.end && date.toDateString() === selectedDates.end.toDateString()) return true;
+    return false;
   };
 
-  // Helper functions
-  const getTotalSpots = (guide) => {
-    return guide.itinerary.reduce((sum, day) => sum + day.spots.length, 0);
+  const isInRange = (date) => {
+    if (!date || !selectedDates.start || !selectedDates.end) return false;
+    return date > selectedDates.start && date < selectedDates.end;
   };
 
-  const openGoogleMaps = (placeName, city) => {
-    const query = encodeURIComponent(`${placeName}, ${city}`);
-    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+  const isPast = (date) => {
+    if (!date) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date < today;
   };
 
-  const togglePreference = (id) => {
-    setNewTripPreferences(prev => 
-      prev.includes(id) 
-        ? prev.filter(i => i !== id) 
-        : [...prev, id]
-    );
-  };
-
-  // ============================================
-  // AUTH SCREEN
-  // ============================================
-  if (screen === 'auth') {
+  const renderMonth = (monthDate) => {
+    const days = getDaysInMonth(monthDate);
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(165deg, #f0f9f4 0%, #ffffff 40%, #e8f5e9 100%)',
-        fontFamily: "'DM Sans', sans-serif",
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
-      }}>
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
-        
-        <div style={{ maxWidth: '400px', width: '100%' }}>
-          {/* Logo */}
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <div style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '24px',
-              background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '40px',
-              boxShadow: '0 16px 48px rgba(46,125,50,0.3)',
-              marginBottom: '20px'
-            }}>
-              🧭
-            </div>
-            <h1 style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: '36px',
-              fontWeight: '700',
-              color: '#1b5e20',
-              margin: '0 0 8px 0'
-            }}>
-              TOURISTA
-            </h1>
-            <p style={{ fontSize: '15px', color: '#558b2f', margin: 0 }}>
-              Your AI travel concierge
-            </p>
-          </div>
-
-          {/* Auth Card */}
-          <div style={{
-            background: 'white',
-            borderRadius: '24px',
-            padding: '32px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.08)'
-          }}>
-            {/* Tab Switcher */}
-            <div style={{
-              display: 'flex',
-              background: '#f1f8e9',
-              borderRadius: '12px',
-              padding: '4px',
-              marginBottom: '24px'
-            }}>
-              <button
-                onClick={() => { setAuthMode('login'); setAuthError(''); setAuthSuccess(''); }}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: authMode === 'login' ? 'white' : 'transparent',
-                  color: authMode === 'login' ? '#2e7d32' : '#689f38',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif"
-                }}
-              >
-                Log In
-              </button>
-              <button
-                onClick={() => { setAuthMode('signup'); setAuthError(''); setAuthSuccess(''); }}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: authMode === 'signup' ? 'white' : 'transparent',
-                  color: authMode === 'signup' ? '#2e7d32' : '#689f38',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif"
-                }}
-              >
-                Sign Up
-              </button>
-            </div>
-
-            {/* Messages */}
-            {authSuccess && (
-              <div style={{
-                background: '#e8f5e9',
-                color: '#2e7d32',
-                padding: '14px',
-                borderRadius: '12px',
-                fontSize: '14px',
-                marginBottom: '20px'
-              }}>
-                {authSuccess}
-              </div>
-            )}
-
-            {authError && (
-              <div style={{
-                background: '#ffebee',
-                color: '#c62828',
-                padding: '14px',
-                borderRadius: '12px',
-                fontSize: '14px',
-                marginBottom: '20px'
-              }}>
-                {authError}
-              </div>
-            )}
-
-            {/* Form */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="Email"
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  borderRadius: '12px',
-                  border: '2px solid #e0e0e0',
-                  fontSize: '15px',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  fontFamily: "'DM Sans', sans-serif"
-                }}
-              />
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Password"
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  borderRadius: '12px',
-                  border: '2px solid #e0e0e0',
-                  fontSize: '15px',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  fontFamily: "'DM Sans', sans-serif"
-                }}
-              />
-              {authMode === 'signup' && (
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm Password"
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    borderRadius: '12px',
-                    border: '2px solid #e0e0e0',
-                    fontSize: '15px',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    fontFamily: "'DM Sans', sans-serif"
-                  }}
-                />
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <button
-              onClick={authMode === 'login' ? handleLogin : handleSignup}
-              disabled={authLoading}
-              style={{
-                width: '100%',
-                background: authLoading 
-                  ? '#a5d6a7' 
-                  : 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)',
-                color: 'white',
-                border: 'none',
-                padding: '16px',
-                borderRadius: '14px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: authLoading ? 'not-allowed' : 'pointer',
-                marginTop: '20px',
-                fontFamily: "'DM Sans', sans-serif"
+      <div style={{ marginBottom: '20px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1b5e20', margin: '0 0 12px', textAlign: 'center' }}>
+          {months[monthDate.getMonth()]} {monthDate.getFullYear()}
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+          {dayNames.map((day, i) => (
+            <div key={i} style={{ textAlign: 'center', fontSize: '11px', color: '#999', padding: '6px', fontWeight: '600' }}>{day}</div>
+          ))}
+          {days.map((date, i) => (
+            <div 
+              key={i} 
+              onClick={() => handleDateClick(date)} 
+              style={{ 
+                textAlign: 'center', 
+                padding: '10px 6px', 
+                borderRadius: '10px', 
+                cursor: date && !isPast(date) ? 'pointer' : 'default', 
+                background: isSelected(date) ? '#1b5e20' : isInRange(date) ? '#e8f5e9' : 'transparent', 
+                color: !date ? 'transparent' : isPast(date) ? '#ccc' : isSelected(date) ? 'white' : '#333', 
+                fontWeight: isSelected(date) ? '700' : '400', 
+                fontSize: '13px'
               }}
             >
-              {authLoading ? 'Please wait...' : (authMode === 'login' ? 'Log In' : 'Create Account')}
-            </button>
-          </div>
+              {date ? date.getDate() : ''}
+            </div>
+          ))}
         </div>
       </div>
     );
-  }
+  };
+
+  const nextMonthDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
+
+  return (
+    <div style={{ background: 'white', borderRadius: '16px', padding: '16px' }}>
+      {renderMonth(currentMonth)}
+      {renderMonth(nextMonthDate)}
+      {selectedDates.start && selectedDates.end && (
+        <div style={{ background: '#e8f5e9', borderRadius: '10px', padding: '10px', textAlign: 'center' }}>
+          <p style={{ margin: 0, fontSize: '13px', color: '#1b5e20', fontWeight: '600' }}>
+            {Math.ceil(Math.abs(selectedDates.end - selectedDates.start) / (1000 * 60 * 60 * 24)) + 1} days selected
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Main App Component
+export default function App() {
+  const [screen, setScreen] = useState('home');
+  const [currentUser] = useState({ email: 'demo@tourista.app' });
+  const [myTrips, setMyTrips] = useState([]);
+  const [selectedGuide, setSelectedGuide] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(1);
+  const [tripToDelete, setTripToDelete] = useState(null);
+
+  // NEW States for AI Trip Flow
+  const [newTripCity, setNewTripCity] = useState('');
+  const [newTripCityData, setNewTripCityData] = useState(null);
+  const [newTripPreferences, setNewTripPreferences] = useState([]);
+  const [newTripDays, setNewTripDays] = useState(3);
+  const [citySearchResults, setCitySearchResults] = useState([]);
+  const [durationMode, setDurationMode] = useState('flexible');
+  const [selectedDates, setSelectedDates] = useState({ start: null, end: null });
+  const [showAiPlanOffer, setShowAiPlanOffer] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [generatedTrip, setGeneratedTrip] = useState(null);
+  const [isPremiumUser, setIsPremiumUser] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [aiLoadingMessage, setAiLoadingMessage] = useState('');
+
+  // City search effect
+  useEffect(() => {
+    if (newTripCity.length > 0) {
+      const results = CITY_DATABASE.filter(city => 
+        city.city.toLowerCase().startsWith(newTripCity.toLowerCase()) ||
+        city.country.toLowerCase().startsWith(newTripCity.toLowerCase())
+      ).slice(0, 6);
+      setCitySearchResults(results);
+    } else {
+      setCitySearchResults([]);
+    }
+  }, [newTripCity]);
+
+  // Helper functions
+  const getTotalSpots = (guide) => guide.itinerary.reduce((sum, day) => sum + day.spots.length, 0);
+  
+  const togglePreference = (id) => {
+    setNewTripPreferences(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const selectCity = (cityData) => {
+    setNewTripCity(cityData.city);
+    setNewTripCityData(cityData);
+    setCitySearchResults([]);
+    setScreen('newTripConfirm');
+  };
+
+  const resetNewTrip = () => {
+    setNewTripCity('');
+    setNewTripCityData(null);
+    setNewTripPreferences([]);
+    setNewTripDays(3);
+    setDurationMode('flexible');
+    setSelectedDates({ start: null, end: null });
+    setGeneratedTrip(null);
+  };
+
+  // AI Trip Generation
+  const generateAiTrip = () => {
+    setAiGenerating(true);
+    setScreen('aiGenerating');
+    
+    const messages = ['Finding the best spots...', 'Optimizing your route...', 'Adding local favorites...', 'Planning your perfect trip...', 'Almost ready...'];
+    let messageIndex = 0;
+    setAiLoadingMessage(messages[0]);
+    
+    const messageInterval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % messages.length;
+      setAiLoadingMessage(messages[messageIndex]);
+    }, 1200);
+
+    setTimeout(() => {
+      clearInterval(messageInterval);
+      
+      const cityData = newTripCityData || { city: newTripCity, country: 'Unknown', flag: '📍', lat: 48.8566, lng: 2.3522 };
+      
+      const spotTypes = {
+        architecture: ['Historic Building', 'Cathedral', 'Palace', 'Bridge', 'Tower'],
+        nightlife: ['Rooftop Bar', 'Jazz Club', 'Night Market', 'Lounge'],
+        art: ['Art Museum', 'Gallery', 'Street Art', 'Cultural Center'],
+        cuisine: ['Local Restaurant', 'Food Market', 'Café', 'Wine Bar'],
+        adventure: ['Hiking Trail', 'Bike Tour', 'Water Sports', 'Park'],
+        instagram: ['Scenic Viewpoint', 'Photo Spot', 'Colorful Street', 'Hidden Gem']
+      };
+      
+      const itinerary = [];
+      for (let day = 1; day <= newTripDays; day++) {
+        const spots = [];
+        const numSpots = Math.floor(Math.random() * 2) + 4;
+        
+        for (let i = 0; i < numSpots; i++) {
+          let spotType = 'Attraction';
+          if (newTripPreferences.length > 0) {
+            const pref = newTripPreferences[i % newTripPreferences.length];
+            const types = spotTypes[pref] || ['Attraction'];
+            spotType = types[Math.floor(Math.random() * types.length)];
+          }
+          
+          spots.push({
+            name: `${cityData.city} ${spotType} ${(day - 1) * 5 + i + 1}`,
+            type: spotType,
+            duration: `${Math.floor(Math.random() * 2) + 1} hours`,
+            walkTime: i === 0 ? null : `${Math.floor(Math.random() * 15) + 5} min`,
+            lat: cityData.lat + (Math.random() - 0.5) * 0.05,
+            lng: cityData.lng + (Math.random() - 0.5) * 0.05,
+            image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=100&h=100&fit=crop'
+          });
+        }
+        
+        const dayTitles = ['Exploration', 'Discovery', 'Adventure', 'Culture', 'Highlights', 'Hidden Gems', 'Local Life'];
+        itinerary.push({ day, title: `Day ${day} - ${dayTitles[(day - 1) % dayTitles.length]}`, spots });
+      }
+      
+      setGeneratedTrip({
+        id: 'ai-' + Date.now(),
+        city: cityData.city,
+        country: cityData.country,
+        flag: cityData.flag,
+        title: `${newTripDays}-Day ${cityData.city} Trip`,
+        days: newTripDays,
+        center: [cityData.lat, cityData.lng],
+        image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=300&fit=crop',
+        itinerary,
+        isAiGenerated: true
+      });
+      
+      setAiGenerating(false);
+      setScreen('tripResult');
+    }, 4000);
+  };
 
   // ============================================
   // HOME SCREEN
   // ============================================
   if (screen === 'home') {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(180deg, #f1f8e9 0%, #ffffff 100%)',
-        fontFamily: "'DM Sans', sans-serif",
-        paddingBottom: '40px'
-      }}>
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
-
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #f1f8e9 0%, #ffffff 100%)', fontFamily: "'DM Sans', sans-serif", paddingBottom: '100px' }}>
         {/* Header */}
-        <div style={{
-          background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)',
-          padding: '20px',
-          borderRadius: '0 0 30px 30px'
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '16px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '28px' }}>🧭</span>
-              <h1 style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: '22px',
-                fontWeight: '700',
-                color: 'white',
-                margin: 0
-              }}>
-                TOURISTA
-              </h1>
+        <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '20px', borderRadius: '0 0 30px 30px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '26px' }}>🧭</span>
+              <h1 style={{ fontSize: '20px', fontWeight: '700', color: 'white', margin: 0 }}>TOURISTA</h1>
             </div>
-            <div
-              onClick={handleLogout}
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '600', fontSize: '14px' }}>
               {currentUser?.email?.charAt(0).toUpperCase()}
             </div>
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', margin: 0 }}>
+          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', margin: 0 }}>
             Welcome, <strong>{currentUser?.email?.split('@')[0]}</strong>! 👋
           </p>
         </div>
 
         {/* Explore Destinations */}
-        <div style={{ padding: '24px 20px 16px' }}>
-          <h2 style={{
-            fontSize: '18px',
-            fontWeight: '700',
-            color: '#1b5e20',
-            margin: '0 0 16px 0'
-          }}>
-            🌍 Explore Destinations
-          </h2>
-          <div style={{
-            display: 'flex',
-            gap: '12px',
-            overflowX: 'auto',
-            paddingBottom: '10px',
-            marginRight: '-20px',
-            paddingRight: '20px'
-          }}>
+        <div style={{ padding: '20px 16px 12px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#1b5e20', margin: '0 0 12px' }}>🌍 Explore Destinations</h2>
+          <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '8px', marginRight: '-16px', paddingRight: '16px' }}>
             {TRAVEL_GUIDES.map((guide) => (
               <div
                 key={guide.id}
-                onClick={() => {
-                  setSelectedGuide(guide);
-                  setSelectedDay(1);
-                  setShowAllDaysOnMap(false);
-                  setScreen('guideDetail');
-                }}
-                style={{
-                  minWidth: '140px',
-                  background: 'white',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  boxShadow: '0 4px 12px rgba(46,125,50,0.1)'
-                }}
+                onClick={() => { setSelectedGuide(guide); setSelectedDay(1); setScreen('guideDetail'); }}
+                style={{ minWidth: '130px', background: 'white', borderRadius: '14px', overflow: 'hidden', cursor: 'pointer', flexShrink: 0, boxShadow: '0 3px 10px rgba(46,125,50,0.1)' }}
               >
-                <div style={{ height: '90px', position: 'relative' }}>
-                  <img
-                    src={guide.image}
-                    alt={guide.city}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                  <div style={{
-                    position: 'absolute',
-                    top: '8px',
-                    left: '8px',
-                    background: 'white',
-                    padding: '3px 8px',
-                    borderRadius: '12px',
-                    fontSize: '10px',
-                    fontWeight: '600',
-                    color: '#2e7d32'
-                  }}>
+                <div style={{ height: '80px', position: 'relative' }}>
+                  <img src={guide.image} alt={guide.city} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ position: 'absolute', top: '6px', left: '6px', background: 'white', padding: '2px 6px', borderRadius: '10px', fontSize: '9px', fontWeight: '600', color: '#2e7d32' }}>
                     {guide.flag} {guide.city}
                   </div>
                 </div>
-                <div style={{ padding: '10px' }}>
-                  <p style={{
-                    margin: 0,
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: '#1b5e20'
-                  }}>
-                    {guide.title}
-                  </p>
-                  <p style={{
-                    margin: '2px 0 0',
-                    fontSize: '10px',
-                    color: '#689f38'
-                  }}>
-                    {getTotalSpots(guide)} spots
-                  </p>
+                <div style={{ padding: '8px' }}>
+                  <p style={{ margin: 0, fontSize: '11px', fontWeight: '600', color: '#1b5e20' }}>{guide.title}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '9px', color: '#689f38' }}>{getTotalSpots(guide)} spots</p>
                 </div>
               </div>
             ))}
@@ -1175,193 +457,57 @@ function App() {
         </div>
 
         {/* My Trips */}
-        <div style={{ padding: '0 20px' }}>
-          <h2 style={{
-            fontSize: '18px',
-            fontWeight: '700',
-            color: '#1b5e20',
-            margin: '0 0 16px 0'
-          }}>
-            🗂️ My Trips
-          </h2>
+        <div style={{ padding: '0 16px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: '700', color: '#1b5e20', margin: '0 0 12px' }}>🗂️ My Trips</h2>
           {myTrips.length === 0 ? (
-            <div style={{
-              background: 'white',
-              borderRadius: '20px',
-              padding: '32px 20px',
-              textAlign: 'center',
-              border: '2px dashed #c8e6c9'
-            }}>
-              <div style={{ fontSize: '48px', marginBottom: '12px' }}>✈️</div>
-              <h3 style={{ color: '#1b5e20', fontSize: '16px', margin: '0 0 8px' }}>
-                No trips yet
-              </h3>
-              <p style={{ color: '#689f38', fontSize: '13px', margin: '0 0 16px' }}>
-                Save a destination or create your own!
-              </p>
-              <button
-                onClick={() => setScreen('newTripCity')}
-                style={{
-                  background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
-                  color: 'white',
-                  border: 'none',
-                  padding: '12px 28px',
-                  borderRadius: '25px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(46,125,50,0.3)'
-                }}
-              >
-                + Create Trip
-              </button>
+            <div style={{ background: 'white', borderRadius: '16px', padding: '28px 16px', textAlign: 'center', border: '2px dashed #c8e6c9' }}>
+              <div style={{ fontSize: '40px', marginBottom: '10px' }}>✈️</div>
+              <h3 style={{ color: '#1b5e20', fontSize: '15px', margin: '0 0 6px' }}>No trips yet</h3>
+              <p style={{ color: '#689f38', fontSize: '12px', margin: 0 }}>Create your first AI-powered trip!</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {myTrips.map((trip, index) => (
                 <div
                   key={index}
-                  onClick={() => {
-                    setSelectedGuide(trip);
-                    setSelectedDay(1);
-                    setShowAllDaysOnMap(false);
-                    setScreen('guideDetail');
-                  }}
-                  style={{
-                    background: 'white',
-                    borderRadius: '14px',
-                    padding: '14px',
-                    display: 'flex',
-                    gap: '12px',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-                  }}
+                  onClick={() => { setSelectedGuide(trip); setSelectedDay(1); setScreen('guideDetail'); }}
+                  style={{ background: 'white', borderRadius: '12px', padding: '12px', display: 'flex', gap: '10px', alignItems: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}
                 >
-                  <div style={{
-                    width: '60px',
-                    height: '60px',
-                    borderRadius: '12px',
-                    overflow: 'hidden'
-                  }}>
-                    <img
-                      src={trip.image}
-                      alt={trip.title}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
+                  <div style={{ width: '50px', height: '50px', borderRadius: '10px', overflow: 'hidden', background: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+                    {trip.flag}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{
-                      margin: 0,
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#1b5e20'
-                    }}>
-                      {trip.title}
-                    </p>
-                    <p style={{
-                      margin: '2px 0 0',
-                      fontSize: '12px',
-                      color: '#689f38'
-                    }}>
-                      {trip.days} days • {getTotalSpots(trip)} spots
-                    </p>
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1b5e20' }}>{trip.title}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38' }}>{trip.days} days • {getTotalSpots(trip)} spots</p>
                   </div>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setTripToDelete(index);
-                    }}
-                    style={{
-                      background: '#ffebee',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '32px',
-                      height: '32px',
-                      color: '#e53935',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      marginRight: '8px'
-                    }}
-                  >
-                    ✕
-                  </button>
-                  <span style={{ color: '#4caf50' }}>→</span>
+                    onClick={(e) => { e.stopPropagation(); setTripToDelete(index); }}
+                    style={{ background: '#ffebee', border: 'none', borderRadius: '50%', width: '28px', height: '28px', color: '#e53935', cursor: 'pointer', fontSize: '12px' }}
+                  >✕</button>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Delete Confirmation Modal */}
+        {/* Create Trip FAB */}
+        <div 
+          onClick={() => { resetNewTrip(); setScreen('newTripSearch'); }}
+          style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', padding: '14px 28px', borderRadius: '28px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 6px 20px rgba(46,125,50,0.4)', display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          <span style={{ fontSize: '18px' }}>✨</span> Create Trip
+        </div>
+
+        {/* Delete Modal */}
         {tripToDelete !== null && (
-          <div 
-            onClick={() => setTripToDelete(null)}
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgba(0,0,0,0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1000
-            }}
-          >
-            <div 
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'white',
-                borderRadius: '20px',
-                padding: '24px',
-                margin: '20px',
-                maxWidth: '320px',
-                textAlign: 'center'
-              }}
-            >
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗑️</div>
-              <h3 style={{ margin: '0 0 8px', color: '#1b5e20', fontSize: '18px' }}>
-                Delete Trip?
-              </h3>
-              <p style={{ margin: '0 0 20px', color: '#666', fontSize: '14px' }}>
-                Are you sure you want to delete "{myTrips[tripToDelete]?.title}"? This action cannot be undone.
-              </p>
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                <button
-                  onClick={() => setTripToDelete(null)}
-                  style={{
-                    background: '#f5f5f5',
-                    border: 'none',
-                    borderRadius: '12px',
-                    padding: '12px 24px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    color: '#666'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    setMyTrips(prev => prev.filter((_, i) => i !== tripToDelete));
-                    setTripToDelete(null);
-                  }}
-                  style={{
-                    background: '#e53935',
-                    border: 'none',
-                    borderRadius: '12px',
-                    padding: '12px 24px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    color: 'white'
-                  }}
-                >
-                  Delete
-                </button>
+          <div onClick={() => setTripToDelete(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px', padding: '24px', margin: '20px', maxWidth: '300px', textAlign: 'center' }}>
+              <div style={{ fontSize: '40px', marginBottom: '12px' }}>🗑️</div>
+              <h3 style={{ margin: '0 0 8px', color: '#1b5e20', fontSize: '16px' }}>Delete Trip?</h3>
+              <p style={{ margin: '0 0 16px', color: '#666', fontSize: '13px' }}>This action cannot be undone.</p>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                <button onClick={() => setTripToDelete(null)} style={{ background: '#f5f5f5', border: 'none', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', color: '#666' }}>Cancel</button>
+                <button onClick={() => { setMyTrips(prev => prev.filter((_, i) => i !== tripToDelete)); setTripToDelete(null); }} style={{ background: '#e53935', border: 'none', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', color: 'white' }}>Delete</button>
               </div>
             </div>
           </div>
@@ -1371,694 +517,496 @@ function App() {
   }
 
   // ============================================
-  // GUIDE DETAIL SCREEN WITH MAP
+  // CITY SEARCH SCREEN
+  // ============================================
+  if (screen === 'newTripSearch') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #ffffff 0%, #e8f5e9 50%, #c8e6c9 100%)', fontFamily: "'DM Sans', sans-serif" }}>
+        {/* Search Header */}
+        <div style={{ background: 'white', padding: '12px 16px', borderRadius: '0 0 20px 20px', boxShadow: '0 3px 15px rgba(0,0,0,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f5f5f5', borderRadius: '14px', padding: '4px 14px' }}>
+            <span onClick={() => setScreen('home')} style={{ fontSize: '18px', cursor: 'pointer', color: '#666' }}>←</span>
+            <input
+              type="text"
+              value={newTripCity}
+              onChange={(e) => setNewTripCity(e.target.value)}
+              placeholder="Search destination..."
+              autoFocus
+              style={{ flex: 1, padding: '12px 0', border: 'none', background: 'transparent', fontSize: '15px', outline: 'none' }}
+            />
+            {newTripCity && <span onClick={() => setNewTripCity('')} style={{ fontSize: '16px', cursor: 'pointer', color: '#999' }}>✕</span>}
+          </div>
+        </div>
+
+        {/* Results */}
+        <div style={{ padding: '16px' }}>
+          {citySearchResults.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {citySearchResults.map((city, index) => (
+                <div
+                  key={index}
+                  onClick={() => selectCity(city)}
+                  style={{ padding: '14px 8px', cursor: 'pointer', borderBottom: index < citySearchResults.length - 1 ? '1px solid #e8e8e8' : 'none' }}
+                >
+                  <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1b5e20' }}>{city.flag} {city.city}</p>
+                  <p style={{ margin: '3px 0 0', fontSize: '13px', color: '#689f38' }}>{city.country}</p>
+                </div>
+              ))}
+            </div>
+          ) : newTripCity.length > 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <p style={{ color: '#999', fontSize: '14px' }}>No cities found for "{newTripCity}"</p>
+            </div>
+          ) : (
+            <div>
+              <p style={{ fontSize: '12px', color: '#689f38', marginBottom: '10px' }}>Popular destinations</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {['Paris', 'Tokyo', 'Rome', 'Istanbul', 'London', 'Barcelona'].map((city) => {
+                  const cityData = CITY_DATABASE.find(c => c.city === city);
+                  return (
+                    <button
+                      key={city}
+                      onClick={() => cityData && selectCity(cityData)}
+                      style={{ background: 'white', border: '1px solid #e0e0e0', padding: '10px 14px', borderRadius: '18px', fontSize: '12px', cursor: 'pointer', color: '#1b5e20', fontWeight: '500' }}
+                    >
+                      {cityData?.flag} {city}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================
+  // CITY CONFIRM SCREEN
+  // ============================================
+  if (screen === 'newTripConfirm') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #ffffff 0%, #e8f5e9 60%, #c8e6c9 100%)', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '20px' }}>
+          <button onClick={() => setScreen('newTripSearch')} style={{ background: 'white', border: 'none', borderRadius: '50%', width: '40px', height: '40px', fontSize: '18px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>←</button>
+        </div>
+        
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+          <span style={{ fontSize: '80px', marginBottom: '16px' }}>{newTripCityData?.flag || '📍'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h1 style={{ fontSize: '32px', fontWeight: '700', color: '#1b5e20', margin: 0 }}>{newTripCityData?.city || newTripCity}</h1>
+            <span onClick={() => setScreen('newTripSearch')} style={{ background: '#f0f0f0', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '12px', color: '#666' }}>✎</span>
+          </div>
+          <p style={{ fontSize: '14px', color: '#689f38', marginTop: '8px' }}>{newTripCityData?.country}</p>
+        </div>
+        
+        <div style={{ padding: '20px 20px 36px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1b5e20', margin: '0 0 16px', textAlign: 'center' }}>Let's go to {newTripCityData?.city || newTripCity}!</h2>
+          <button onClick={() => setScreen('newTripPreferences')} style={{ width: '100%', background: 'white', color: '#1b5e20', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+            Continue <span>→</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================
+  // PREFERENCES SCREEN
+  // ============================================
+  if (screen === 'newTripPreferences') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #e8f5e9 0%, #ffffff 100%)', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column' }}>
+        <div style={{ height: '30vh', background: 'linear-gradient(180deg, #e8f5e9 0%, #f5f5f5 100%)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '20px' }}>
+          <span style={{ fontSize: '60px' }}>👍</span>
+        </div>
+        
+        <div style={{ flex: 1, background: 'white', borderRadius: '28px 28px 0 0', marginTop: '-20px', padding: '28px 20px 100px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#1b5e20', margin: '0 0 6px' }}>Trip Preferences</h1>
+          <p style={{ fontSize: '13px', color: '#689f38', margin: '0 0 20px' }}>What should your trip be about?</p>
+          
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '28px' }}>
+            {TRIP_CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => togglePreference(cat.id)}
+                style={{
+                  background: newTripPreferences.includes(cat.id) ? '#e8f5e9' : 'white',
+                  border: newTripPreferences.includes(cat.id) ? '2px solid #4caf50' : '2px solid #e0e0e0',
+                  padding: '11px 16px',
+                  borderRadius: '22px',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: '#333'
+                }}
+              >
+                <span>{cat.emoji}</span>{cat.label}
+              </button>
+            ))}
+          </div>
+          
+          <div onClick={() => setScreen('newTripDuration')} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 0', cursor: 'pointer', borderTop: '1px solid #eee' }}>
+            <span style={{ fontSize: '22px', opacity: 0.5 }}>📅</span>
+            <span style={{ fontSize: '15px', color: '#999' }}>Trip Duration</span>
+            <span style={{ marginLeft: 'auto', color: '#ccc' }}>→</span>
+          </div>
+        </div>
+        
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '14px 20px 28px', background: 'white', boxShadow: '0 -4px 20px rgba(0,0,0,0.05)' }}>
+          <button onClick={() => setScreen('newTripDuration')} style={{ width: '100%', background: '#1b5e20', color: 'white', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <span>✓</span> Continue
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================
+  // DURATION SCREEN
+  // ============================================
+  if (screen === 'newTripDuration') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%)', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '20px' }}>
+          <button onClick={() => setScreen('newTripPreferences')} style={{ background: 'white', border: 'none', borderRadius: '50%', width: '40px', height: '40px', fontSize: '18px', cursor: 'pointer' }}>←</button>
+        </div>
+        
+        <div style={{ flex: 1, padding: '0 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', opacity: 0.5 }}>
+            <span style={{ fontSize: '18px' }}>👍</span>
+            <span style={{ fontSize: '13px', color: '#666' }}>Trip Preferences</span>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <span style={{ fontSize: '22px', background: '#e8f5e9', padding: '6px', borderRadius: '10px' }}>📅</span>
+            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#1b5e20', margin: 0 }}>Trip Duration</h1>
+          </div>
+          
+          {/* Mode Toggle */}
+          <div style={{ display: 'flex', background: 'white', borderRadius: '22px', padding: '4px', marginBottom: '20px' }}>
+            <button onClick={() => setDurationMode('flexible')} style={{ flex: 1, background: durationMode === 'flexible' ? '#1b5e20' : 'transparent', color: durationMode === 'flexible' ? 'white' : '#666', border: 'none', padding: '10px', borderRadius: '18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Flexible</button>
+            <button onClick={() => setDurationMode('calendar')} style={{ flex: 1, background: durationMode === 'calendar' ? '#1b5e20' : 'transparent', color: durationMode === 'calendar' ? 'white' : '#666', border: 'none', padding: '10px', borderRadius: '18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Calendar</button>
+          </div>
+          
+          {durationMode === 'flexible' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', paddingTop: '20px' }}>
+              <p style={{ fontSize: '14px', color: '#689f38', marginBottom: '10px' }}>How many days?</p>
+              {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+                <button
+                  key={day}
+                  onClick={() => setNewTripDays(day)}
+                  style={{
+                    background: newTripDays === day ? '#e8f5e9' : 'transparent',
+                    border: 'none',
+                    padding: newTripDays === day ? '14px 45px' : '6px 25px',
+                    borderRadius: '14px',
+                    fontSize: newTripDays === day ? '42px' : '26px',
+                    fontWeight: '700',
+                    color: newTripDays === day ? '#1b5e20' : '#c8e6c9',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {day}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <CalendarPicker selectedDates={selectedDates} onSelectDates={setSelectedDates} />
+          )}
+        </div>
+        
+        <div style={{ padding: '14px 20px 28px' }}>
+          <button 
+            onClick={() => {
+              if (durationMode === 'calendar' && selectedDates.start && selectedDates.end) {
+                const diffDays = Math.ceil(Math.abs(selectedDates.end - selectedDates.start) / (1000 * 60 * 60 * 24)) + 1;
+                setNewTripDays(diffDays);
+              }
+              setShowAiPlanOffer(true);
+            }} 
+            style={{ width: '100%', background: '#1b5e20', color: 'white', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}
+          >
+            Confirm
+          </button>
+        </div>
+        
+        {/* AI Plan Offer Modal */}
+        {showAiPlanOffer && (
+          <div onClick={() => setShowAiPlanOffer(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '24px', padding: '24px', margin: '20px', maxWidth: '340px', width: '100%' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1b5e20', margin: '0 0 14px', textAlign: 'center' }}>Want us to plan your trip with places we think you'll love?</h2>
+              
+              <div style={{ background: '#f8f8f8', borderRadius: '14px', padding: '14px', marginBottom: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '11px', color: '#999' }}>✨ AI Planning Preview</span>
+                </div>
+                <h3 style={{ margin: '0 0 8px', fontSize: '14px', color: '#333' }}>Day 1</h3>
+                <div style={{ background: 'white', borderRadius: '10px', padding: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '44px', height: '44px', borderRadius: '8px', background: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>{newTripCityData?.flag || '📍'}</div>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: '600' }}>{newTripCityData?.city || newTripCity} Highlights</p>
+                    <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#999' }}>🎯 Top Attractions</p>
+                  </div>
+                </div>
+              </div>
+              
+              <button onClick={() => { setShowAiPlanOffer(false); setShowSubscriptionModal(true); }} style={{ width: '100%', background: '#1b5e20', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                <span>✨</span> Yes, plan for me!
+              </button>
+              <button onClick={() => { setShowAiPlanOffer(false); setScreen('home'); }} style={{ width: '100%', background: 'transparent', color: '#666', border: 'none', padding: '10px', fontSize: '13px', cursor: 'pointer' }}>
+                No, I'll plan myself
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Subscription Modal */}
+        {showSubscriptionModal && (
+          <div onClick={() => setShowSubscriptionModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '24px', padding: '28px 22px', margin: '20px', maxWidth: '340px', width: '100%', textAlign: 'center' }}>
+              <span style={{ fontSize: '44px' }}>✨</span>
+              <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#1b5e20', margin: '14px 0 6px' }}>Unlock AI Trip Planning</h2>
+              <p style={{ fontSize: '13px', color: '#666', margin: '0 0 20px' }}>Start your 7-day free trial</p>
+              
+              <div style={{ border: '2px solid #e0e0e0', borderRadius: '14px', padding: '14px', marginBottom: '10px', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ margin: 0, fontWeight: '600', color: '#333', fontSize: '14px' }}>Monthly</p>
+                    <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#999' }}>Cancel anytime</p>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1b5e20' }}>$4.99<span style={{ fontSize: '12px', fontWeight: '400' }}>/mo</span></p>
+                </div>
+              </div>
+              
+              <div style={{ border: '2px solid #4caf50', borderRadius: '14px', padding: '14px', marginBottom: '20px', cursor: 'pointer', background: '#f1f8e9', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '-10px', right: '14px', background: '#4caf50', color: 'white', padding: '3px 10px', borderRadius: '8px', fontSize: '10px', fontWeight: '600' }}>SAVE 25%</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ margin: 0, fontWeight: '600', color: '#333', fontSize: '14px' }}>Annual</p>
+                    <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#999' }}>Best value</p>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1b5e20' }}>$3.74<span style={{ fontSize: '12px', fontWeight: '400' }}>/mo</span></p>
+                </div>
+              </div>
+              
+              <button onClick={() => { setShowSubscriptionModal(false); setIsPremiumUser(true); generateAiTrip(); }} style={{ width: '100%', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
+                Start Free Trial
+              </button>
+              <p style={{ fontSize: '10px', color: '#999', margin: '10px 0 0' }}>Cancel anytime. No charge during trial.</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ============================================
+  // AI GENERATING SCREEN
+  // ============================================
+  if (screen === 'aiGenerating') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%)', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        <style>{`@keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15); opacity: 0.7; } }`}</style>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', animation: 'pulse 1.5s infinite', boxShadow: '0 8px 30px rgba(46,125,50,0.2)' }}>
+          <span style={{ fontSize: '40px' }}>✨</span>
+        </div>
+        <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#1b5e20', margin: '0 0 10px', textAlign: 'center' }}>Creating your perfect trip</h1>
+        <p style={{ fontSize: '15px', color: '#689f38', margin: 0, textAlign: 'center' }}>{aiLoadingMessage}</p>
+      </div>
+    );
+  }
+
+  // ============================================
+  // TRIP RESULT SCREEN (with paywall)
+  // ============================================
+  if (screen === 'tripResult' && generatedTrip) {
+    const currentDay = generatedTrip.itinerary.find(d => d.day === selectedDay) || generatedTrip.itinerary[0];
+    const isLocked = !isPremiumUser && selectedDay > 1;
+
+    return (
+      <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif", paddingBottom: '20px' }}>
+        {/* Header */}
+        <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button onClick={() => { setScreen('home'); resetNewTrip(); }} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '10px', padding: '8px 12px', color: 'white', cursor: 'pointer', fontSize: '15px' }}>←</button>
+          <h1 style={{ color: 'white', fontSize: '16px', fontWeight: '600', margin: 0 }}>{generatedTrip.flag} {generatedTrip.city}</h1>
+          <button onClick={() => { setMyTrips(prev => [...prev, generatedTrip]); setScreen('home'); resetNewTrip(); }} style={{ background: 'white', border: 'none', borderRadius: '10px', padding: '8px 12px', color: '#2e7d32', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>💾 Save</button>
+        </div>
+
+        {/* Trip Info */}
+        <div style={{ background: 'white', margin: '14px', borderRadius: '14px', padding: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+            <span style={{ fontSize: '11px', background: '#e8f5e9', color: '#2e7d32', padding: '3px 8px', borderRadius: '10px' }}>✨ AI Generated</span>
+          </div>
+          <h2 style={{ margin: '0 0 6px', fontSize: '18px', color: '#1b5e20', fontWeight: '700' }}>{generatedTrip.title}</h2>
+          <div style={{ display: 'flex', gap: '14px', fontSize: '12px', color: '#689f38' }}>
+            <span>📅 {generatedTrip.days} days</span>
+            <span>📍 {getTotalSpots(generatedTrip)} spots</span>
+          </div>
+        </div>
+
+        {/* Day Tabs */}
+        <div style={{ display: 'flex', gap: '6px', padding: '0 14px 12px', overflowX: 'auto' }}>
+          {generatedTrip.itinerary.map((day, index) => {
+            const dayLocked = !isPremiumUser && day.day > 1;
+            return (
+              <button
+                key={day.day}
+                onClick={() => setSelectedDay(day.day)}
+                style={{
+                  background: selectedDay === day.day ? DAY_COLORS[index % DAY_COLORS.length] : 'white',
+                  color: selectedDay === day.day ? 'white' : dayLocked ? '#ccc' : '#333',
+                  border: selectedDay === day.day ? 'none' : '2px solid #e0e0e0',
+                  padding: '9px 18px',
+                  borderRadius: '18px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                Day {day.day} {dayLocked && <span>🔒</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Spots List */}
+        <div style={{ padding: '0 14px' }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: '15px', color: '#1b5e20' }}>{currentDay?.title}</h3>
+          
+          {currentDay?.spots.map((spot, index) => (
+            <div key={index} style={{ marginBottom: '6px' }}>
+              <div style={{ background: 'white', borderRadius: '12px', padding: '11px', display: 'flex', gap: '10px', alignItems: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
+                <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0, background: '#e8f5e9' }}>
+                  <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', filter: isLocked ? 'blur(4px)' : 'none' }}>{spot.name}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#689f38', filter: isLocked ? 'blur(3px)' : 'none' }}>{spot.type}</p>
+                  <p style={{ margin: '3px 0 0', fontSize: '10px', color: '#9e9e9e' }}>⏱️ {spot.duration}</p>
+                </div>
+                {isLocked && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '22px' }}>🔒</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* Paywall Card */}
+          {isLocked && (
+            <div style={{ background: 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)', borderRadius: '18px', padding: '22px', marginTop: '14px', textAlign: 'center' }}>
+              <span style={{ fontSize: '36px' }}>🔓</span>
+              <h3 style={{ margin: '10px 0 6px', color: '#1b5e20', fontSize: '17px' }}>Unlock Full Plan</h3>
+              <p style={{ margin: '0 0 14px', color: '#689f38', fontSize: '13px' }}>Get access to all {generatedTrip.days} days of your personalized trip</p>
+              <div style={{ background: 'white', borderRadius: '10px', padding: '10px', marginBottom: '14px' }}>
+                <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>✓ 7-day free trial</p>
+                <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#666' }}>✓ Then $4.99/mo or $3.74/mo (annual)</p>
+              </div>
+              <button onClick={() => setIsPremiumUser(true)} style={{ width: '100%', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
+                Start Free Trial
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================
+  // GUIDE DETAIL SCREEN
   // ============================================
   if (screen === 'guideDetail' && selectedGuide) {
     const currentDay = selectedGuide.itinerary.find(d => d.day === selectedDay) || selectedGuide.itinerary[0];
 
     return (
-      <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif" }}>
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
-
+      <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif", paddingBottom: '20px' }}>
         {/* Header */}
-        <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button onClick={() => setScreen('home')} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '10px', padding: '8px 12px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
-          <h1 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: 0 }}>{selectedGuide.flag} {selectedGuide.city}</h1>
-          <button onClick={() => { if (!myTrips.find(t => t.id === selectedGuide.id)) setMyTrips(prev => [...prev, selectedGuide]); }} style={{ background: myTrips.find(t => t.id === selectedGuide.id) ? 'rgba(255,255,255,0.3)' : 'white', border: 'none', borderRadius: '10px', padding: '8px 14px', color: myTrips.find(t => t.id === selectedGuide.id) ? 'white' : '#2e7d32', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+        <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button onClick={() => setScreen('home')} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '10px', padding: '8px 12px', color: 'white', cursor: 'pointer', fontSize: '15px' }}>←</button>
+          <h1 style={{ color: 'white', fontSize: '16px', fontWeight: '600', margin: 0 }}>{selectedGuide.flag} {selectedGuide.city}</h1>
+          <button 
+            onClick={() => { if (!myTrips.find(t => t.id === selectedGuide.id)) setMyTrips(prev => [...prev, selectedGuide]); }} 
+            style={{ background: myTrips.find(t => t.id === selectedGuide.id) ? 'rgba(255,255,255,0.3)' : 'white', border: 'none', borderRadius: '10px', padding: '8px 12px', color: myTrips.find(t => t.id === selectedGuide.id) ? 'white' : '#2e7d32', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+          >
             {myTrips.find(t => t.id === selectedGuide.id) ? '✓ Saved' : '💾 Save'}
           </button>
         </div>
 
-        {/* Interactive Map */}
-        <div 
-          onClick={() => {
-            setMapExpanded(!mapExpanded);
-            // Force map to recalculate size after animation
-            setTimeout(() => {
-              window.dispatchEvent(new Event('resize'));
-            }, 350);
-          }}
-          style={{ 
-            height: mapExpanded ? '50vh' : '250px', 
-            margin: '16px', 
-            borderRadius: '16px', 
-            overflow: 'hidden', 
-            boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-            transition: 'height 0.3s ease',
-            cursor: 'pointer'
-          }}>
-          <TripMap guide={selectedGuide} selectedDay={showAllDaysOnMap ? null : selectedDay} onSpotClick={(day) => { setSelectedDay(day); setShowAllDaysOnMap(false); }} expanded={mapExpanded} />
-        </div>
-        
-        {/* Map expand hint */}
-        <p style={{ textAlign: 'center', fontSize: '11px', color: '#999', margin: '-8px 0 8px' }}>
-          {mapExpanded ? '📍 Click map to shrink' : '📍 Click map to expand'}
-        </p>
-
-        {/* Day Legend */}
-        <div style={{ padding: '0 16px 8px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: '11px', color: '#666' }}>Routes:</span>
-          {selectedGuide.itinerary.map((day, index) => (
-            <div key={day.day} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <div style={{ width: '16px', height: '3px', background: DAY_COLORS[index % DAY_COLORS.length], borderRadius: '2px' }} />
-              <span style={{ fontSize: '10px', color: '#666' }}>Day {day.day}</span>
-            </div>
-          ))}
-          <button onClick={() => setShowAllDaysOnMap(!showAllDaysOnMap)} style={{ marginLeft: 'auto', background: showAllDaysOnMap ? '#2e7d32' : '#e8f5e9', color: showAllDaysOnMap ? 'white' : '#2e7d32', border: 'none', borderRadius: '12px', padding: '4px 10px', fontSize: '10px', cursor: 'pointer', fontWeight: '600' }}>
-            {showAllDaysOnMap ? '✓ All Days' : 'Show All'}
-          </button>
-        </div>
-
-        {/* Trip Info Card */}
-        <div style={{ background: 'white', margin: '8px 16px', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-          <h2 style={{ margin: '0 0 8px', fontSize: '20px', color: '#1b5e20', fontWeight: '700' }}>{selectedGuide.title}</h2>
-          <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#689f38' }}>
+        {/* Trip Info */}
+        <div style={{ background: 'white', margin: '14px', borderRadius: '14px', padding: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          <h2 style={{ margin: '0 0 6px', fontSize: '18px', color: '#1b5e20', fontWeight: '700' }}>{selectedGuide.title}</h2>
+          <div style={{ display: 'flex', gap: '14px', fontSize: '12px', color: '#689f38' }}>
             <span>📅 {selectedGuide.days} days</span>
             <span>📍 {getTotalSpots(selectedGuide)} spots</span>
           </div>
         </div>
 
         {/* Day Tabs */}
-        <div style={{ display: 'flex', gap: '8px', padding: '8px 16px 16px', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', gap: '6px', padding: '0 14px 12px', overflowX: 'auto' }}>
           {selectedGuide.itinerary.map((day, index) => (
-            <button key={day.day} onClick={() => { setSelectedDay(day.day); setShowAllDaysOnMap(false); }} style={{ background: selectedDay === day.day ? DAY_COLORS[index % DAY_COLORS.length] : 'white', color: selectedDay === day.day ? 'white' : '#333', border: selectedDay === day.day ? 'none' : '2px solid #e0e0e0', padding: '10px 20px', borderRadius: '20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <button
+              key={day.day}
+              onClick={() => setSelectedDay(day.day)}
+              style={{
+                background: selectedDay === day.day ? DAY_COLORS[index % DAY_COLORS.length] : 'white',
+                color: selectedDay === day.day ? 'white' : '#333',
+                border: selectedDay === day.day ? 'none' : '2px solid #e0e0e0',
+                padding: '9px 18px',
+                borderRadius: '18px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+            >
               Day {day.day}
             </button>
           ))}
         </div>
 
-        {/* Day Title */}
-        <div style={{ padding: '0 16px 12px' }}>
-          <h3 style={{ margin: 0, fontSize: '16px', color: '#1b5e20' }}>{currentDay.title}</h3>
-        </div>
-
         {/* Spots List */}
-        <div style={{ padding: '0 16px 100px' }}>
+        <div style={{ padding: '0 14px' }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: '15px', color: '#1b5e20' }}>{currentDay.title}</h3>
+          
           {currentDay.spots.map((spot, index) => (
             <div key={index}>
-              <div 
-                onClick={() => setSelectedSpot({ ...spot, city: selectedGuide.city })}
-                style={{ background: 'white', borderRadius: '14px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', cursor: 'pointer' }}>
-                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
-                <div style={{ width: '55px', height: '55px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
+              <div style={{ background: 'white', borderRadius: '12px', padding: '11px', display: 'flex', gap: '10px', alignItems: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
+                <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
                   <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38', background: '#f1f8e9', display: 'inline-block', padding: '2px 8px', borderRadius: '10px' }}>{spot.type}</p>
-                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#9e9e9e' }}>⏱️ {spot.duration}</p>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#689f38', background: '#f1f8e9', display: 'inline-block', padding: '2px 6px', borderRadius: '8px' }}>{spot.type}</p>
+                  <p style={{ margin: '3px 0 0', fontSize: '10px', color: '#9e9e9e' }}>⏱️ {spot.duration}</p>
                 </div>
               </div>
-              {index < currentDay.spots.length - 1 && currentDay.spots[index + 1].walkTime && (
-                <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0 8px 14px', gap: '8px' }}>
-                  <div style={{ width: '2px', height: '24px', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length] + '40', marginLeft: '13px' }} />
-                  <span style={{ fontSize: '11px', color: '#9e9e9e' }}>🚶 {currentDay.spots[index + 1].walkTime}</span>
-                  <button onClick={() => openGoogleMaps(currentDay.spots[index + 1].name, selectedGuide.city)} style={{ background: '#e8f5e9', border: 'none', borderRadius: '12px', padding: '4px 10px', fontSize: '10px', color: '#2e7d32', cursor: 'pointer', fontWeight: '600' }}>📍 Directions</button>
+              {index < currentDay.spots.length - 1 && spot.walkTime && (
+                <div style={{ display: 'flex', alignItems: 'center', padding: '6px 0 6px 12px', gap: '6px' }}>
+                  <div style={{ width: '2px', height: '20px', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length] + '40', marginLeft: '12px' }} />
+                  <span style={{ fontSize: '10px', color: '#9e9e9e' }}>🚶 {currentDay.spots[index + 1].walkTime}</span>
                 </div>
               )}
             </div>
           ))}
         </div>
-
-        {/* Spot Detail Modal */}
-        {selectedSpot && (
-          <div 
-            onClick={() => setSelectedSpot(null)}
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgba(0,0,0,0.5)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              zIndex: 1000
-            }}
-          >
-            <div 
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'white',
-                borderRadius: '24px 24px 0 0',
-                width: '100%',
-                maxHeight: '85vh',
-                overflow: 'auto',
-                animation: 'slideUp 0.3s ease'
-              }}
-            >
-              {/* Close Button */}
-              <button 
-                onClick={() => setSelectedSpot(null)}
-                style={{
-                  position: 'absolute',
-                  top: '16px',
-                  right: '16px',
-                  background: '#f5f5f5',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '36px',
-                  height: '36px',
-                  fontSize: '18px',
-                  cursor: 'pointer',
-                  zIndex: 10
-                }}
-              >
-                ✕
-              </button>
-
-              {/* Header */}
-              <div style={{ padding: '24px 20px 16px' }}>
-                <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#1b5e20' }}>
-                  {selectedSpot.name}
-                </h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-                  <span style={{ color: '#ffc107', fontSize: '16px' }}>★★★★★</span>
-                  <span style={{ fontWeight: '600', color: '#333' }}>
-                    {(SPOT_DETAILS[selectedSpot.name] || SPOT_DETAILS['default']).rating}
-                  </span>
-                  <span style={{ color: '#999', fontSize: '13px' }}>
-                    ({(SPOT_DETAILS[selectedSpot.name] || SPOT_DETAILS['default']).reviews.toLocaleString()})
-                  </span>
-                </div>
-                <span style={{ 
-                  display: 'inline-block',
-                  marginTop: '8px',
-                  background: '#f1f8e9', 
-                  color: '#2e7d32',
-                  padding: '4px 12px', 
-                  borderRadius: '12px', 
-                  fontSize: '12px',
-                  fontWeight: '500'
-                }}>
-                  🎯 {selectedSpot.type}
-                </span>
-              </div>
-
-              {/* Image */}
-              <div style={{ margin: '0 20px', borderRadius: '16px', overflow: 'hidden', height: '160px', width: '160px' }}>
-                <img 
-                  src={selectedSpot.image.replace('w=100', 'w=300').replace('h=100', 'h=300')} 
-                  alt={selectedSpot.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px' }}
-                />
-              </div>
-
-              {/* About */}
-              <div style={{ padding: '20px' }}>
-                <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '600', color: '#333' }}>
-                  About this place
-                </h3>
-                <p style={{ margin: 0, fontSize: '14px', color: '#666', lineHeight: '1.5' }}>
-                  {(SPOT_DETAILS[selectedSpot.name] || SPOT_DETAILS['default']).description}
-                </p>
-              </div>
-
-              {/* Community Notes */}
-              <div style={{ 
-                margin: '0 20px', 
-                background: '#fffde7', 
-                borderRadius: '16px', 
-                padding: '16px'
-              }}>
-                <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  💡 Community Notes
-                </h3>
-                <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                  {(SPOT_DETAILS[selectedSpot.name] || SPOT_DETAILS['default']).tips.map((tip, i) => (
-                    <li key={i} style={{ fontSize: '13px', color: '#555', marginBottom: '8px', lineHeight: '1.4' }}>
-                      {tip}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Info */}
-              <div style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid #eee' }}>
-                  <span>📍</span>
-                  <span style={{ fontSize: '14px', color: '#333' }}>{selectedSpot.city}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid #eee' }}>
-                  <span>⏱️</span>
-                  <span style={{ fontSize: '14px', color: '#333' }}>Recommended: {selectedSpot.duration}</span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ 
-                padding: '16px 20px 32px', 
-                display: 'flex', 
-                gap: '12px',
-                justifyContent: 'center'
-              }}>
-                <button 
-                  style={{
-                    background: 'white',
-                    border: '2px solid #e0e0e0',
-                    borderRadius: '25px',
-                    padding: '12px 24px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  🔖 Save
-                </button>
-                <button 
-                  onClick={() => openGoogleMaps(selectedSpot.name, selectedSpot.city)}
-                  style={{
-                    background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
-                    border: 'none',
-                    borderRadius: '25px',
-                    padding: '12px 24px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: 'white',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  🧭 Direction
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
 
-  // ============================================
-  // NEW TRIP - CITY SELECTION
-  // ============================================
-  if (screen === 'newTripCity') {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 50%, #a5d6a7 100%)',
-        fontFamily: "'DM Sans', sans-serif",
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
-
-        {/* Back Button */}
-        <div style={{ padding: '20px' }}>
-          <button
-            onClick={() => setScreen('home')}
-            style={{
-              background: 'white',
-              border: 'none',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              fontSize: '18px',
-              cursor: 'pointer'
-            }}
-          >
-            ←
-          </button>
-        </div>
-
-        {/* Content */}
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <span style={{ fontSize: '50px' }}>🌍</span>
-          </div>
-          <h1 style={{
-            fontSize: '26px',
-            fontWeight: '700',
-            color: '#1b5e20',
-            margin: '0 0 8px 0',
-            textAlign: 'center'
-          }}>
-            Where to next?
-          </h1>
-          <p style={{
-            fontSize: '14px',
-            color: '#558b2f',
-            margin: '0 0 24px 0',
-            textAlign: 'center'
-          }}>
-            Enter your destination
-          </p>
-
-          {/* Search Input */}
-          <div style={{
-            background: 'white',
-            borderRadius: '14px',
-            padding: '4px',
-            boxShadow: '0 4px 15px rgba(46,125,50,0.15)'
-          }}>
-            <input
-              type="text"
-              value={newTripCity}
-              onChange={(e) => setNewTripCity(e.target.value)}
-              placeholder="Search city..."
-              style={{
-                width: '100%',
-                padding: '16px',
-                border: 'none',
-                borderRadius: '10px',
-                fontSize: '15px',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          {/* Popular Cities */}
-          <div style={{ marginTop: '20px' }}>
-            <p style={{ fontSize: '12px', color: '#689f38', marginBottom: '10px' }}>
-              Popular:
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {['Paris', 'Tokyo', 'Rome', 'Istanbul', 'London'].map((city) => (
-                <button
-                  key={city}
-                  onClick={() => setNewTripCity(city)}
-                  style={{
-                    background: newTripCity === city ? '#2e7d32' : 'white',
-                    color: newTripCity === city ? 'white' : '#2e7d32',
-                    border: 'none',
-                    padding: '8px 14px',
-                    borderRadius: '16px',
-                    fontSize: '12px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {city}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Continue Button */}
-        <div style={{ padding: '20px' }}>
-          <button
-            onClick={() => newTripCity.trim() && setScreen('newTripPreferences')}
-            disabled={!newTripCity.trim()}
-            style={{
-              width: '100%',
-              background: newTripCity.trim()
-                ? 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)'
-                : '#c8e6c9',
-              color: 'white',
-              border: 'none',
-              padding: '16px',
-              borderRadius: '14px',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: newTripCity.trim() ? 'pointer' : 'not-allowed'
-            }}
-          >
-            Continue →
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================
-  // NEW TRIP - PREFERENCES
-  // ============================================
-  if (screen === 'newTripPreferences') {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(180deg, #ffffff 0%, #f1f8e9 100%)',
-        fontFamily: "'DM Sans', sans-serif",
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
-
-        {/* Header */}
-        <div style={{
-          padding: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          <button
-            onClick={() => setScreen('newTripCity')}
-            style={{
-              background: '#f1f8e9',
-              border: 'none',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              fontSize: '18px',
-              cursor: 'pointer'
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <p style={{ margin: 0, fontSize: '12px', color: '#689f38' }}>
-              Planning trip to
-            </p>
-            <h2 style={{
-              margin: 0,
-              fontSize: '16px',
-              color: '#1b5e20',
-              fontWeight: '600'
-            }}>
-              📍 {newTripCity}
-            </h2>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div style={{ flex: 1, padding: '20px' }}>
-          <h1 style={{
-            fontSize: '22px',
-            fontWeight: '700',
-            color: '#1b5e20',
-            margin: '0 0 8px 0'
-          }}>
-            What interests you?
-          </h1>
-          <p style={{
-            fontSize: '13px',
-            color: '#689f38',
-            margin: '0 0 20px 0'
-          }}>
-            Select all that apply
-          </p>
-
-          {/* Categories Grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '10px'
-          }}>
-            {TRIP_CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => togglePreference(cat.id)}
-                style={{
-                  background: newTripPreferences.includes(cat.id)
-                    ? 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)'
-                    : 'white',
-                  color: newTripPreferences.includes(cat.id) ? 'white' : '#1b5e20',
-                  border: newTripPreferences.includes(cat.id)
-                    ? 'none'
-                    : '2px solid #e8f5e9',
-                  padding: '18px 14px',
-                  borderRadius: '14px',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <span style={{ fontSize: '24px' }}>{cat.emoji}</span>
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Continue Button */}
-        <div style={{ padding: '20px' }}>
-          <button
-            onClick={() => setScreen('newTripDuration')}
-            style={{
-              width: '100%',
-              background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)',
-              color: 'white',
-              border: 'none',
-              padding: '16px',
-              borderRadius: '14px',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            Continue →
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================
-  // NEW TRIP - DURATION
-  // ============================================
-  if (screen === 'newTripDuration') {
-    const createNewTrip = () => {
-      const newTrip = {
-        id: 'custom-' + Date.now(),
-        city: newTripCity,
-        country: 'Custom',
-        flag: '📍',
-        title: `${newTripDays}-Day ${newTripCity} Trip`,
-        days: newTripDays,
-        center: [48.8566, 2.3522],
-        image: `https://source.unsplash.com/400x300/?${encodeURIComponent(newTripCity)},city`,
-        itinerary: [{
-          day: 1,
-          title: 'Day 1',
-          spots: [{
-            name: 'Start exploring!',
-            type: 'Activity',
-            duration: 'All day',
-            walkTime: null,
-            lat: 48.8566,
-            lng: 2.3522,
-            image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=100&h=100&fit=crop'
-          }]
-        }]
-      };
-
-      setMyTrips(prev => [...prev, newTrip]);
-      setNewTripCity('');
-      setNewTripPreferences([]);
-      setNewTripDays(3);
-      setScreen('home');
-    };
-
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(180deg, #ffffff 0%, #e8f5e9 100%)',
-        fontFamily: "'DM Sans', sans-serif",
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
-
-        {/* Back Button */}
-        <div style={{ padding: '20px' }}>
-          <button
-            onClick={() => setScreen('newTripPreferences')}
-            style={{
-              background: '#f1f8e9',
-              border: 'none',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              fontSize: '18px',
-              cursor: 'pointer'
-            }}
-          >
-            ←
-          </button>
-        </div>
-
-        {/* Content */}
-        <div style={{ flex: 1, padding: '20px' }}>
-          <h1 style={{
-            fontSize: '22px',
-            fontWeight: '700',
-            color: '#1b5e20',
-            margin: '0 0 30px 0'
-          }}>
-            How many days?
-          </h1>
-
-          {/* Day Picker */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-              <button
-                key={day}
-                onClick={() => setNewTripDays(day)}
-                style={{
-                  background: newTripDays === day
-                    ? 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)'
-                    : 'transparent',
-                  border: 'none',
-                  padding: newTripDays === day ? '14px 45px' : '6px 25px',
-                  borderRadius: '14px',
-                  fontSize: newTripDays === day ? '38px' : '24px',
-                  fontWeight: '700',
-                  color: newTripDays === day ? 'white' : '#c8e6c9',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                {day}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Create Button */}
-        <div style={{ padding: '20px' }}>
-          <button
-            onClick={createNewTrip}
-            style={{
-              width: '100%',
-              background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)',
-              color: 'white',
-              border: 'none',
-              padding: '16px',
-              borderRadius: '14px',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            ✓ Create Trip
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================
-  // LOADING / DEFAULT SCREEN
-  // ============================================
+  // Default Loading
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#f5faf6',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
+    <div style={{ minHeight: '100vh', background: '#f5faf6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>🧭</div>
         <p style={{ color: '#689f38' }}>Loading...</p>
@@ -2066,5 +1014,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
