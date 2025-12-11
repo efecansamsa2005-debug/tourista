@@ -18,8 +18,7 @@ const TRAVEL_GUIDES = [
     title: '1-Day Paris Trip',
     days: 1,
     spots: 9,
-    image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=300&fit=crop',
-    color: '#E8D5B7'
+    image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=300&fit=crop'
   },
   {
     id: 'rome-1day',
@@ -28,8 +27,7 @@ const TRAVEL_GUIDES = [
     title: '1-Day Rome Trip',
     days: 1,
     spots: 7,
-    image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&h=300&fit=crop',
-    color: '#D4E5F7'
+    image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&h=300&fit=crop'
   },
   {
     id: 'london-3day',
@@ -38,8 +36,7 @@ const TRAVEL_GUIDES = [
     title: '3-Day London Trip',
     days: 3,
     spots: 19,
-    image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400&h=300&fit=crop',
-    color: '#1E3A5F'
+    image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400&h=300&fit=crop'
   },
   {
     id: 'tokyo-2day',
@@ -48,8 +45,7 @@ const TRAVEL_GUIDES = [
     title: '2-Day Tokyo Trip',
     days: 2,
     spots: 12,
-    image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop',
-    color: '#FFB7C5'
+    image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop'
   },
   {
     id: 'istanbul-2day',
@@ -58,12 +54,11 @@ const TRAVEL_GUIDES = [
     title: '2-Day Istanbul Trip',
     days: 2,
     spots: 14,
-    image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=400&h=300&fit=crop',
-    color: '#F5DEB3'
+    image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=400&h=300&fit=crop'
   }
 ];
 
-// Interest Categories (Simplified for Trip Planning)
+// Trip Categories (Simplified)
 const TRIP_CATEGORIES = [
   { id: 'popular', emoji: '📍', label: 'Popular' },
   { id: 'museum', emoji: '🏛️', label: 'Museum' },
@@ -72,39 +67,6 @@ const TRIP_CATEGORIES = [
   { id: 'history', emoji: '🏰', label: 'History' },
   { id: 'shopping', emoji: '🛍️', label: 'Shopping' },
 ];
-
-// Helper function to get Google Places photo URL
-const getPhotoUrl = (photo, size = 400) => {
-  if (!photo || !photo.name) return null;
-  return `https://places.googleapis.com/v1/${photo.name}/media?maxWidthPx=${size}&key=${GOOGLE_API_KEY}`;
-};
-
-// Star Rating Component
-const StarRating = ({ rating, onRate, size = 24, interactive = false }) => {
-  const [hoverRating, setHoverRating] = useState(0);
-  
-  return (
-    <div style={{ display: 'flex', gap: '4px' }}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <span
-          key={star}
-          onClick={() => interactive && onRate && onRate(star)}
-          onMouseEnter={() => interactive && setHoverRating(star)}
-          onMouseLeave={() => interactive && setHoverRating(0)}
-          style={{
-            fontSize: `${size}px`,
-            cursor: interactive ? 'pointer' : 'default',
-            color: star <= (hoverRating || rating) ? '#FFD700' : '#E0E0E0',
-            transition: 'all 0.2s ease',
-            transform: interactive && star <= hoverRating ? 'scale(1.2)' : 'scale(1)'
-          }}
-        >
-          ★
-        </span>
-      ))}
-    </div>
-  );
-};
 
 // Main App Component
 function App() {
@@ -127,12 +89,7 @@ function App() {
   const [newTripCity, setNewTripCity] = useState('');
   const [newTripPreferences, setNewTripPreferences] = useState([]);
   const [newTripDays, setNewTripDays] = useState(3);
-  const [tripDurationType, setTripDurationType] = useState('flexible'); // 'flexible' or 'dates'
-  const [tripStartDate, setTripStartDate] = useState(null);
-  const [tripEndDate, setTripEndDate] = useState(null);
-
-  // Bottom Navigation
-  const [activeTab, setActiveTab] = useState('trips'); // 'trips', 'add', 'map'
+  const [tripDurationType, setTripDurationType] = useState('flexible');
 
   // Check authentication on mount
   useEffect(() => {
@@ -590,63 +547,96 @@ function App() {
     return (
       <div style={{
         minHeight: '100vh',
-        background: '#ffffff',
+        background: 'linear-gradient(180deg, #f1f8e9 0%, #ffffff 100%)',
         fontFamily: "'DM Sans', sans-serif",
-        paddingBottom: '80px'
+        paddingBottom: '100px'
       }}>
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
 
         {/* Header */}
         <div style={{
-          padding: '20px 20px 10px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
+          background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)',
+          padding: '20px',
+          borderRadius: '0 0 30px 30px'
         }}>
-          <h1 style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '28px',
-            fontWeight: '700',
-            color: '#1b5e20',
-            margin: 0
-          }}>
-            Tourista
-          </h1>
-          <div
-            onClick={handleLogout}
-            style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: '600',
-              fontSize: '16px',
-              cursor: 'pointer'
-            }}
-          >
-            {currentUser?.email?.charAt(0).toUpperCase()}
-          </div>
-        </div>
-
-        {/* Travel Guides Section */}
-        <div style={{ padding: '20px' }}>
-          <h2 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#9e9e9e',
-            margin: '0 0 16px 0'
-          }}>
-            Travel Guides
-          </h2>
-          
-          {/* Horizontal Scroll */}
           <div style={{
             display: 'flex',
-            gap: '12px',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '32px' }}>🧭</span>
+              <h1 style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '24px',
+                fontWeight: '700',
+                color: 'white',
+                margin: 0
+              }}>
+                TOURISTA
+              </h1>
+            </div>
+            <div
+              onClick={handleLogout}
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: '600',
+                fontSize: '18px',
+                cursor: 'pointer',
+                border: '2px solid rgba(255,255,255,0.3)'
+              }}
+            >
+              {currentUser?.email?.charAt(0).toUpperCase()}
+            </div>
+          </div>
+          
+          {/* Welcome Message */}
+          <p style={{
+            color: 'rgba(255,255,255,0.9)',
+            fontSize: '16px',
+            margin: 0
+          }}>
+            Welcome back, <strong>{currentUser?.email?.split('@')[0]}</strong>! 👋
+          </p>
+        </div>
+
+        {/* Explore Destinations Section */}
+        <div style={{ padding: '24px 20px' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '16px'
+          }}>
+            <h2 style={{
+              fontSize: '18px',
+              fontWeight: '700',
+              color: '#1b5e20',
+              margin: 0
+            }}>
+              🌍 Explore Destinations
+            </h2>
+            <span style={{
+              fontSize: '14px',
+              color: '#4caf50',
+              cursor: 'pointer'
+            }}>
+              See all →
+            </span>
+          </div>
+          
+          {/* Horizontal Cards */}
+          <div style={{
+            display: 'flex',
+            gap: '14px',
             overflowX: 'auto',
             paddingBottom: '10px',
             marginRight: '-20px',
@@ -660,73 +650,60 @@ function App() {
                   setScreen('guideDetail');
                 }}
                 style={{
-                  minWidth: '160px',
-                  height: '200px',
-                  borderRadius: '16px',
+                  minWidth: '150px',
+                  background: 'white',
+                  borderRadius: '20px',
                   overflow: 'hidden',
-                  position: 'relative',
                   cursor: 'pointer',
                   flexShrink: 0,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  boxShadow: '0 4px 15px rgba(46,125,50,0.1)',
+                  border: '1px solid #e8f5e9'
                 }}
               >
-                <img
-                  src={guide.image}
-                  alt={guide.city}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
-                />
-                {/* Gradient Overlay */}
                 <div style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: '60%',
-                  background: 'linear-gradient(transparent, rgba(0,0,0,0.7))'
-                }} />
-                {/* City Badge */}
-                <div style={{
-                  position: 'absolute',
-                  top: '10px',
-                  left: '10px',
-                  background: 'rgba(255,255,255,0.95)',
-                  padding: '4px 10px',
-                  borderRadius: '20px',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#333',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
+                  height: '100px',
+                  position: 'relative'
                 }}>
-                  <span style={{ color: '#e53935' }}>📍</span>
-                  {guide.city}
+                  <img
+                    src={guide.image}
+                    alt={guide.city}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                  {/* City Badge */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '8px',
+                    left: '8px',
+                    background: 'white',
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    color: '#2e7d32',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}>
+                    📍 {guide.city}
+                  </div>
                 </div>
-                {/* Info */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: '12px',
-                  left: '12px',
-                  right: '12px',
-                  color: 'white'
-                }}>
+                <div style={{ padding: '12px' }}>
                   <p style={{
                     margin: 0,
-                    fontSize: '15px',
-                    fontWeight: '600'
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    color: '#1b5e20'
                   }}>
                     {guide.title}
                   </p>
                   <p style={{
                     margin: '4px 0 0',
-                    fontSize: '12px',
-                    opacity: 0.9
+                    fontSize: '11px',
+                    color: '#689f38'
                   }}>
-                    {guide.spots} Spots
+                    {guide.spots} spots • {guide.days} day{guide.days > 1 ? 's' : ''}
                   </p>
                 </div>
               </div>
@@ -735,65 +712,69 @@ function App() {
         </div>
 
         {/* My Trips Section */}
-        <div style={{ padding: '20px' }}>
+        <div style={{ padding: '0 20px' }}>
           <h2 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#9e9e9e',
+            fontSize: '18px',
+            fontWeight: '700',
+            color: '#1b5e20',
             margin: '0 0 16px 0'
           }}>
-            My Trips
+            🗂️ My Trips
           </h2>
 
           {myTrips.length === 0 ? (
             /* Empty State */
             <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '40px 20px'
+              background: 'white',
+              borderRadius: '24px',
+              padding: '40px 24px',
+              textAlign: 'center',
+              boxShadow: '0 4px 20px rgba(46,125,50,0.08)',
+              border: '2px dashed #c8e6c9'
             }}>
-              {/* Mascot */}
               <div style={{
-                fontSize: '80px',
-                marginBottom: '16px'
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                fontSize: '36px'
               }}>
-                🧭
+                ✈️
               </div>
-              {/* Speech Bubble */}
-              <div style={{
-                background: 'white',
-                border: '1px solid #e0e0e0',
-                borderRadius: '20px',
-                padding: '12px 20px',
-                marginBottom: '24px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+              <h3 style={{
+                color: '#1b5e20',
+                fontSize: '18px',
+                margin: '0 0 8px 0'
               }}>
-                <p style={{
-                  margin: 0,
-                  color: '#333',
-                  fontSize: '15px',
-                  fontWeight: '500'
-                }}>
-                  Where we going?
-                </p>
-              </div>
-              {/* Start New Trip Button */}
+                No trips planned yet
+              </h3>
+              <p style={{
+                color: '#689f38',
+                fontSize: '14px',
+                margin: '0 0 24px 0'
+              }}>
+                Start planning your next adventure!
+              </p>
               <button
                 onClick={() => setScreen('newTripCity')}
                 style={{
-                  background: '#1a1a1a',
+                  background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
                   color: 'white',
                   border: 'none',
-                  padding: '16px 32px',
-                  borderRadius: '30px',
-                  fontSize: '16px',
+                  padding: '14px 32px',
+                  borderRadius: '50px',
+                  fontSize: '15px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif"
+                  fontFamily: "'DM Sans', sans-serif",
+                  boxShadow: '0 4px 15px rgba(46,125,50,0.3)'
                 }}
               >
-                Start new trip
+                + Create New Trip
               </button>
             </div>
           ) : (
@@ -807,45 +788,23 @@ function App() {
                     setScreen('tripDetail');
                   }}
                   style={{
-                    background: '#f5f8ff',
+                    background: 'white',
                     borderRadius: '16px',
                     padding: '16px',
                     display: 'flex',
-                    justifyContent: 'space-between',
+                    gap: '14px',
                     alignItems: 'center',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 10px rgba(46,125,50,0.08)',
+                    border: '1px solid #e8f5e9'
                   }}
                 >
-                  <div>
-                    <h3 style={{
-                      margin: 0,
-                      fontSize: '18px',
-                      fontWeight: '700',
-                      color: '#1a237e'
-                    }}>
-                      {trip.title}
-                    </h3>
-                    <p style={{
-                      margin: '4px 0 0',
-                      fontSize: '13px',
-                      color: '#5c6bc0'
-                    }}>
-                      {trip.days} Days {trip.days - 1} Nights
-                    </p>
-                    <p style={{
-                      margin: '2px 0 0',
-                      fontSize: '13px',
-                      color: '#5c6bc0'
-                    }}>
-                      {trip.spots} Spots
-                    </p>
-                  </div>
                   <div style={{
-                    width: '100px',
-                    height: '80px',
-                    borderRadius: '12px',
+                    width: '70px',
+                    height: '70px',
+                    borderRadius: '14px',
                     overflow: 'hidden',
-                    transform: 'rotate(5deg)'
+                    flexShrink: 0
                   }}>
                     <img
                       src={trip.image}
@@ -857,6 +816,24 @@ function App() {
                       }}
                     />
                   </div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#1b5e20'
+                    }}>
+                      {trip.title}
+                    </h3>
+                    <p style={{
+                      margin: '4px 0 0',
+                      fontSize: '13px',
+                      color: '#689f38'
+                    }}>
+                      {trip.days} days • {trip.spots} spots
+                    </p>
+                  </div>
+                  <span style={{ color: '#4caf50', fontSize: '20px' }}>→</span>
                 </div>
               ))}
               
@@ -864,20 +841,22 @@ function App() {
               <button
                 onClick={() => setScreen('newTripCity')}
                 style={{
-                  background: '#1a1a1a',
-                  color: 'white',
-                  border: 'none',
-                  padding: '16px 32px',
-                  borderRadius: '30px',
-                  fontSize: '16px',
+                  background: 'white',
+                  color: '#2e7d32',
+                  border: '2px dashed #4caf50',
+                  padding: '16px',
+                  borderRadius: '16px',
+                  fontSize: '15px',
                   fontWeight: '600',
                   cursor: 'pointer',
                   fontFamily: "'DM Sans', sans-serif",
-                  marginTop: '16px',
-                  alignSelf: 'center'
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
                 }}
               >
-                Start new trip
+                <span style={{ fontSize: '20px' }}>+</span> Add New Trip
               </button>
             </div>
           )}
@@ -887,58 +866,67 @@ function App() {
         <div style={{
           position: 'fixed',
           bottom: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
+          left: '20px',
+          right: '20px',
           background: 'white',
-          borderRadius: '40px',
-          padding: '12px 32px',
+          borderRadius: '20px',
+          padding: '12px 20px',
           display: 'flex',
-          gap: '32px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
         }}>
           <button
-            onClick={() => setActiveTab('trips')}
             style={{
               background: 'none',
               border: 'none',
-              fontSize: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '4px',
               cursor: 'pointer',
-              opacity: activeTab === 'trips' ? 1 : 0.4,
               padding: '8px'
             }}
           >
-            🧳
+            <span style={{ fontSize: '22px' }}>🏠</span>
+            <span style={{ fontSize: '11px', color: '#2e7d32', fontWeight: '600' }}>Home</span>
           </button>
+          
           <button
             onClick={() => setScreen('newTripCity')}
             style={{
-              background: '#1a1a1a',
+              background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
               border: 'none',
               borderRadius: '50%',
-              width: '48px',
-              height: '48px',
-              fontSize: '24px',
+              width: '56px',
+              height: '56px',
+              fontSize: '28px',
               cursor: 'pointer',
               color: 'white',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              marginTop: '-30px',
+              boxShadow: '0 4px 15px rgba(46,125,50,0.4)'
             }}
           >
             +
           </button>
+          
           <button
-            onClick={() => setActiveTab('map')}
             style={{
               background: 'none',
               border: 'none',
-              fontSize: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '4px',
               cursor: 'pointer',
-              opacity: activeTab === 'map' ? 1 : 0.4,
               padding: '8px'
             }}
           >
-            🗺️
+            <span style={{ fontSize: '22px' }}>🗺️</span>
+            <span style={{ fontSize: '11px', color: '#9e9e9e', fontWeight: '500' }}>Explore</span>
           </button>
         </div>
       </div>
@@ -950,70 +938,86 @@ function App() {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(180deg, #e0f7fa 0%, #80deea 50%, #00bcd4 100%)',
+        background: 'linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 50%, #a5d6a7 100%)',
         fontFamily: "'DM Sans', sans-serif",
         display: 'flex',
         flexDirection: 'column'
       }}>
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
 
-        {/* Back Button */}
-        <button
-          onClick={() => setScreen('home')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#00695c',
-            fontSize: '24px',
-            cursor: 'pointer',
-            padding: '20px',
-            alignSelf: 'flex-start'
-          }}
-        >
-          ←
-        </button>
+        {/* Header */}
+        <div style={{
+          padding: '20px',
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          <button
+            onClick={() => setScreen('home')}
+            style={{
+              background: 'white',
+              border: 'none',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              fontSize: '18px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+            }}
+          >
+            ←
+          </button>
+        </div>
 
         {/* Content */}
         <div style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'flex-end',
+          justifyContent: 'center',
           padding: '20px'
         }}>
-          <h1 style={{
-            fontSize: '32px',
-            fontWeight: '700',
-            color: 'white',
-            margin: '0 0 8px 0'
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '40px'
           }}>
-            Where are we going?
+            <span style={{ fontSize: '60px' }}>🌍</span>
+          </div>
+          
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: '700',
+            color: '#1b5e20',
+            margin: '0 0 8px 0',
+            textAlign: 'center'
+          }}>
+            Where to next?
           </h1>
           <p style={{
-            fontSize: '16px',
-            color: 'rgba(255,255,255,0.8)',
-            margin: '0 0 24px 0'
+            fontSize: '15px',
+            color: '#558b2f',
+            margin: '0 0 32px 0',
+            textAlign: 'center'
           }}>
-            Search for your destination
+            Enter your dream destination
           </p>
 
           {/* Search Input */}
           <div style={{
             background: 'white',
-            borderRadius: '30px',
+            borderRadius: '16px',
             padding: '4px',
-            marginBottom: '40px'
+            boxShadow: '0 4px 20px rgba(46,125,50,0.15)'
           }}>
             <input
               type="text"
               value={newTripCity}
               onChange={(e) => setNewTripCity(e.target.value)}
-              placeholder="🔍  Search city..."
+              placeholder="Search city (e.g., Paris, Tokyo...)"
               style={{
                 width: '100%',
-                padding: '16px 20px',
+                padding: '18px 20px',
                 border: 'none',
-                borderRadius: '26px',
+                borderRadius: '12px',
                 fontSize: '16px',
                 outline: 'none',
                 boxSizing: 'border-box',
@@ -1022,24 +1026,65 @@ function App() {
             />
           </div>
 
-          {/* Continue Button */}
+          {/* Popular Cities */}
+          <div style={{ marginTop: '24px' }}>
+            <p style={{
+              fontSize: '13px',
+              color: '#689f38',
+              marginBottom: '12px'
+            }}>
+              Popular destinations:
+            </p>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px'
+            }}>
+              {['Paris', 'Tokyo', 'Rome', 'Istanbul', 'London'].map((city) => (
+                <button
+                  key={city}
+                  onClick={() => setNewTripCity(city)}
+                  style={{
+                    background: newTripCity === city ? '#2e7d32' : 'white',
+                    color: newTripCity === city ? 'white' : '#2e7d32',
+                    border: 'none',
+                    padding: '10px 16px',
+                    borderRadius: '20px',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    fontFamily: "'DM Sans', sans-serif"
+                  }}
+                >
+                  {city}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Continue Button */}
+        <div style={{ padding: '20px' }}>
           <button
             onClick={() => newTripCity.trim() && setScreen('newTripPreferences')}
             disabled={!newTripCity.trim()}
             style={{
-              background: newTripCity.trim() ? '#1a1a1a' : 'rgba(0,0,0,0.3)',
+              width: '100%',
+              background: newTripCity.trim() 
+                ? 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)' 
+                : '#c8e6c9',
               color: 'white',
               border: 'none',
               padding: '18px',
-              borderRadius: '30px',
+              borderRadius: '16px',
               fontSize: '16px',
               fontWeight: '600',
               cursor: newTripCity.trim() ? 'pointer' : 'not-allowed',
               fontFamily: "'DM Sans', sans-serif",
-              marginBottom: '20px'
+              boxShadow: newTripCity.trim() ? '0 4px 15px rgba(46,125,50,0.3)' : 'none'
             }}
           >
-            Continue
+            Continue →
           </button>
         </div>
       </div>
@@ -1051,59 +1096,65 @@ function App() {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(180deg, #e3f2fd 0%, #bbdefb 100%)',
+        background: 'linear-gradient(180deg, #ffffff 0%, #f1f8e9 100%)',
         fontFamily: "'DM Sans', sans-serif",
         display: 'flex',
         flexDirection: 'column'
       }}>
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
 
-        {/* Back Button */}
-        <button
-          onClick={() => setScreen('newTripCity')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#1565c0',
-            fontSize: '24px',
-            cursor: 'pointer',
-            padding: '20px',
-            alignSelf: 'flex-start'
-          }}
-        >
-          ←
-        </button>
+        {/* Header */}
+        <div style={{
+          padding: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px'
+        }}>
+          <button
+            onClick={() => setScreen('newTripCity')}
+            style={{
+              background: '#f1f8e9',
+              border: 'none',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              fontSize: '18px',
+              cursor: 'pointer'
+            }}
+          >
+            ←
+          </button>
+          <div>
+            <p style={{ margin: 0, fontSize: '13px', color: '#689f38' }}>Planning trip to</p>
+            <h2 style={{ margin: 0, fontSize: '18px', color: '#1b5e20', fontWeight: '600' }}>
+              📍 {newTripCity}
+            </h2>
+          </div>
+        </div>
 
         {/* Content */}
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          padding: '20px'
-        }}>
-          <span style={{ fontSize: '32px', marginBottom: '8px' }}>👍</span>
+        <div style={{ flex: 1, padding: '20px' }}>
           <h1 style={{
-            fontSize: '28px',
+            fontSize: '24px',
             fontWeight: '700',
-            color: '#0d47a1',
+            color: '#1b5e20',
             margin: '0 0 8px 0'
           }}>
-            Trip Preferences
+            What interests you?
           </h1>
           <p style={{
-            fontSize: '15px',
-            color: '#5c6bc0',
+            fontSize: '14px',
+            color: '#689f38',
             margin: '0 0 24px 0'
           }}>
-            What should your trip be about?
+            Select all that apply
           </p>
 
-          {/* Categories */}
+          {/* Categories Grid */}
           <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '10px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '12px',
             marginBottom: '32px'
           }}>
             {TRIP_CATEGORIES.map((cat) => (
@@ -1111,67 +1162,52 @@ function App() {
                 key={cat.id}
                 onClick={() => togglePreference(cat.id)}
                 style={{
-                  background: newTripPreferences.includes(cat.id) ? '#1a1a1a' : 'white',
-                  color: newTripPreferences.includes(cat.id) ? 'white' : '#333',
-                  border: '2px solid',
-                  borderColor: newTripPreferences.includes(cat.id) ? '#1a1a1a' : '#e0e0e0',
-                  padding: '10px 18px',
-                  borderRadius: '25px',
+                  background: newTripPreferences.includes(cat.id) 
+                    ? 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)' 
+                    : 'white',
+                  color: newTripPreferences.includes(cat.id) ? 'white' : '#1b5e20',
+                  border: newTripPreferences.includes(cat.id) ? 'none' : '2px solid #e8f5e9',
+                  padding: '20px 16px',
+                  borderRadius: '16px',
                   fontSize: '14px',
-                  fontWeight: '500',
+                  fontWeight: '600',
                   cursor: 'pointer',
                   fontFamily: "'DM Sans', sans-serif",
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '8px',
+                  boxShadow: newTripPreferences.includes(cat.id) 
+                    ? '0 4px 15px rgba(46,125,50,0.3)' 
+                    : '0 2px 8px rgba(0,0,0,0.05)'
                 }}
               >
-                {cat.emoji} {cat.label}
+                <span style={{ fontSize: '28px' }}>{cat.emoji}</span>
+                {cat.label}
               </button>
             ))}
           </div>
+        </div>
 
-          {/* Trip Duration Link */}
-          <div
-            onClick={() => setScreen('newTripDuration')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '16px 0',
-              borderTop: '1px solid rgba(0,0,0,0.1)',
-              cursor: 'pointer'
-            }}
-          >
-            <span style={{ fontSize: '20px' }}>📅</span>
-            <span style={{ fontSize: '16px', color: '#5c6bc0' }}>
-              Trip Duration
-            </span>
-            <span style={{ marginLeft: 'auto', color: '#9e9e9e' }}>→</span>
-          </div>
-
-          {/* Continue Button */}
+        {/* Continue Button */}
+        <div style={{ padding: '20px' }}>
           <button
             onClick={() => setScreen('newTripDuration')}
             style={{
-              background: '#1a1a1a',
+              width: '100%',
+              background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)',
               color: 'white',
               border: 'none',
               padding: '18px',
-              borderRadius: '30px',
+              borderRadius: '16px',
               fontSize: '16px',
               fontWeight: '600',
               cursor: 'pointer',
               fontFamily: "'DM Sans', sans-serif",
-              marginTop: '16px',
-              marginBottom: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
+              boxShadow: '0 4px 15px rgba(46,125,50,0.3)'
             }}
           >
-            ✓ Continue
+            Continue →
           </button>
         </div>
       </div>
@@ -1183,7 +1219,7 @@ function App() {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(180deg, #e0f2f1 0%, #b2dfdb 100%)',
+        background: 'linear-gradient(180deg, #ffffff 0%, #e8f5e9 100%)',
         fontFamily: "'DM Sans', sans-serif",
         display: 'flex',
         flexDirection: 'column'
@@ -1192,18 +1228,20 @@ function App() {
 
         {/* Header */}
         <div style={{
+          padding: '20px',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '20px'
+          alignItems: 'center'
         }}>
           <button
             onClick={() => setScreen('newTripPreferences')}
             style={{
-              background: 'none',
+              background: '#f1f8e9',
               border: 'none',
-              color: '#00695c',
-              fontSize: '24px',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              fontSize: '18px',
               cursor: 'pointer'
             }}
           >
@@ -1212,7 +1250,7 @@ function App() {
           
           {/* Toggle */}
           <div style={{
-            background: 'white',
+            background: '#e8f5e9',
             borderRadius: '25px',
             padding: '4px',
             display: 'flex'
@@ -1220,34 +1258,34 @@ function App() {
             <button
               onClick={() => setTripDurationType('dates')}
               style={{
-                background: tripDurationType === 'dates' ? '#1a1a1a' : 'transparent',
-                color: tripDurationType === 'dates' ? 'white' : '#666',
+                background: tripDurationType === 'dates' ? 'white' : 'transparent',
+                color: tripDurationType === 'dates' ? '#2e7d32' : '#689f38',
                 border: 'none',
-                padding: '8px 16px',
+                padding: '10px 18px',
                 borderRadius: '20px',
                 fontSize: '14px',
-                fontWeight: '500',
+                fontWeight: '600',
                 cursor: 'pointer',
                 fontFamily: "'DM Sans', sans-serif"
               }}
             >
-              Dates
+              📅 Dates
             </button>
             <button
               onClick={() => setTripDurationType('flexible')}
               style={{
-                background: tripDurationType === 'flexible' ? '#1a1a1a' : 'transparent',
-                color: tripDurationType === 'flexible' ? 'white' : '#666',
+                background: tripDurationType === 'flexible' ? 'white' : 'transparent',
+                color: tripDurationType === 'flexible' ? '#2e7d32' : '#689f38',
                 border: 'none',
-                padding: '8px 16px',
+                padding: '10px 18px',
                 borderRadius: '20px',
                 fontSize: '14px',
-                fontWeight: '500',
+                fontWeight: '600',
                 cursor: 'pointer',
                 fontFamily: "'DM Sans', sans-serif"
               }}
             >
-              Flexible
+              🔄 Flexible
             </button>
           </div>
         </div>
@@ -1260,9 +1298,9 @@ function App() {
           padding: '20px'
         }}>
           <h1 style={{
-            fontSize: '28px',
+            fontSize: '24px',
             fontWeight: '700',
-            color: '#004d40',
+            color: '#1b5e20',
             margin: '0 0 40px 0'
           }}>
             How many days?
@@ -1276,23 +1314,24 @@ function App() {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '16px'
+              gap: '8px'
             }}>
               {[1, 2, 3, 4, 5, 6, 7].map((day) => (
                 <button
                   key={day}
                   onClick={() => setNewTripDays(day)}
                   style={{
-                    background: newTripDays === day ? 'rgba(255,255,255,0.9)' : 'transparent',
+                    background: newTripDays === day ? 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)' : 'transparent',
                     border: 'none',
-                    padding: newTripDays === day ? '16px 60px' : '8px 40px',
+                    padding: newTripDays === day ? '16px 50px' : '8px 30px',
                     borderRadius: '16px',
-                    fontSize: newTripDays === day ? '48px' : '32px',
+                    fontSize: newTripDays === day ? '42px' : '28px',
                     fontWeight: '700',
-                    color: newTripDays === day ? '#004d40' : 'rgba(0,77,64,0.3)',
+                    color: newTripDays === day ? 'white' : '#c8e6c9',
                     cursor: 'pointer',
                     fontFamily: "'DM Sans', sans-serif",
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
+                    boxShadow: newTripDays === day ? '0 4px 20px rgba(46,125,50,0.3)' : 'none'
                   }}
                 >
                   {day}
@@ -1300,15 +1339,18 @@ function App() {
               ))}
             </div>
           ) : (
-            /* Calendar (Placeholder) */
+            /* Calendar Placeholder */
             <div style={{
               flex: 1,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexDirection: 'column',
+              gap: '16px'
             }}>
-              <p style={{ color: '#00695c', fontSize: '16px' }}>
-                📅 Calendar coming soon...
+              <span style={{ fontSize: '60px' }}>📅</span>
+              <p style={{ color: '#689f38', fontSize: '16px' }}>
+                Calendar coming soon...
               </p>
             </div>
           )}
@@ -1318,8 +1360,6 @@ function App() {
         <div style={{ padding: '20px' }}>
           <button
             onClick={() => {
-              // For now, just show a loading state and go back home
-              // AI trip generation will be added later
               const newTrip = {
                 id: Date.now(),
                 city: newTripCity,
@@ -1327,7 +1367,7 @@ function App() {
                 days: newTripDays,
                 spots: newTripDays * 6,
                 preferences: newTripPreferences,
-                image: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400&h=300&fit=crop'
+                image: `https://source.unsplash.com/400x300/?${newTripCity},city`
               };
               setMyTrips(prev => [...prev, newTrip]);
               setNewTripCity('');
@@ -1337,18 +1377,19 @@ function App() {
             }}
             style={{
               width: '100%',
-              background: '#1a1a1a',
+              background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)',
               color: 'white',
               border: 'none',
               padding: '18px',
-              borderRadius: '30px',
+              borderRadius: '16px',
               fontSize: '16px',
               fontWeight: '600',
               cursor: 'pointer',
-              fontFamily: "'DM Sans', sans-serif"
+              fontFamily: "'DM Sans', sans-serif",
+              boxShadow: '0 4px 15px rgba(46,125,50,0.3)'
             }}
           >
-            Confirm
+            ✓ Create My Trip
           </button>
         </div>
       </div>
