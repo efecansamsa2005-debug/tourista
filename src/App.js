@@ -1043,7 +1043,7 @@ function App() {
         minHeight: '100vh',
         background: 'linear-gradient(180deg, #f1f8e9 0%, #ffffff 100%)',
         fontFamily: "'DM Sans', sans-serif",
-        paddingBottom: '100px'
+        paddingBottom: '40px'
       }}>
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
 
@@ -1092,18 +1092,6 @@ function App() {
           <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', margin: 0 }}>
             Welcome, <strong>{currentUser?.email?.split('@')[0]}</strong>! 👋
           </p>
-        </div>
-
-        {/* Mini World Map */}
-        <div style={{ padding: '20px 20px 0' }}>
-          <div style={{
-            height: '120px',
-            borderRadius: '16px',
-            overflow: 'hidden',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-          }}>
-            <MiniMap guides={TRAVEL_GUIDES} />
-          </div>
         </div>
 
         {/* Explore Destinations */}
@@ -1207,9 +1195,25 @@ function App() {
               <h3 style={{ color: '#1b5e20', fontSize: '16px', margin: '0 0 8px' }}>
                 No trips yet
               </h3>
-              <p style={{ color: '#689f38', fontSize: '13px', margin: 0 }}>
-                Save a destination to start!
+              <p style={{ color: '#689f38', fontSize: '13px', margin: '0 0 16px' }}>
+                Save a destination or create your own!
               </p>
+              <button
+                onClick={() => setScreen('newTripCity')}
+                style={{
+                  background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 28px',
+                  borderRadius: '25px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(46,125,50,0.3)'
+                }}
+              >
+                + Create Trip
+              </button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1286,57 +1290,6 @@ function App() {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Bottom Navigation */}
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          left: '20px',
-          right: '20px',
-          background: 'white',
-          borderRadius: '20px',
-          padding: '10px 20px',
-          display: 'flex',
-          justifyContent: 'space-around',
-          alignItems: 'center',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-        }}>
-          <button style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '22px',
-            cursor: 'pointer',
-            padding: '8px'
-          }}>
-            🏠
-          </button>
-          <button
-            onClick={() => setScreen('newTripCity')}
-            style={{
-              background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
-              border: 'none',
-              borderRadius: '50%',
-              width: '50px',
-              height: '50px',
-              fontSize: '24px',
-              cursor: 'pointer',
-              color: 'white',
-              marginTop: '-25px',
-              boxShadow: '0 4px 15px rgba(46,125,50,0.4)'
-            }}
-          >
-            +
-          </button>
-          <button style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '22px',
-            cursor: 'pointer',
-            padding: '8px'
-          }}>
-            🗺️
-          </button>
         </div>
       </div>
     );
