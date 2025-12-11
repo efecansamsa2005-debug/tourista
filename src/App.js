@@ -739,7 +739,7 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // GeoDB Cities API search
+  // GeoDB Cities API search with user's API key
   const searchCities = useCallback(async (query) => {
     if (query.length < 2) {
       setCitySearchResults([]);
@@ -751,13 +751,13 @@ function App() {
         `https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${encodeURIComponent(query)}&limit=10&sort=-population`,
         {
           headers: {
-            'X-RapidAPI-Key': '2f4693bda7msh5205f3c56d65388p118812jsn4454375e498c',
+            'X-RapidAPI-Key': '943c32f617mshfd3b5c97307001bp1be778jsn3816330dc864',
             'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
           }
         }
       );
       const data = await response.json();
-      if (data.data) {
+      if (data.data && data.data.length > 0) {
         setCitySearchResults(data.data.map(city => ({
           city: city.city,
           country: city.country,
@@ -766,9 +766,12 @@ function App() {
           lat: city.latitude,
           lng: city.longitude
         })));
+      } else {
+        setCitySearchResults([]);
       }
     } catch (error) {
       console.error('City search error:', error);
+      setCitySearchResults([]);
     }
     setCitySearchLoading(false);
   }, [getCountryFlag]);
