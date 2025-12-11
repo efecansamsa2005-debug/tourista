@@ -141,7 +141,7 @@ function App() {
   const [userRating, setUserRating] = useState(0);
   const [userComment, setUserComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
 
   // Check authentication on mount
@@ -204,7 +204,7 @@ function App() {
 
           for (const place of topPlaces) {
             const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
-            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 250)).filter(Boolean);
+            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 200)).filter(Boolean);
 
             allRecommendations.push({
               id: place.id,
@@ -273,7 +273,7 @@ function App() {
 
           for (const place of topPlaces) {
             const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
-            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 250)).filter(Boolean);
+            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 200)).filter(Boolean);
 
             newRecommendations.push({
               id: place.id,
@@ -340,7 +340,7 @@ function App() {
       if (places && places.length > 0) {
         for (const place of places.slice(0, 5)) {
           const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
-          const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 250)).filter(Boolean);
+          const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 200)).filter(Boolean);
 
           recommendations.push({
             id: place.id,
@@ -557,7 +557,7 @@ function App() {
   // Open place detail page
   const openPlaceDetail = (place) => {
     setSelectedPlace(place);
-    setCurrentImageIndex(0);
+    setSelectedImageIndex(0);
     setUserRating(0);
     setUserComment('');
     setPlaceReviews([]);
@@ -565,7 +565,7 @@ function App() {
   };
 
   // Fallback image
-  const fallbackImage = 'https://via.placeholder.com/400x200?text=No+Image';
+  const fallbackImage = 'https://via.placeholder.com/200x150?text=No+Image';
 
   // ==================== DETAIL SCREEN ====================
   if (screen === 'detail' && selectedPlace) {
@@ -614,107 +614,98 @@ function App() {
               📍 {selectedPlace.neighborhood}
             </p>
           </div>
+          <div style={{
+            background: 'rgba(255,255,255,0.2)',
+            padding: '6px 12px',
+            borderRadius: '15px',
+            fontSize: '14px',
+            fontWeight: '600'
+          }}>
+            {selectedPlace.price}
+          </div>
         </div>
 
-        {/* Image Gallery - COMPACT 180px height */}
-        <div style={{ 
-          position: 'relative', 
-          height: '180px',
-          background: '#e0e0e0'
+        {/* Photo Gallery - Small Thumbnails */}
+        <div style={{
+          background: 'white',
+          padding: '16px',
+          borderBottom: '1px solid #e8f5e9'
         }}>
-          <img
-            src={images[currentImageIndex] || fallbackImage}
-            alt={selectedPlace.name}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover'
-            }}
-            onError={(e) => { e.target.src = fallbackImage; }}
-          />
-          
-          {images.length > 1 && (
-            <>
-              <button
-                onClick={() => setCurrentImageIndex(prev => prev === 0 ? images.length - 1 : prev - 1)}
-                style={{
-                  position: 'absolute',
-                  left: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'rgba(0,0,0,0.5)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '36px',
-                  height: '36px',
-                  fontSize: '18px',
-                  cursor: 'pointer'
-                }}
-              >
-                ‹
-              </button>
-              <button
-                onClick={() => setCurrentImageIndex(prev => prev === images.length - 1 ? 0 : prev + 1)}
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'rgba(0,0,0,0.5)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '36px',
-                  height: '36px',
-                  fontSize: '18px',
-                  cursor: 'pointer'
-                }}
-              >
-                ›
-              </button>
-              <div style={{
-                position: 'absolute',
-                bottom: '8px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'flex',
-                gap: '5px'
-              }}>
-                {images.map((_, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => setCurrentImageIndex(idx)}
-                    style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      background: idx === currentImageIndex ? 'white' : 'rgba(255,255,255,0.5)',
-                      cursor: 'pointer'
-                    }}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-          
+          {/* Thumbnail Row */}
           <div style={{
-            position: 'absolute',
-            top: '8px',
-            right: '8px',
-            background: 'rgba(0,0,0,0.6)',
-            color: 'white',
-            padding: '3px 8px',
-            borderRadius: '10px',
-            fontSize: '10px'
+            display: 'flex',
+            gap: '10px',
+            overflowX: 'auto',
+            paddingBottom: '8px'
           }}>
-            {currentImageIndex + 1} / {images.length || 1}
+            {images.length > 0 ? images.map((img, idx) => (
+              <div
+                key={idx}
+                onClick={() => setSelectedImageIndex(idx)}
+                style={{
+                  width: '100px',
+                  height: '75px',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                  cursor: 'pointer',
+                  border: selectedImageIndex === idx ? '3px solid #4caf50' : '3px solid transparent',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <img
+                  src={img}
+                  alt={`${selectedPlace.name} ${idx + 1}`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                  onError={(e) => { e.target.src = fallbackImage; }}
+                />
+              </div>
+            )) : (
+              <div style={{
+                width: '100px',
+                height: '75px',
+                borderRadius: '10px',
+                background: '#e0e0e0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#9e9e9e',
+                fontSize: '12px'
+              }}>
+                No photos
+              </div>
+            )}
           </div>
+          
+          {/* Selected Image Preview */}
+          {images.length > 0 && (
+            <div style={{
+              marginTop: '12px',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              height: '200px'
+            }}>
+              <img
+                src={images[selectedImageIndex] || fallbackImage}
+                alt={selectedPlace.name}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover'
+                }}
+                onError={(e) => { e.target.src = fallbackImage; }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Content */}
         <div style={{ padding: '16px' }}>
-          {/* Rating & Price Card */}
+          {/* Rating Card */}
           <div style={{
             background: 'white',
             borderRadius: '14px',
@@ -725,84 +716,15 @@ function App() {
             alignItems: 'center',
             justifyContent: 'space-between'
           }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '28px', fontWeight: '700', color: '#1b5e20' }}>
-                  {selectedPlace.rating?.toFixed(1) || 'N/A'}
-                </span>
-                <div>
-                  <StarRating rating={Math.round(selectedPlace.rating || 0)} size={16} />
-                  <p style={{ margin: '2px 0 0', color: '#689f38', fontSize: '11px' }}>
-                    {selectedPlace.totalRatings?.toLocaleString() || 0} reviews
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div style={{
-              background: '#e8f5e9',
-              color: '#2e7d32',
-              padding: '8px 16px',
-              borderRadius: '20px',
-              fontWeight: '700',
-              fontSize: '16px'
-            }}>
-              {selectedPlace.price}
-            </div>
-          </div>
-
-          {/* About Section */}
-          <div style={{
-            background: 'white',
-            borderRadius: '14px',
-            padding: '16px',
-            marginBottom: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-          }}>
-            <h3 style={{
-              margin: '0 0 12px',
-              color: '#1b5e20',
-              fontFamily: "'Playfair Display', serif",
-              fontSize: '18px'
-            }}>
-              About
-            </h3>
-            <p style={{ margin: '0 0 16px', color: '#558b2f', lineHeight: '1.6', fontSize: '14px' }}>
-              {selectedPlace.description}
-            </p>
-            
-            <div style={{ display: 'grid', gap: '10px' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '10px',
-                background: '#f9fdf9',
-                borderRadius: '10px'
-              }}>
-                <span style={{ fontSize: '20px' }}>📍</span>
-                <div>
-                  <p style={{ margin: 0, fontWeight: '600', color: '#1b5e20', fontSize: '13px' }}>Address</p>
-                  <p style={{ margin: '2px 0 0', color: '#689f38', fontSize: '12px' }}>
-                    {selectedPlace.address}
-                  </p>
-                </div>
-              </div>
-              
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '10px',
-                background: '#f9fdf9',
-                borderRadius: '10px'
-              }}>
-                <span style={{ fontSize: '20px' }}>⏰</span>
-                <div>
-                  <p style={{ margin: 0, fontWeight: '600', color: '#1b5e20', fontSize: '13px' }}>Hours</p>
-                  <p style={{ margin: '2px 0 0', color: '#689f38', fontSize: '12px' }}>
-                    {selectedPlace.hours}
-                  </p>
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '32px', fontWeight: '700', color: '#1b5e20' }}>
+                {selectedPlace.rating?.toFixed(1) || 'N/A'}
+              </span>
+              <div>
+                <StarRating rating={Math.round(selectedPlace.rating || 0)} size={18} />
+                <p style={{ margin: '4px 0 0', color: '#689f38', fontSize: '12px' }}>
+                  {selectedPlace.totalRatings?.toLocaleString() || 0} Google reviews
+                </p>
               </div>
             </div>
           </div>
