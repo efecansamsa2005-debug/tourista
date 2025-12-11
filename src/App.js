@@ -42,9 +42,9 @@ const VIBES = [
 ];
 
 // Helper function to get Google Places photo URL
-const getPhotoUrl = (photo) => {
+const getPhotoUrl = (photo, size = 400) => {
   if (!photo || !photo.name) return null;
-  return `https://places.googleapis.com/v1/${photo.name}/media?maxWidthPx=400&key=${GOOGLE_API_KEY}`;
+  return `https://places.googleapis.com/v1/${photo.name}/media?maxWidthPx=${size}&key=${GOOGLE_API_KEY}`;
 };
 
 // Helper function to convert price level to symbol
@@ -202,8 +202,8 @@ function App() {
           const topPlaces = places.slice(0, 2);
 
           for (const place of topPlaces) {
-            const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0]) : null;
-            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p)).filter(Boolean);
+            const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
+            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 300)).filter(Boolean);
 
             allRecommendations.push({
               id: place.id,
@@ -264,8 +264,8 @@ function App() {
 
       if (places && places.length > 0) {
         for (const place of places.slice(0, 5)) {
-          const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0]) : null;
-          const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p)).filter(Boolean);
+          const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
+          const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 300)).filter(Boolean);
 
           recommendations.push({
             id: place.id,
