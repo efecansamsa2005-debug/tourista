@@ -44,7 +44,7 @@ const VIBES = [
 // Helper function to get Google Places photo URL
 const getPhotoUrl = (photo) => {
   if (!photo || !photo.name) return null;
-  return `https://places.googleapis.com/v1/${photo.name}/media?maxWidthPx=800&key=${GOOGLE_API_KEY}`;
+  return `https://places.googleapis.com/v1/${photo.name}/media?maxWidthPx=400&key=${GOOGLE_API_KEY}`;
 };
 
 // Helper function to convert price level to symbol
@@ -488,7 +488,7 @@ function App() {
   };
 
   // Fallback image
-  const fallbackImage = 'https://via.placeholder.com/800x450?text=No+Image';
+  const fallbackImage = 'https://via.placeholder.com/400x300?text=No+Image';
 
   // ==================== DETAIL SCREEN ====================
   if (screen === 'detail' && selectedPlace) {
@@ -1605,6 +1605,7 @@ function App() {
                   </p>
                 )}
 
+                {/* COMPACT CARD DESIGN - Small image left, info right */}
                 {msg.content.recommendations?.map((rec, j) => (
                   <div
                     key={j}
@@ -1613,103 +1614,127 @@ function App() {
                       borderRadius: '12px',
                       marginBottom: '12px',
                       overflow: 'hidden',
-                      borderLeft: '4px solid #4caf50'
+                      borderLeft: '4px solid #4caf50',
+                      display: 'flex',
+                      flexDirection: 'row'
                     }}
                   >
-                    {/* Place Image */}
+                    {/* Place Image - Small on Left */}
                     <div style={{
+                      width: '120px',
+                      minWidth: '120px',
+                      height: '140px',
                       position: 'relative',
-                      paddingTop: '56.25%',
-                      background: '#e8f5e9'
+                      flexShrink: 0
                     }}>
                       <img
                         src={rec.image || fallbackImage}
                         alt={rec.name}
                         style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
                           width: '100%',
                           height: '100%',
                           objectFit: 'cover'
                         }}
                         onError={(e) => { e.target.src = fallbackImage; }}
                       />
-                      {rec.emoji && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '10px',
-                          left: '10px',
-                          background: 'rgba(255,255,255,0.95)',
-                          padding: '4px 10px',
-                          borderRadius: '20px',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }}>
-                          {rec.emoji} {rec.type}
-                        </div>
-                      )}
                       {rec.rating && (
                         <div style={{
                           position: 'absolute',
-                          top: '10px',
-                          right: '10px',
-                          background: 'rgba(0,0,0,0.7)',
+                          bottom: '6px',
+                          left: '6px',
+                          background: 'rgba(0,0,0,0.75)',
                           color: 'white',
-                          padding: '4px 10px',
-                          borderRadius: '20px',
-                          fontSize: '13px'
+                          padding: '3px 8px',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: '600'
                         }}>
                           ⭐ {rec.rating?.toFixed(1)}
                         </div>
                       )}
                     </div>
 
-                    {/* Place Info */}
-                    <div style={{ padding: '16px' }}>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '8px'
-                      }}>
-                        <strong style={{ color: '#1b5e20', fontSize: '16px' }}>
-                          {rec.name}
-                        </strong>
-                        <span style={{
-                          background: '#e8f5e9',
-                          color: '#2e7d32',
-                          padding: '4px 12px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: '600'
+                    {/* Place Info - Right Side */}
+                    <div style={{ 
+                      padding: '12px 14px', 
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minWidth: 0
+                    }}>
+                      {/* Header: Name, Type & Price */}
+                      <div>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: '4px',
+                          gap: '8px'
                         }}>
-                          {rec.price}
-                        </span>
-                      </div>
-
-                      <p style={{
-                        margin: '0 0 10px 0',
-                        color: '#558b2f',
-                        fontSize: '13px',
-                        lineHeight: '1.5'
-                      }}>
-                        {rec.description}
-                      </p>
-
-                      <div style={{
-                        fontSize: '12px',
-                        color: '#7cb342',
-                        marginBottom: '14px'
-                      }}>
-                        <span>📍 {rec.neighborhood}</span>
-                        {rec.totalRatings > 0 && (
-                          <span style={{ marginLeft: '12px' }}>
-                            👥 {rec.totalRatings?.toLocaleString()} reviews
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <strong style={{ 
+                              color: '#1b5e20', 
+                              fontSize: '14px',
+                              display: 'block',
+                              lineHeight: '1.2',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {rec.name}
+                            </strong>
+                            <span style={{
+                              fontSize: '11px',
+                              color: '#689f38',
+                              fontWeight: '500'
+                            }}>
+                              {rec.emoji} {rec.type}
+                            </span>
+                          </div>
+                          <span style={{
+                            background: '#e8f5e9',
+                            color: '#2e7d32',
+                            padding: '3px 10px',
+                            borderRadius: '10px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0
+                          }}>
+                            {rec.price}
                           </span>
-                        )}
+                        </div>
+
+                        {/* Description */}
+                        <p style={{
+                          margin: '6px 0',
+                          color: '#558b2f',
+                          fontSize: '12px',
+                          lineHeight: '1.4',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
+                          {rec.description}
+                        </p>
+
+                        {/* Location & Reviews */}
+                        <div style={{
+                          fontSize: '11px',
+                          color: '#7cb342'
+                        }}>
+                          <span>📍 {rec.neighborhood}</span>
+                          {rec.totalRatings > 0 && (
+                            <span style={{ marginLeft: '10px' }}>
+                              👥 {rec.totalRatings?.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
+                      {/* View Details Button */}
                       <button
                         onClick={() => openPlaceDetail(rec)}
                         style={{
@@ -1717,12 +1742,13 @@ function App() {
                           background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
                           color: 'white',
                           border: 'none',
-                          padding: '12px',
-                          borderRadius: '10px',
-                          fontSize: '14px',
+                          padding: '8px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
                           fontWeight: '600',
                           cursor: 'pointer',
-                          fontFamily: "'DM Sans', sans-serif"
+                          fontFamily: "'DM Sans', sans-serif",
+                          marginTop: '8px'
                         }}
                       >
                         View Details →
