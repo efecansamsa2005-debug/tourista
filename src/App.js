@@ -1481,11 +1481,11 @@ function App() {
               </div>
 
               {/* Image */}
-              <div style={{ margin: '0 20px', borderRadius: '16px', overflow: 'hidden', height: '180px' }}>
+              <div style={{ margin: '0 20px', borderRadius: '16px', overflow: 'hidden', height: '160px', width: '160px' }}>
                 <img 
-                  src={selectedSpot.image.replace('100&h=100', '400&h=300')} 
+                  src={selectedSpot.image.replace('w=100', 'w=300').replace('h=100', 'h=300')} 
                   alt={selectedSpot.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px' }}
                 />
               </div>
 
