@@ -142,6 +142,7 @@ function App() {
   const [userComment, setUserComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Check authentication on mount
   useEffect(() => {
@@ -203,7 +204,7 @@ function App() {
 
           for (const place of topPlaces) {
             const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
-            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 300)).filter(Boolean);
+            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 250)).filter(Boolean);
 
             allRecommendations.push({
               id: place.id,
@@ -220,7 +221,7 @@ function App() {
               images: allPhotoUrls.length > 0 ? allPhotoUrls : [photoUrl].filter(Boolean),
               hours: place.hours.length > 0 ? place.hours[0] : 'Hours not available',
               address: place.address,
-              bestTime: 'Check Google for busy times'
+              searchTerm: interest.searchTerm
             });
           }
         }
@@ -231,7 +232,8 @@ function App() {
         content: {
           summary: allRecommendations.length > 0 ? introMessage : `Welcome to ${city}! Search for places below.`,
           recommendations: allRecommendations,
-          tips: allRecommendations.length > 0 ? ['Real places & photos from Google!', 'Book popular spots in advance'] : []
+          tips: allRecommendations.length > 0 ? ['Real places & photos from Google!', 'Tap a place to see more details'] : [],
+          canLoadMore: selectedInterestDetails.length > 3
         }
       }]);
     } catch (error) {
@@ -241,12 +243,85 @@ function App() {
         content: {
           summary: `Welcome to ${city}! Search for places below.`,
           recommendations: [],
-          tips: []
+          tips: [],
+          canLoadMore: false
         }
       }]);
     }
 
     setIsLoading(false);
+  };
+
+  // Load more recommendations
+  const loadMoreRecommendations = async (messageIndex) => {
+    setLoadingMore(true);
+    
+    try {
+      const selectedInterestDetails = INTERESTS.filter(i => selectedInterests.includes(i.id));
+      const selectedVibeDetail = VIBES.find(v => v.id === selectedVibe);
+      
+      const remainingInterests = selectedInterestDetails.slice(3, 6);
+      const newRecommendations = [];
+
+      for (const interest of remainingInterests) {
+        const vibeModifier = selectedVibeDetail ? selectedVibeDetail.modifier : '';
+        const searchQuery = `${vibeModifier} ${interest.searchTerm}`.trim();
+        const places = await searchPlaces(searchQuery, city);
+
+        if (places && places.length > 0) {
+          const topPlaces = places.slice(0, 2);
+
+          for (const place of topPlaces) {
+            const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
+            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 250)).filter(Boolean);
+
+            newRecommendations.push({
+              id: place.id,
+              name: place.name,
+              type: interest.label,
+              category: interest.id,
+              emoji: interest.emoji,
+              description: place.description || `A highly rated ${interest.label.toLowerCase()} spot in ${city}.`,
+              price: getPriceSymbol(place.priceLevel),
+              rating: place.rating,
+              totalRatings: place.totalRatings,
+              neighborhood: place.address.split(',')[0] || city,
+              image: photoUrl,
+              images: allPhotoUrls.length > 0 ? allPhotoUrls : [photoUrl].filter(Boolean),
+              hours: place.hours.length > 0 ? place.hours[0] : 'Hours not available',
+              address: place.address,
+              searchTerm: interest.searchTerm
+            });
+          }
+        }
+      }
+
+      if (newRecommendations.length > 0) {
+        setChatHistory(prev => {
+          const updated = [...prev];
+          if (updated[messageIndex] && updated[messageIndex].content) {
+            updated[messageIndex].content.recommendations = [
+              ...updated[messageIndex].content.recommendations,
+              ...newRecommendations
+            ];
+            updated[messageIndex].content.canLoadMore = false;
+          }
+          return updated;
+        });
+      } else {
+        setChatHistory(prev => {
+          const updated = [...prev];
+          if (updated[messageIndex] && updated[messageIndex].content) {
+            updated[messageIndex].content.canLoadMore = false;
+          }
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error('Error loading more:', error);
+    }
+
+    setLoadingMore(false);
   };
 
   // Handle search query
@@ -265,7 +340,7 @@ function App() {
       if (places && places.length > 0) {
         for (const place of places.slice(0, 5)) {
           const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
-          const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 300)).filter(Boolean);
+          const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 250)).filter(Boolean);
 
           recommendations.push({
             id: place.id,
@@ -282,7 +357,7 @@ function App() {
             images: allPhotoUrls.length > 0 ? allPhotoUrls : [photoUrl].filter(Boolean),
             hours: place.hours.length > 0 ? place.hours[0] : 'Hours not available',
             address: place.address,
-            bestTime: 'Check Google for busy times'
+            searchTerm: currentQuery
           });
         }
       }
@@ -292,7 +367,8 @@ function App() {
           ? `Here are the best "${currentQuery}" spots in ${city}! 🎯`
           : `I couldn't find "${currentQuery}" in ${city}. Try different keywords!`,
         recommendations,
-        tips: recommendations.length > 0 ? ['Real photos from Google!'] : []
+        tips: recommendations.length > 0 ? ['Real photos from Google!'] : [],
+        canLoadMore: false
       };
 
       setChatHistory(prev => [...prev, { role: 'assistant', content: response }]);
@@ -303,7 +379,8 @@ function App() {
         content: {
           summary: 'Something went wrong. Please try again.',
           recommendations: [],
-          tips: []
+          tips: [],
+          canLoadMore: false
         }
       }]);
     }
@@ -488,7 +565,7 @@ function App() {
   };
 
   // Fallback image
-  const fallbackImage = 'https://via.placeholder.com/400x300?text=No+Image';
+  const fallbackImage = 'https://via.placeholder.com/400x200?text=No+Image';
 
   // ==================== DETAIL SCREEN ====================
   if (screen === 'detail' && selectedPlace) {
@@ -501,7 +578,7 @@ function App() {
         {/* Header */}
         <div style={{
           background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)',
-          padding: '16px 20px',
+          padding: '14px 20px',
           color: 'white',
           display: 'flex',
           alignItems: 'center',
@@ -527,27 +604,28 @@ function App() {
           <div style={{ flex: 1 }}>
             <h1 style={{
               margin: 0,
-              fontSize: '18px',
+              fontSize: '16px',
               fontWeight: '700',
               fontFamily: "'Playfair Display', serif"
             }}>
               {selectedPlace.name}
             </h1>
-            <p style={{ margin: 0, fontSize: '12px', opacity: 0.9 }}>
+            <p style={{ margin: 0, fontSize: '11px', opacity: 0.9 }}>
               📍 {selectedPlace.neighborhood}
             </p>
           </div>
         </div>
 
-        {/* Image Gallery */}
-        <div style={{ position: 'relative', paddingTop: '56.25%', background: '#e0e0e0' }}>
+        {/* Image Gallery - COMPACT 180px height */}
+        <div style={{ 
+          position: 'relative', 
+          height: '180px',
+          background: '#e0e0e0'
+        }}>
           <img
             src={images[currentImageIndex] || fallbackImage}
             alt={selectedPlace.name}
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
               width: '100%',
               height: '100%',
               objectFit: 'cover'
@@ -568,9 +646,9 @@ function App() {
                   color: 'white',
                   border: 'none',
                   borderRadius: '50%',
-                  width: '44px',
-                  height: '44px',
-                  fontSize: '24px',
+                  width: '36px',
+                  height: '36px',
+                  fontSize: '18px',
                   cursor: 'pointer'
                 }}
               >
@@ -587,9 +665,9 @@ function App() {
                   color: 'white',
                   border: 'none',
                   borderRadius: '50%',
-                  width: '44px',
-                  height: '44px',
-                  fontSize: '24px',
+                  width: '36px',
+                  height: '36px',
+                  fontSize: '18px',
                   cursor: 'pointer'
                 }}
               >
@@ -597,19 +675,19 @@ function App() {
               </button>
               <div style={{
                 position: 'absolute',
-                bottom: '15px',
+                bottom: '8px',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 display: 'flex',
-                gap: '8px'
+                gap: '5px'
               }}>
                 {images.map((_, idx) => (
                   <div
                     key={idx}
                     onClick={() => setCurrentImageIndex(idx)}
                     style={{
-                      width: '10px',
-                      height: '10px',
+                      width: '6px',
+                      height: '6px',
                       borderRadius: '50%',
                       background: idx === currentImageIndex ? 'white' : 'rgba(255,255,255,0.5)',
                       cursor: 'pointer'
@@ -622,40 +700,40 @@ function App() {
           
           <div style={{
             position: 'absolute',
-            top: '15px',
-            right: '15px',
+            top: '8px',
+            right: '8px',
             background: 'rgba(0,0,0,0.6)',
             color: 'white',
-            padding: '6px 12px',
-            borderRadius: '20px',
-            fontSize: '12px'
+            padding: '3px 8px',
+            borderRadius: '10px',
+            fontSize: '10px'
           }}>
             {currentImageIndex + 1} / {images.length || 1}
           </div>
         </div>
 
         {/* Content */}
-        <div style={{ padding: '20px' }}>
+        <div style={{ padding: '16px' }}>
           {/* Rating & Price Card */}
           <div style={{
             background: 'white',
-            borderRadius: '16px',
-            padding: '20px',
-            marginBottom: '16px',
+            borderRadius: '14px',
+            padding: '16px',
+            marginBottom: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between'
           }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '36px', fontWeight: '700', color: '#1b5e20' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '28px', fontWeight: '700', color: '#1b5e20' }}>
                   {selectedPlace.rating?.toFixed(1) || 'N/A'}
                 </span>
                 <div>
-                  <StarRating rating={Math.round(selectedPlace.rating || 0)} size={20} />
-                  <p style={{ margin: '4px 0 0', color: '#689f38', fontSize: '12px' }}>
-                    {selectedPlace.totalRatings?.toLocaleString() || 0} Google reviews
+                  <StarRating rating={Math.round(selectedPlace.rating || 0)} size={16} />
+                  <p style={{ margin: '2px 0 0', color: '#689f38', fontSize: '11px' }}>
+                    {selectedPlace.totalRatings?.toLocaleString() || 0} reviews
                   </p>
                 </div>
               </div>
@@ -663,10 +741,10 @@ function App() {
             <div style={{
               background: '#e8f5e9',
               color: '#2e7d32',
-              padding: '10px 20px',
-              borderRadius: '25px',
+              padding: '8px 16px',
+              borderRadius: '20px',
               fontWeight: '700',
-              fontSize: '18px'
+              fontSize: '16px'
             }}>
               {selectedPlace.price}
             </div>
@@ -675,36 +753,36 @@ function App() {
           {/* About Section */}
           <div style={{
             background: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            marginBottom: '16px',
+            borderRadius: '14px',
+            padding: '16px',
+            marginBottom: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
           }}>
             <h3 style={{
-              margin: '0 0 16px',
+              margin: '0 0 12px',
               color: '#1b5e20',
               fontFamily: "'Playfair Display', serif",
-              fontSize: '20px'
+              fontSize: '18px'
             }}>
               About
             </h3>
-            <p style={{ margin: '0 0 20px', color: '#558b2f', lineHeight: '1.7' }}>
+            <p style={{ margin: '0 0 16px', color: '#558b2f', lineHeight: '1.6', fontSize: '14px' }}>
               {selectedPlace.description}
             </p>
             
-            <div style={{ display: 'grid', gap: '12px' }}>
+            <div style={{ display: 'grid', gap: '10px' }}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '14px',
-                padding: '12px',
+                gap: '12px',
+                padding: '10px',
                 background: '#f9fdf9',
-                borderRadius: '12px'
+                borderRadius: '10px'
               }}>
-                <span style={{ fontSize: '24px' }}>📍</span>
+                <span style={{ fontSize: '20px' }}>📍</span>
                 <div>
-                  <p style={{ margin: 0, fontWeight: '600', color: '#1b5e20' }}>Address</p>
-                  <p style={{ margin: '2px 0 0', color: '#689f38', fontSize: '14px' }}>
+                  <p style={{ margin: 0, fontWeight: '600', color: '#1b5e20', fontSize: '13px' }}>Address</p>
+                  <p style={{ margin: '2px 0 0', color: '#689f38', fontSize: '12px' }}>
                     {selectedPlace.address}
                   </p>
                 </div>
@@ -713,15 +791,15 @@ function App() {
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '14px',
-                padding: '12px',
+                gap: '12px',
+                padding: '10px',
                 background: '#f9fdf9',
-                borderRadius: '12px'
+                borderRadius: '10px'
               }}>
-                <span style={{ fontSize: '24px' }}>⏰</span>
+                <span style={{ fontSize: '20px' }}>⏰</span>
                 <div>
-                  <p style={{ margin: 0, fontWeight: '600', color: '#1b5e20' }}>Hours</p>
-                  <p style={{ margin: '2px 0 0', color: '#689f38', fontSize: '14px' }}>
+                  <p style={{ margin: 0, fontWeight: '600', color: '#1b5e20', fontSize: '13px' }}>Hours</p>
+                  <p style={{ margin: '2px 0 0', color: '#689f38', fontSize: '12px' }}>
                     {selectedPlace.hours}
                   </p>
                 </div>
@@ -732,28 +810,28 @@ function App() {
           {/* Write Review Section */}
           <div style={{
             background: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            marginBottom: '16px',
+            borderRadius: '14px',
+            padding: '16px',
+            marginBottom: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
           }}>
             <h3 style={{
-              margin: '0 0 20px',
+              margin: '0 0 16px',
               color: '#1b5e20',
               fontFamily: "'Playfair Display', serif",
-              fontSize: '20px'
+              fontSize: '18px'
             }}>
               ✍️ Write a Review
             </h3>
             
-            <div style={{ marginBottom: '20px' }}>
-              <p style={{ margin: '0 0 10px', color: '#558b2f', fontSize: '14px' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ margin: '0 0 8px', color: '#558b2f', fontSize: '13px' }}>
                 Rate this place
               </p>
               <StarRating
                 rating={userRating}
                 onRate={setUserRating}
-                size={36}
+                size={32}
                 interactive={true}
               />
             </div>
@@ -764,12 +842,12 @@ function App() {
               placeholder="Share your experience..."
               style={{
                 width: '100%',
-                padding: '16px',
-                borderRadius: '12px',
+                padding: '12px',
+                borderRadius: '10px',
                 border: '2px solid #c8e6c9',
-                fontSize: '15px',
+                fontSize: '14px',
                 fontFamily: "'DM Sans', sans-serif",
-                minHeight: '100px',
+                minHeight: '80px',
                 resize: 'vertical',
                 boxSizing: 'border-box',
                 outline: 'none'
@@ -786,12 +864,12 @@ function App() {
                   : '#e0e0e0',
                 color: userRating ? 'white' : '#9e9e9e',
                 border: 'none',
-                padding: '16px',
-                borderRadius: '12px',
-                fontSize: '16px',
+                padding: '14px',
+                borderRadius: '10px',
+                fontSize: '15px',
                 fontWeight: '600',
                 cursor: userRating ? 'pointer' : 'not-allowed',
-                marginTop: '16px',
+                marginTop: '12px',
                 fontFamily: "'DM Sans', sans-serif"
               }}
             >
@@ -802,60 +880,60 @@ function App() {
           {/* Reviews Section */}
           <div style={{
             background: 'white',
-            borderRadius: '16px',
-            padding: '24px',
+            borderRadius: '14px',
+            padding: '16px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
           }}>
             <h3 style={{
-              margin: '0 0 20px',
+              margin: '0 0 16px',
               color: '#1b5e20',
               fontFamily: "'Playfair Display', serif",
-              fontSize: '20px'
+              fontSize: '18px'
             }}>
-              💬 Tourista Reviews ({placeReviews.length})
+              💬 Reviews ({placeReviews.length})
             </h3>
             
             {placeReviews.length === 0 ? (
               <div style={{
                 textAlign: 'center',
-                padding: '40px 20px',
+                padding: '30px 16px',
                 background: '#f9fdf9',
-                borderRadius: '12px'
+                borderRadius: '10px'
               }}>
-                <span style={{ fontSize: '48px' }}>📝</span>
-                <p style={{ color: '#689f38', margin: '16px 0 0' }}>
+                <span style={{ fontSize: '40px' }}>📝</span>
+                <p style={{ color: '#689f38', margin: '12px 0 0', fontSize: '14px' }}>
                   No reviews yet. Be the first!
                 </p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {placeReviews.map((review, idx) => (
                   <div
                     key={idx}
                     style={{
-                      padding: '16px',
+                      padding: '12px',
                       background: '#f9fdf9',
-                      borderRadius: '12px',
-                      borderLeft: '4px solid #4caf50'
+                      borderRadius: '10px',
+                      borderLeft: '3px solid #4caf50'
                     }}
                   >
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      marginBottom: '8px'
+                      marginBottom: '6px'
                     }}>
-                      <span style={{ fontWeight: '600', color: '#1b5e20' }}>
+                      <span style={{ fontWeight: '600', color: '#1b5e20', fontSize: '13px' }}>
                         👤 {review.user_email?.split('@')[0]}
                       </span>
-                      <StarRating rating={review.rating} size={16} />
+                      <StarRating rating={review.rating} size={14} />
                     </div>
                     {review.comment && (
-                      <p style={{ margin: '0 0 8px', color: '#558b2f', fontSize: '14px' }}>
+                      <p style={{ margin: '0 0 6px', color: '#558b2f', fontSize: '13px' }}>
                         "{review.comment}"
                       </p>
                     )}
-                    <p style={{ margin: 0, color: '#9e9e9e', fontSize: '12px' }}>
+                    <p style={{ margin: 0, color: '#9e9e9e', fontSize: '11px' }}>
                       {new Date(review.created_at).toLocaleDateString()}
                     </p>
                   </div>
@@ -1196,7 +1274,6 @@ function App() {
       }}>
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
 
-        {/* Logout Button */}
         <button
           onClick={handleLogout}
           style={{
@@ -1283,7 +1360,6 @@ function App() {
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
 
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          {/* Back Button */}
           <button
             onClick={() => setScreen('welcome')}
             style={{
@@ -1312,7 +1388,6 @@ function App() {
             Select your interests (choose as many as you like)
           </p>
 
-          {/* Interests Grid */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
@@ -1346,7 +1421,6 @@ function App() {
             ))}
           </div>
 
-          {/* Vibes Section */}
           <h3 style={{ fontSize: '16px', color: '#1b5e20', margin: '0 0 12px 0' }}>
             Choose your vibe ✨
           </h3>
@@ -1379,7 +1453,6 @@ function App() {
             ))}
           </div>
 
-          {/* Continue Button */}
           <button
             onClick={() => setScreen('city')}
             disabled={selectedInterests.length === 0}
@@ -1420,7 +1493,6 @@ function App() {
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
 
         <div style={{ maxWidth: '400px', width: '100%', textAlign: 'center' }}>
-          {/* Back Button */}
           <button
             onClick={() => setScreen('interests')}
             style={{
@@ -1605,7 +1677,7 @@ function App() {
                   </p>
                 )}
 
-                {/* COMPACT CARD DESIGN - Small image left, info right */}
+                {/* Compact Card Design */}
                 {msg.content.recommendations?.map((rec, j) => (
                   <div
                     key={j}
@@ -1619,7 +1691,7 @@ function App() {
                       flexDirection: 'row'
                     }}
                   >
-                    {/* Place Image - Small on Left */}
+                    {/* Small Image Left */}
                     <div style={{
                       width: '120px',
                       minWidth: '120px',
@@ -1654,7 +1726,7 @@ function App() {
                       )}
                     </div>
 
-                    {/* Place Info - Right Side */}
+                    {/* Info Right */}
                     <div style={{ 
                       padding: '12px 14px', 
                       flex: 1,
@@ -1663,7 +1735,6 @@ function App() {
                       justifyContent: 'space-between',
                       minWidth: 0
                     }}>
-                      {/* Header: Name, Type & Price */}
                       <div>
                         <div style={{
                           display: 'flex',
@@ -1706,7 +1777,6 @@ function App() {
                           </span>
                         </div>
 
-                        {/* Description */}
                         <p style={{
                           margin: '6px 0',
                           color: '#558b2f',
@@ -1720,7 +1790,6 @@ function App() {
                           {rec.description}
                         </p>
 
-                        {/* Location & Reviews */}
                         <div style={{
                           fontSize: '11px',
                           color: '#7cb342'
@@ -1734,7 +1803,6 @@ function App() {
                         </div>
                       </div>
 
-                      {/* View Details Button */}
                       <button
                         onClick={() => openPlaceDetail(rec)}
                         style={{
@@ -1756,6 +1824,37 @@ function App() {
                     </div>
                   </div>
                 ))}
+
+                {/* SHOW MORE BUTTON */}
+                {msg.content.canLoadMore && (
+                  <button
+                    onClick={() => loadMoreRecommendations(i)}
+                    disabled={loadingMore}
+                    style={{
+                      width: '100%',
+                      background: loadingMore ? '#e0e0e0' : 'white',
+                      color: loadingMore ? '#9e9e9e' : '#2e7d32',
+                      border: '2px solid #4caf50',
+                      padding: '14px',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: loadingMore ? 'not-allowed' : 'pointer',
+                      fontFamily: "'DM Sans', sans-serif",
+                      marginTop: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {loadingMore ? (
+                      <>⏳ Loading more...</>
+                    ) : (
+                      <>🔍 Show More Recommendations</>
+                    )}
+                  </button>
+                )}
 
                 {msg.content.tips?.length > 0 && (
                   <div style={{
