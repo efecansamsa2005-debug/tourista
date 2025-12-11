@@ -9,85 +9,74 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Google Places API Key
 const GOOGLE_API_KEY = 'AIzaSyBy4tEpe49fgTAUd8P_A2PQ4swlvCDMlFw';
 
-// Interest Categories
-const INTERESTS = [
-  { id: 'local-cuisine', emoji: '🍽️', label: 'Local Cuisine', searchTerm: 'best local restaurant' },
-  { id: 'street-food', emoji: '🥙', label: 'Street Food', searchTerm: 'street food' },
-  { id: 'coffee', emoji: '☕', label: 'Coffee Shops', searchTerm: 'coffee shop cafe' },
-  { id: 'desserts', emoji: '🍰', label: 'Desserts', searchTerm: 'dessert bakery pastry' },
-  { id: 'museums', emoji: '🏛️', label: 'Museums', searchTerm: 'museum' },
-  { id: 'architecture', emoji: '🏰', label: 'Architecture', searchTerm: 'historic landmark architecture' },
-  { id: 'festivals', emoji: '🎭', label: 'Festivals', searchTerm: 'cultural event festival' },
-  { id: 'bars', emoji: '🍸', label: 'Bars & Pubs', searchTerm: 'bar pub' },
-  { id: 'clubs', emoji: '🪩', label: 'Clubs', searchTerm: 'nightclub club' },
-  { id: 'rooftops', emoji: '🌃', label: 'Rooftops', searchTerm: 'rooftop bar restaurant' },
-  { id: 'markets', emoji: '🛍️', label: 'Local Markets', searchTerm: 'local market bazaar' },
-  { id: 'vintage', emoji: '👗', label: 'Vintage Shops', searchTerm: 'vintage shop antique' },
-  { id: 'viewpoints', emoji: '📸', label: 'Viewpoints', searchTerm: 'viewpoint scenic view' },
-  { id: 'sunsets', emoji: '🌅', label: 'Sunset Spots', searchTerm: 'sunset view spot' },
-  { id: 'hidden-gems', emoji: '💎', label: 'Hidden Gems', searchTerm: 'hidden gem local favorite' },
-  { id: 'parks', emoji: '🌳', label: 'Parks & Nature', searchTerm: 'park garden nature' },
-  { id: 'hiking', emoji: '🥾', label: 'Hiking Trails', searchTerm: 'hiking trail nature walk' },
-  { id: 'wellness', emoji: '🧘', label: 'Wellness & Spas', searchTerm: 'spa wellness massage' },
+// Pre-built Travel Guides (Static Data)
+const TRAVEL_GUIDES = [
+  {
+    id: 'paris-1day',
+    city: 'Paris',
+    country: 'France',
+    title: '1-Day Paris Trip',
+    days: 1,
+    spots: 9,
+    image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=300&fit=crop',
+    color: '#E8D5B7'
+  },
+  {
+    id: 'rome-1day',
+    city: 'Rome',
+    country: 'Italy',
+    title: '1-Day Rome Trip',
+    days: 1,
+    spots: 7,
+    image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&h=300&fit=crop',
+    color: '#D4E5F7'
+  },
+  {
+    id: 'london-3day',
+    city: 'London',
+    country: 'UK',
+    title: '3-Day London Trip',
+    days: 3,
+    spots: 19,
+    image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400&h=300&fit=crop',
+    color: '#1E3A5F'
+  },
+  {
+    id: 'tokyo-2day',
+    city: 'Tokyo',
+    country: 'Japan',
+    title: '2-Day Tokyo Trip',
+    days: 2,
+    spots: 12,
+    image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop',
+    color: '#FFB7C5'
+  },
+  {
+    id: 'istanbul-2day',
+    city: 'Istanbul',
+    country: 'Turkey',
+    title: '2-Day Istanbul Trip',
+    days: 2,
+    spots: 14,
+    image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=400&h=300&fit=crop',
+    color: '#F5DEB3'
+  }
 ];
 
-// Vibe Options
-const VIBES = [
-  { id: 'calm', emoji: '🌿', label: 'Calm & Peaceful', modifier: 'quiet peaceful relaxing' },
-  { id: 'romantic', emoji: '❤️', label: 'Romantic', modifier: 'romantic date night' },
-  { id: 'trendy', emoji: '✨', label: 'Trendy & Modern', modifier: 'trendy popular instagram' },
-  { id: 'local', emoji: '🏘️', label: 'Local-Only', modifier: 'local authentic traditional' },
-  { id: 'luxury', emoji: '👑', label: 'Luxury', modifier: 'luxury upscale fine dining' },
-  { id: 'artsy', emoji: '🎨', label: 'Artsy & Bohemian', modifier: 'artistic bohemian creative' },
+// Interest Categories (Simplified for Trip Planning)
+const TRIP_CATEGORIES = [
+  { id: 'popular', emoji: '📍', label: 'Popular' },
+  { id: 'museum', emoji: '🏛️', label: 'Museum' },
+  { id: 'nature', emoji: '🌿', label: 'Nature' },
+  { id: 'foodie', emoji: '🍕', label: 'Foodie' },
+  { id: 'history', emoji: '🏰', label: 'History' },
+  { id: 'shopping', emoji: '🛍️', label: 'Shopping' },
 ];
 
 // Helper function to get Google Places photo URL
 const getPhotoUrl = (photo, size = 400) => {
   if (!photo || !photo.name) return null;
   return `https://places.googleapis.com/v1/${photo.name}/media?maxWidthPx=${size}&key=${GOOGLE_API_KEY}`;
-};
-
-// Helper function to convert price level to symbol
-const getPriceSymbol = (priceLevel) => {
-  const prices = {
-    'PRICE_LEVEL_FREE': 'Free',
-    'PRICE_LEVEL_INEXPENSIVE': '€',
-    'PRICE_LEVEL_MODERATE': '€€',
-    'PRICE_LEVEL_EXPENSIVE': '€€€',
-    'PRICE_LEVEL_VERY_EXPENSIVE': '€€€€'
-  };
-  return prices[priceLevel] || '€€';
-};
-
-// Search places using Netlify Function
-const searchPlaces = async (query, city) => {
-  try {
-    const response = await fetch('https://spontaneous-raindrop-cd0056.netlify.app/.netlify/functions/places', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, city })
-    });
-    
-    const data = await response.json();
-    
-    if (data.places && data.places.length > 0) {
-      return data.places.map(place => ({
-        id: place.id,
-        name: place.displayName?.text || 'Unknown Place',
-        address: place.formattedAddress || '',
-        rating: place.rating || 4.0,
-        totalRatings: place.userRatingCount || 0,
-        priceLevel: place.priceLevel,
-        photos: place.photos || [],
-        hours: place.regularOpeningHours?.weekdayDescriptions || [],
-        description: place.editorialSummary?.text || ''
-      }));
-    }
-    return [];
-  } catch (error) {
-    console.error('Places API error:', error);
-    return [];
-  }
 };
 
 // Star Rating Component
@@ -129,308 +118,40 @@ function App() {
   const [authSuccess, setAuthSuccess] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  const [selectedInterests, setSelectedInterests] = useState([]);
-  const [selectedVibe, setSelectedVibe] = useState(null);
-  const [city, setCity] = useState('');
-  const [query, setQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState([]);
-  const [initialLoadDone, setInitialLoadDone] = useState(false);
-  const [selectedPlace, setSelectedPlace] = useState(null);
-  const [placeReviews, setPlaceReviews] = useState([]);
-  const [userRating, setUserRating] = useState(0);
-  const [userComment, setUserComment] = useState('');
-  const [submittingReview, setSubmittingReview] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [loadingMore, setLoadingMore] = useState(false);
+  
+  // My Trips (saved trips)
+  const [myTrips, setMyTrips] = useState([]);
+  
+  // Trip Planning States
+  const [selectedGuide, setSelectedGuide] = useState(null);
+  const [newTripCity, setNewTripCity] = useState('');
+  const [newTripPreferences, setNewTripPreferences] = useState([]);
+  const [newTripDays, setNewTripDays] = useState(3);
+  const [tripDurationType, setTripDurationType] = useState('flexible'); // 'flexible' or 'dates'
+  const [tripStartDate, setTripStartDate] = useState(null);
+  const [tripEndDate, setTripEndDate] = useState(null);
+
+  // Bottom Navigation
+  const [activeTab, setActiveTab] = useState('trips'); // 'trips', 'add', 'map'
 
   // Check authentication on mount
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setCurrentUser(session.user);
-        setScreen('welcome');
+        setScreen('home');
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setCurrentUser(session.user);
-        setScreen('welcome');
+        setScreen('home');
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
-
-  // Fetch reviews when place is selected
-  useEffect(() => {
-    if (selectedPlace) {
-      fetchReviews(selectedPlace.name);
-    }
-  }, [selectedPlace]);
-
-  // Load initial recommendations when entering chat
-  useEffect(() => {
-    if (screen === 'chat' && !initialLoadDone && selectedInterests.length > 0 && city) {
-      loadInitialRecommendations();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, initialLoadDone, selectedInterests, city]);
-
-  // Load initial recommendations based on interests
-  const loadInitialRecommendations = async () => {
-    setIsLoading(true);
-    setInitialLoadDone(true);
-
-    try {
-      const selectedInterestDetails = INTERESTS.filter(i => selectedInterests.includes(i.id));
-      const selectedVibeDetail = VIBES.find(v => v.id === selectedVibe);
-      const interestLabels = selectedInterestDetails.map(i => i.label).join(', ');
-      const vibeLabel = selectedVibeDetail ? selectedVibeDetail.label : '';
-
-      const introMessage = `Based on your interests (${interestLabels})${vibeLabel ? ` and ${vibeLabel} vibe` : ''}, here are my top picks in ${city}! 🎯`;
-
-      const categoriesToShow = selectedInterestDetails.slice(0, 3);
-      const allRecommendations = [];
-
-      for (const interest of categoriesToShow) {
-        const vibeModifier = selectedVibeDetail ? selectedVibeDetail.modifier : '';
-        const searchQuery = `${vibeModifier} ${interest.searchTerm}`.trim();
-        const places = await searchPlaces(searchQuery, city);
-
-        if (places && places.length > 0) {
-          const topPlaces = places.slice(0, 2);
-
-          for (const place of topPlaces) {
-            const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
-            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 500)).filter(Boolean);
-
-            allRecommendations.push({
-              id: place.id,
-              name: place.name,
-              type: interest.label,
-              category: interest.id,
-              emoji: interest.emoji,
-              description: place.description || `A highly rated ${interest.label.toLowerCase()} spot in ${city}.`,
-              price: getPriceSymbol(place.priceLevel),
-              rating: place.rating,
-              totalRatings: place.totalRatings,
-              neighborhood: place.address.split(',')[0] || city,
-              image: photoUrl,
-              images: allPhotoUrls.length > 0 ? allPhotoUrls : [photoUrl].filter(Boolean),
-              hours: place.hours.length > 0 ? place.hours[0] : 'Hours not available',
-              address: place.address,
-              searchTerm: interest.searchTerm
-            });
-          }
-        }
-      }
-
-      setChatHistory([{
-        role: 'assistant',
-        content: {
-          summary: allRecommendations.length > 0 ? introMessage : `Welcome to ${city}! Search for places below.`,
-          recommendations: allRecommendations,
-          tips: allRecommendations.length > 0 ? ['Real places & photos from Google!', 'Tap a place to see more details'] : [],
-          canLoadMore: selectedInterestDetails.length > 3
-        }
-      }]);
-    } catch (error) {
-      console.error('Error loading recommendations:', error);
-      setChatHistory([{
-        role: 'assistant',
-        content: {
-          summary: `Welcome to ${city}! Search for places below.`,
-          recommendations: [],
-          tips: [],
-          canLoadMore: false
-        }
-      }]);
-    }
-
-    setIsLoading(false);
-  };
-
-  // Load more recommendations
-  const loadMoreRecommendations = async (messageIndex) => {
-    setLoadingMore(true);
-    
-    try {
-      const selectedInterestDetails = INTERESTS.filter(i => selectedInterests.includes(i.id));
-      const selectedVibeDetail = VIBES.find(v => v.id === selectedVibe);
-      
-      const remainingInterests = selectedInterestDetails.slice(3, 6);
-      const newRecommendations = [];
-
-      for (const interest of remainingInterests) {
-        const vibeModifier = selectedVibeDetail ? selectedVibeDetail.modifier : '';
-        const searchQuery = `${vibeModifier} ${interest.searchTerm}`.trim();
-        const places = await searchPlaces(searchQuery, city);
-
-        if (places && places.length > 0) {
-          const topPlaces = places.slice(0, 2);
-
-          for (const place of topPlaces) {
-            const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
-            const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 500)).filter(Boolean);
-
-            newRecommendations.push({
-              id: place.id,
-              name: place.name,
-              type: interest.label,
-              category: interest.id,
-              emoji: interest.emoji,
-              description: place.description || `A highly rated ${interest.label.toLowerCase()} spot in ${city}.`,
-              price: getPriceSymbol(place.priceLevel),
-              rating: place.rating,
-              totalRatings: place.totalRatings,
-              neighborhood: place.address.split(',')[0] || city,
-              image: photoUrl,
-              images: allPhotoUrls.length > 0 ? allPhotoUrls : [photoUrl].filter(Boolean),
-              hours: place.hours.length > 0 ? place.hours[0] : 'Hours not available',
-              address: place.address,
-              searchTerm: interest.searchTerm
-            });
-          }
-        }
-      }
-
-      if (newRecommendations.length > 0) {
-        setChatHistory(prev => {
-          const updated = [...prev];
-          if (updated[messageIndex] && updated[messageIndex].content) {
-            updated[messageIndex].content.recommendations = [
-              ...updated[messageIndex].content.recommendations,
-              ...newRecommendations
-            ];
-            updated[messageIndex].content.canLoadMore = false;
-          }
-          return updated;
-        });
-      } else {
-        setChatHistory(prev => {
-          const updated = [...prev];
-          if (updated[messageIndex] && updated[messageIndex].content) {
-            updated[messageIndex].content.canLoadMore = false;
-          }
-          return updated;
-        });
-      }
-    } catch (error) {
-      console.error('Error loading more:', error);
-    }
-
-    setLoadingMore(false);
-  };
-
-  // Handle search query
-  const handleGetRecommendations = async () => {
-    if (!query.trim() || !city.trim() || isLoading) return;
-
-    const currentQuery = query;
-    setIsLoading(true);
-    setQuery('');
-    setChatHistory(prev => [...prev, { role: 'user', content: currentQuery }]);
-
-    try {
-      const places = await searchPlaces(currentQuery, city);
-      const recommendations = [];
-
-      if (places && places.length > 0) {
-        for (const place of places.slice(0, 5)) {
-          const photoUrl = place.photos.length > 0 ? getPhotoUrl(place.photos[0], 400) : null;
-          const allPhotoUrls = place.photos.slice(0, 5).map(p => getPhotoUrl(p, 500)).filter(Boolean);
-
-          recommendations.push({
-            id: place.id,
-            name: place.name,
-            type: currentQuery,
-            category: 'search',
-            emoji: '📍',
-            description: place.description || `A great spot for ${currentQuery} in ${city}.`,
-            price: getPriceSymbol(place.priceLevel),
-            rating: place.rating,
-            totalRatings: place.totalRatings,
-            neighborhood: place.address.split(',')[0] || city,
-            image: photoUrl,
-            images: allPhotoUrls.length > 0 ? allPhotoUrls : [photoUrl].filter(Boolean),
-            hours: place.hours.length > 0 ? place.hours[0] : 'Hours not available',
-            address: place.address,
-            searchTerm: currentQuery
-          });
-        }
-      }
-
-      const response = {
-        summary: recommendations.length > 0
-          ? `Here are the best "${currentQuery}" spots in ${city}! 🎯`
-          : `I couldn't find "${currentQuery}" in ${city}. Try different keywords!`,
-        recommendations,
-        tips: recommendations.length > 0 ? ['Real photos from Google!'] : [],
-        canLoadMore: false
-      };
-
-      setChatHistory(prev => [...prev, { role: 'assistant', content: response }]);
-    } catch (error) {
-      console.error('Search error:', error);
-      setChatHistory(prev => [...prev, {
-        role: 'assistant',
-        content: {
-          summary: 'Something went wrong. Please try again.',
-          recommendations: [],
-          tips: [],
-          canLoadMore: false
-        }
-      }]);
-    }
-
-    setIsLoading(false);
-  };
-
-  // Fetch reviews from Supabase
-  const fetchReviews = async (placeName) => {
-    try {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*')
-        .eq('place_name', placeName)
-        .order('created_at', { ascending: false });
-      
-      if (!error && data) {
-        setPlaceReviews(data);
-      }
-    } catch (err) {
-      console.error('Error fetching reviews:', err);
-    }
-  };
-
-  // Submit review to Supabase
-  const submitReview = async () => {
-    if (!userRating || !currentUser) return;
-    
-    setSubmittingReview(true);
-    
-    try {
-      const { error } = await supabase.from('reviews').insert({
-        place_name: selectedPlace.name,
-        city: city,
-        user_email: currentUser.email,
-        rating: userRating,
-        comment: userComment
-      });
-      
-      if (!error) {
-        setUserRating(0);
-        setUserComment('');
-        fetchReviews(selectedPlace.name);
-      }
-    } catch (err) {
-      console.error('Error submitting review:', err);
-    }
-    
-    setSubmittingReview(false);
-  };
 
   // Handle signup
   const handleSignup = async () => {
@@ -468,7 +189,7 @@ function App() {
         setConfirmPassword('');
       } else if (data.session) {
         setCurrentUser(data.user);
-        setScreen('welcome');
+        setScreen('home');
       }
     } catch (err) {
       setAuthError('Connection error. Please try again.');
@@ -495,7 +216,7 @@ function App() {
         setAuthError(error.message);
       } else if (data.user) {
         setCurrentUser(data.user);
-        setScreen('welcome');
+        setScreen('home');
       }
     } catch (err) {
       setAuthError('Connection error. Please try again.');
@@ -538,343 +259,17 @@ function App() {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
-    setSelectedInterests([]);
-    setSelectedVibe(null);
-    setCity('');
-    setChatHistory([]);
-    setInitialLoadDone(false);
+    setMyTrips([]);
     setAuthMode('login');
     setScreen('auth');
   };
 
-  // Toggle interest selection
-  const toggleInterest = (id) => {
-    setSelectedInterests(prev =>
+  // Toggle trip preference
+  const togglePreference = (id) => {
+    setNewTripPreferences(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
-
-  // Open place detail page
-  const openPlaceDetail = (place) => {
-    setSelectedPlace(place);
-    setSelectedImageIndex(0);
-    setUserRating(0);
-    setUserComment('');
-    setPlaceReviews([]);
-    setScreen('detail');
-  };
-
-  // Fallback image
-  const fallbackImage = 'https://via.placeholder.com/400x300?text=No+Image';
-
-  // ==================== DETAIL SCREEN ====================
-  if (screen === 'detail' && selectedPlace) {
-    const images = selectedPlace.images?.filter(img => img) || [];
-
-    return (
-      <div style={{ minHeight: '100vh', background: '#f5faf6', fontFamily: "'DM Sans', sans-serif" }}>
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
-
-        {/* Header */}
-        <div style={{
-          background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)',
-          padding: '14px 20px',
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100
-        }}>
-          <button
-            onClick={() => { setScreen('chat'); setSelectedPlace(null); }}
-            style={{
-              background: 'rgba(255,255,255,0.2)',
-              border: 'none',
-              borderRadius: '10px',
-              padding: '8px 12px',
-              color: 'white',
-              fontSize: '16px',
-              cursor: 'pointer'
-            }}
-          >
-            ← Back
-          </button>
-          <div style={{ flex: 1 }}>
-            <h1 style={{
-              margin: 0,
-              fontSize: '16px',
-              fontWeight: '700',
-              fontFamily: "'Playfair Display', serif"
-            }}>
-              {selectedPlace.name}
-            </h1>
-            <p style={{ margin: 0, fontSize: '11px', opacity: 0.9 }}>
-              📍 {selectedPlace.neighborhood}
-            </p>
-          </div>
-          <div style={{
-            background: 'rgba(255,255,255,0.2)',
-            padding: '6px 12px',
-            borderRadius: '15px',
-            fontSize: '14px',
-            fontWeight: '600'
-          }}>
-            {selectedPlace.price}
-          </div>
-        </div>
-
-        {/* Photo Gallery - Original Resolution, Centered */}
-        <div style={{
-          background: '#f0f0f0',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
-        }}>
-          {/* Main Image - Original aspect ratio, centered, not stretched */}
-          {images.length > 0 ? (
-            <div style={{
-              borderRadius: '12px',
-              overflow: 'hidden',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-              background: 'white',
-              padding: '4px'
-            }}>
-              <img
-                src={images[selectedImageIndex] || fallbackImage}
-                alt={selectedPlace.name}
-                style={{
-                  maxWidth: '450px',
-                  maxHeight: '300px',
-                  width: 'auto',
-                  height: 'auto',
-                  display: 'block',
-                  borderRadius: '8px'
-                }}
-                onError={(e) => { e.target.src = fallbackImage; }}
-              />
-            </div>
-          ) : (
-            <div style={{
-              width: '300px',
-              height: '200px',
-              background: '#e0e0e0',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#9e9e9e'
-            }}>
-              No photos available
-            </div>
-          )}
-          
-          {/* Thumbnail Row */}
-          {images.length > 1 && (
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              marginTop: '12px',
-              justifyContent: 'center',
-              flexWrap: 'wrap'
-            }}>
-              {images.map((img, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => setSelectedImageIndex(idx)}
-                  style={{
-                    width: '55px',
-                    height: '40px',
-                    borderRadius: '6px',
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    border: selectedImageIndex === idx ? '3px solid #4caf50' : '3px solid transparent',
-                    opacity: selectedImageIndex === idx ? 1 : 0.6,
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <img
-                    src={img}
-                    alt={`${selectedPlace.name} ${idx + 1}`}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover'
-                    }}
-                    onError={(e) => { e.target.src = fallbackImage; }}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Content */}
-        <div style={{ padding: '16px' }}>
-          {/* Rating Card */}
-          <div style={{
-            background: 'white',
-            borderRadius: '14px',
-            padding: '16px',
-            marginBottom: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '32px', fontWeight: '700', color: '#1b5e20' }}>
-                {selectedPlace.rating?.toFixed(1) || 'N/A'}
-              </span>
-              <div>
-                <StarRating rating={Math.round(selectedPlace.rating || 0)} size={18} />
-                <p style={{ margin: '4px 0 0', color: '#689f38', fontSize: '12px' }}>
-                  {selectedPlace.totalRatings?.toLocaleString() || 0} Google reviews
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Write Review Section */}
-          <div style={{
-            background: 'white',
-            borderRadius: '14px',
-            padding: '16px',
-            marginBottom: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-          }}>
-            <h3 style={{
-              margin: '0 0 16px',
-              color: '#1b5e20',
-              fontFamily: "'Playfair Display', serif",
-              fontSize: '18px'
-            }}>
-              ✍️ Write a Review
-            </h3>
-            
-            <div style={{ marginBottom: '16px' }}>
-              <p style={{ margin: '0 0 8px', color: '#558b2f', fontSize: '13px' }}>
-                Rate this place
-              </p>
-              <StarRating
-                rating={userRating}
-                onRate={setUserRating}
-                size={32}
-                interactive={true}
-              />
-            </div>
-            
-            <textarea
-              value={userComment}
-              onChange={(e) => setUserComment(e.target.value)}
-              placeholder="Share your experience..."
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '10px',
-                border: '2px solid #c8e6c9',
-                fontSize: '14px',
-                fontFamily: "'DM Sans', sans-serif",
-                minHeight: '80px',
-                resize: 'vertical',
-                boxSizing: 'border-box',
-                outline: 'none'
-              }}
-            />
-            
-            <button
-              onClick={submitReview}
-              disabled={!userRating || submittingReview}
-              style={{
-                width: '100%',
-                background: userRating
-                  ? 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)'
-                  : '#e0e0e0',
-                color: userRating ? 'white' : '#9e9e9e',
-                border: 'none',
-                padding: '14px',
-                borderRadius: '10px',
-                fontSize: '15px',
-                fontWeight: '600',
-                cursor: userRating ? 'pointer' : 'not-allowed',
-                marginTop: '12px',
-                fontFamily: "'DM Sans', sans-serif"
-              }}
-            >
-              {submittingReview ? '⏳ Submitting...' : '📤 Submit Review'}
-            </button>
-          </div>
-
-          {/* Reviews Section */}
-          <div style={{
-            background: 'white',
-            borderRadius: '14px',
-            padding: '16px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-          }}>
-            <h3 style={{
-              margin: '0 0 16px',
-              color: '#1b5e20',
-              fontFamily: "'Playfair Display', serif",
-              fontSize: '18px'
-            }}>
-              💬 Reviews ({placeReviews.length})
-            </h3>
-            
-            {placeReviews.length === 0 ? (
-              <div style={{
-                textAlign: 'center',
-                padding: '30px 16px',
-                background: '#f9fdf9',
-                borderRadius: '10px'
-              }}>
-                <span style={{ fontSize: '40px' }}>📝</span>
-                <p style={{ color: '#689f38', margin: '12px 0 0', fontSize: '14px' }}>
-                  No reviews yet. Be the first!
-                </p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {placeReviews.map((review, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: '12px',
-                      background: '#f9fdf9',
-                      borderRadius: '10px',
-                      borderLeft: '3px solid #4caf50'
-                    }}
-                  >
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '6px'
-                    }}>
-                      <span style={{ fontWeight: '600', color: '#1b5e20', fontSize: '13px' }}>
-                        👤 {review.user_email?.split('@')[0]}
-                      </span>
-                      <StarRating rating={review.rating} size={14} />
-                    </div>
-                    {review.comment && (
-                      <p style={{ margin: '0 0 6px', color: '#558b2f', fontSize: '13px' }}>
-                        "{review.comment}"
-                      </p>
-                    )}
-                    <p style={{ margin: 0, color: '#9e9e9e', fontSize: '11px' }}>
-                      {new Date(review.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // ==================== AUTH SCREEN ====================
   if (screen === 'auth') {
@@ -1190,700 +585,789 @@ function App() {
     );
   }
 
-  // ==================== WELCOME SCREEN ====================
-  if (screen === 'welcome') {
+  // ==================== HOME SCREEN ====================
+  if (screen === 'home') {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(165deg, #f0f9f4 0%, #ffffff 40%, #e8f5e9 100%)',
+        background: '#ffffff',
         fontFamily: "'DM Sans', sans-serif",
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative'
+        paddingBottom: '80px'
       }}>
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
 
-        <button
-          onClick={handleLogout}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            background: 'white',
-            border: '2px solid #c8e6c9',
-            borderRadius: '10px',
-            padding: '8px 16px',
-            color: '#2e7d32',
-            cursor: 'pointer',
-            fontFamily: "'DM Sans', sans-serif"
-          }}
-        >
-          Logout
-        </button>
-
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          <div style={{
-            width: '100px',
-            height: '100px',
-            borderRadius: '28px',
-            background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '48px',
-            boxShadow: '0 20px 60px rgba(46,125,50,0.3)',
-            marginBottom: '32px'
-          }}>
-            🧭
-          </div>
-          
+        {/* Header */}
+        <div style={{
+          padding: '20px 20px 10px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
           <h1 style={{
             fontFamily: "'Playfair Display', serif",
-            fontSize: '42px',
+            fontSize: '28px',
             fontWeight: '700',
             color: '#1b5e20',
-            margin: '0 0 12px 0'
+            margin: 0
           }}>
-            TOURISTA
+            Tourista
           </h1>
-          
-          <p style={{
-            fontSize: '18px',
-            color: '#558b2f',
-            margin: '0 0 48px 0'
-          }}>
-            Welcome back, {currentUser?.email?.split('@')[0]}! 🎉
-          </p>
-          
-          <button
-            onClick={() => setScreen('interests')}
+          <div
+            onClick={handleLogout}
             style={{
-              background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               color: 'white',
-              border: 'none',
-              padding: '18px 48px',
-              borderRadius: '50px',
-              fontSize: '17px',
               fontWeight: '600',
-              cursor: 'pointer',
-              boxShadow: '0 12px 40px rgba(46,125,50,0.35)',
-              fontFamily: "'DM Sans', sans-serif"
+              fontSize: '16px',
+              cursor: 'pointer'
             }}
           >
-            Start Exploring →
+            {currentUser?.email?.charAt(0).toUpperCase()}
+          </div>
+        </div>
+
+        {/* Travel Guides Section */}
+        <div style={{ padding: '20px' }}>
+          <h2 style={{
+            fontSize: '20px',
+            fontWeight: '600',
+            color: '#9e9e9e',
+            margin: '0 0 16px 0'
+          }}>
+            Travel Guides
+          </h2>
+          
+          {/* Horizontal Scroll */}
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            overflowX: 'auto',
+            paddingBottom: '10px',
+            marginRight: '-20px',
+            paddingRight: '20px'
+          }}>
+            {TRAVEL_GUIDES.map((guide) => (
+              <div
+                key={guide.id}
+                onClick={() => {
+                  setSelectedGuide(guide);
+                  setScreen('guideDetail');
+                }}
+                style={{
+                  minWidth: '160px',
+                  height: '200px',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}
+              >
+                <img
+                  src={guide.image}
+                  alt={guide.city}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                />
+                {/* Gradient Overlay */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: '60%',
+                  background: 'linear-gradient(transparent, rgba(0,0,0,0.7))'
+                }} />
+                {/* City Badge */}
+                <div style={{
+                  position: 'absolute',
+                  top: '10px',
+                  left: '10px',
+                  background: 'rgba(255,255,255,0.95)',
+                  padding: '4px 10px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  color: '#333',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <span style={{ color: '#e53935' }}>📍</span>
+                  {guide.city}
+                </div>
+                {/* Info */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: '12px',
+                  left: '12px',
+                  right: '12px',
+                  color: 'white'
+                }}>
+                  <p style={{
+                    margin: 0,
+                    fontSize: '15px',
+                    fontWeight: '600'
+                  }}>
+                    {guide.title}
+                  </p>
+                  <p style={{
+                    margin: '4px 0 0',
+                    fontSize: '12px',
+                    opacity: 0.9
+                  }}>
+                    {guide.spots} Spots
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* My Trips Section */}
+        <div style={{ padding: '20px' }}>
+          <h2 style={{
+            fontSize: '20px',
+            fontWeight: '600',
+            color: '#9e9e9e',
+            margin: '0 0 16px 0'
+          }}>
+            My Trips
+          </h2>
+
+          {myTrips.length === 0 ? (
+            /* Empty State */
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: '40px 20px'
+            }}>
+              {/* Mascot */}
+              <div style={{
+                fontSize: '80px',
+                marginBottom: '16px'
+              }}>
+                🧭
+              </div>
+              {/* Speech Bubble */}
+              <div style={{
+                background: 'white',
+                border: '1px solid #e0e0e0',
+                borderRadius: '20px',
+                padding: '12px 20px',
+                marginBottom: '24px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+              }}>
+                <p style={{
+                  margin: 0,
+                  color: '#333',
+                  fontSize: '15px',
+                  fontWeight: '500'
+                }}>
+                  Where we going?
+                </p>
+              </div>
+              {/* Start New Trip Button */}
+              <button
+                onClick={() => setScreen('newTripCity')}
+                style={{
+                  background: '#1a1a1a',
+                  color: 'white',
+                  border: 'none',
+                  padding: '16px 32px',
+                  borderRadius: '30px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif"
+                }}
+              >
+                Start new trip
+              </button>
+            </div>
+          ) : (
+            /* Saved Trips */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {myTrips.map((trip, index) => (
+                <div
+                  key={index}
+                  onClick={() => {
+                    setSelectedGuide(trip);
+                    setScreen('tripDetail');
+                  }}
+                  style={{
+                    background: '#f5f8ff',
+                    borderRadius: '16px',
+                    padding: '16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      color: '#1a237e'
+                    }}>
+                      {trip.title}
+                    </h3>
+                    <p style={{
+                      margin: '4px 0 0',
+                      fontSize: '13px',
+                      color: '#5c6bc0'
+                    }}>
+                      {trip.days} Days {trip.days - 1} Nights
+                    </p>
+                    <p style={{
+                      margin: '2px 0 0',
+                      fontSize: '13px',
+                      color: '#5c6bc0'
+                    }}>
+                      {trip.spots} Spots
+                    </p>
+                  </div>
+                  <div style={{
+                    width: '100px',
+                    height: '80px',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    transform: 'rotate(5deg)'
+                  }}>
+                    <img
+                      src={trip.image}
+                      alt={trip.title}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+              
+              {/* Add New Trip Button */}
+              <button
+                onClick={() => setScreen('newTripCity')}
+                style={{
+                  background: '#1a1a1a',
+                  color: 'white',
+                  border: 'none',
+                  padding: '16px 32px',
+                  borderRadius: '30px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                  marginTop: '16px',
+                  alignSelf: 'center'
+                }}
+              >
+                Start new trip
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Navigation */}
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'white',
+          borderRadius: '40px',
+          padding: '12px 32px',
+          display: 'flex',
+          gap: '32px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+        }}>
+          <button
+            onClick={() => setActiveTab('trips')}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              opacity: activeTab === 'trips' ? 1 : 0.4,
+              padding: '8px'
+            }}
+          >
+            🧳
+          </button>
+          <button
+            onClick={() => setScreen('newTripCity')}
+            style={{
+              background: '#1a1a1a',
+              border: 'none',
+              borderRadius: '50%',
+              width: '48px',
+              height: '48px',
+              fontSize: '24px',
+              cursor: 'pointer',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            +
+          </button>
+          <button
+            onClick={() => setActiveTab('map')}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              opacity: activeTab === 'map' ? 1 : 0.4,
+              padding: '8px'
+            }}
+          >
+            🗺️
           </button>
         </div>
       </div>
     );
   }
 
-  // ==================== INTERESTS SCREEN ====================
-  if (screen === 'interests') {
+  // ==================== NEW TRIP - CITY SELECTION ====================
+  if (screen === 'newTripCity') {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(180deg, #ffffff 0%, #f1f8e9 100%)',
+        background: 'linear-gradient(180deg, #e0f7fa 0%, #80deea 50%, #00bcd4 100%)',
         fontFamily: "'DM Sans', sans-serif",
-        padding: '20px'
+        display: 'flex',
+        flexDirection: 'column'
       }}>
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
 
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <button
-            onClick={() => setScreen('welcome')}
-            style={{
-              background: 'white',
-              border: '2px solid #c8e6c9',
-              borderRadius: '12px',
-              padding: '10px 16px',
-              color: '#2e7d32',
-              cursor: 'pointer',
-              marginBottom: '24px',
-              fontFamily: "'DM Sans', sans-serif"
-            }}
-          >
-            ← Back
-          </button>
+        {/* Back Button */}
+        <button
+          onClick={() => setScreen('home')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#00695c',
+            fontSize: '24px',
+            cursor: 'pointer',
+            padding: '20px',
+            alignSelf: 'flex-start'
+          }}
+        >
+          ←
+        </button>
 
-          <h2 style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '28px',
-            color: '#1b5e20',
+        {/* Content */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+          padding: '20px'
+        }}>
+          <h1 style={{
+            fontSize: '32px',
+            fontWeight: '700',
+            color: 'white',
             margin: '0 0 8px 0'
           }}>
-            What excites you?
-          </h2>
-          <p style={{ color: '#689f38', margin: '0 0 24px 0' }}>
-            Select your interests (choose as many as you like)
+            Where are we going?
+          </h1>
+          <p style={{
+            fontSize: '16px',
+            color: 'rgba(255,255,255,0.8)',
+            margin: '0 0 24px 0'
+          }}>
+            Search for your destination
           </p>
 
+          {/* Search Input */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '10px',
-            marginBottom: '32px'
+            background: 'white',
+            borderRadius: '30px',
+            padding: '4px',
+            marginBottom: '40px'
           }}>
-            {INTERESTS.map(interest => (
-              <button
-                key={interest.id}
-                onClick={() => toggleInterest(interest.id)}
-                style={{
-                  background: selectedInterests.includes(interest.id)
-                    ? 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)'
-                    : '#ffffff',
-                  color: selectedInterests.includes(interest.id) ? 'white' : '#2e7d32',
-                  border: selectedInterests.includes(interest.id) ? 'none' : '2px solid #c8e6c9',
-                  padding: '14px 10px',
-                  borderRadius: '14px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontFamily: "'DM Sans', sans-serif",
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <span style={{ fontSize: '24px' }}>{interest.emoji}</span>
-                <span style={{ fontSize: '11px', fontWeight: '500' }}>{interest.label}</span>
-              </button>
-            ))}
+            <input
+              type="text"
+              value={newTripCity}
+              onChange={(e) => setNewTripCity(e.target.value)}
+              placeholder="🔍  Search city..."
+              style={{
+                width: '100%',
+                padding: '16px 20px',
+                border: 'none',
+                borderRadius: '26px',
+                fontSize: '16px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                fontFamily: "'DM Sans', sans-serif"
+              }}
+            />
           </div>
 
-          <h3 style={{ fontSize: '16px', color: '#1b5e20', margin: '0 0 12px 0' }}>
-            Choose your vibe ✨
-          </h3>
+          {/* Continue Button */}
+          <button
+            onClick={() => newTripCity.trim() && setScreen('newTripPreferences')}
+            disabled={!newTripCity.trim()}
+            style={{
+              background: newTripCity.trim() ? '#1a1a1a' : 'rgba(0,0,0,0.3)',
+              color: 'white',
+              border: 'none',
+              padding: '18px',
+              borderRadius: '30px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: newTripCity.trim() ? 'pointer' : 'not-allowed',
+              fontFamily: "'DM Sans', sans-serif",
+              marginBottom: '20px'
+            }}
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ==================== NEW TRIP - PREFERENCES ====================
+  if (screen === 'newTripPreferences') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #e3f2fd 0%, #bbdefb 100%)',
+        fontFamily: "'DM Sans', sans-serif",
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+
+        {/* Back Button */}
+        <button
+          onClick={() => setScreen('newTripCity')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#1565c0',
+            fontSize: '24px',
+            cursor: 'pointer',
+            padding: '20px',
+            alignSelf: 'flex-start'
+          }}
+        >
+          ←
+        </button>
+
+        {/* Content */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+          padding: '20px'
+        }}>
+          <span style={{ fontSize: '32px', marginBottom: '8px' }}>👍</span>
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: '700',
+            color: '#0d47a1',
+            margin: '0 0 8px 0'
+          }}>
+            Trip Preferences
+          </h1>
+          <p style={{
+            fontSize: '15px',
+            color: '#5c6bc0',
+            margin: '0 0 24px 0'
+          }}>
+            What should your trip be about?
+          </p>
+
+          {/* Categories */}
           <div style={{
             display: 'flex',
             flexWrap: 'wrap',
-            gap: '8px',
+            gap: '10px',
             marginBottom: '32px'
           }}>
-            {VIBES.map(vibe => (
+            {TRIP_CATEGORIES.map((cat) => (
               <button
-                key={vibe.id}
-                onClick={() => setSelectedVibe(vibe.id === selectedVibe ? null : vibe.id)}
+                key={cat.id}
+                onClick={() => togglePreference(cat.id)}
                 style={{
-                  background: selectedVibe === vibe.id
-                    ? 'linear-gradient(135deg, #558b2f 0%, #7cb342 100%)'
-                    : '#ffffff',
-                  color: selectedVibe === vibe.id ? 'white' : '#558b2f',
-                  border: selectedVibe === vibe.id ? 'none' : '2px solid #dcedc8',
-                  padding: '8px 16px',
-                  borderRadius: '50px',
+                  background: newTripPreferences.includes(cat.id) ? '#1a1a1a' : 'white',
+                  color: newTripPreferences.includes(cat.id) ? 'white' : '#333',
+                  border: '2px solid',
+                  borderColor: newTripPreferences.includes(cat.id) ? '#1a1a1a' : '#e0e0e0',
+                  padding: '10px 18px',
+                  borderRadius: '25px',
+                  fontSize: '14px',
+                  fontWeight: '500',
                   cursor: 'pointer',
-                  fontSize: '13px',
                   fontFamily: "'DM Sans', sans-serif",
-                  transition: 'all 0.2s ease'
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                {vibe.emoji} {vibe.label}
+                {cat.emoji} {cat.label}
               </button>
             ))}
           </div>
 
-          <button
-            onClick={() => setScreen('city')}
-            disabled={selectedInterests.length === 0}
+          {/* Trip Duration Link */}
+          <div
+            onClick={() => setScreen('newTripDuration')}
             style={{
-              width: '100%',
-              background: selectedInterests.length > 0
-                ? 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)'
-                : '#e0e0e0',
-              color: selectedInterests.length > 0 ? 'white' : '#9e9e9e',
-              border: 'none',
-              padding: '16px',
-              borderRadius: '14px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: selectedInterests.length > 0 ? 'pointer' : 'not-allowed',
-              fontFamily: "'DM Sans', sans-serif"
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '16px 0',
+              borderTop: '1px solid rgba(0,0,0,0.1)',
+              cursor: 'pointer'
             }}
           >
-            Continue ({selectedInterests.length} selected)
+            <span style={{ fontSize: '20px' }}>📅</span>
+            <span style={{ fontSize: '16px', color: '#5c6bc0' }}>
+              Trip Duration
+            </span>
+            <span style={{ marginLeft: 'auto', color: '#9e9e9e' }}>→</span>
+          </div>
+
+          {/* Continue Button */}
+          <button
+            onClick={() => setScreen('newTripDuration')}
+            style={{
+              background: '#1a1a1a',
+              color: 'white',
+              border: 'none',
+              padding: '18px',
+              borderRadius: '30px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif",
+              marginTop: '16px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            ✓ Continue
           </button>
         </div>
       </div>
     );
   }
 
-  // ==================== CITY SCREEN ====================
-  if (screen === 'city') {
+  // ==================== NEW TRIP - DURATION ====================
+  if (screen === 'newTripDuration') {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(180deg, #ffffff 0%, #e8f5e9 100%)',
+        background: 'linear-gradient(180deg, #e0f2f1 0%, #b2dfdb 100%)',
         fontFamily: "'DM Sans', sans-serif",
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
+        flexDirection: 'column'
       }}>
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
 
-        <div style={{ maxWidth: '400px', width: '100%', textAlign: 'center' }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '20px'
+        }}>
           <button
-            onClick={() => setScreen('interests')}
+            onClick={() => setScreen('newTripPreferences')}
             style={{
-              background: 'white',
-              border: '2px solid #c8e6c9',
-              borderRadius: '12px',
-              padding: '10px 16px',
-              color: '#2e7d32',
-              cursor: 'pointer',
-              marginBottom: '24px',
-              fontFamily: "'DM Sans', sans-serif"
-            }}
-          >
-            ← Back
-          </button>
-
-          <div style={{ fontSize: '64px', marginBottom: '24px' }}>📍</div>
-          
-          <h2 style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '28px',
-            color: '#1b5e20',
-            margin: '0 0 8px 0'
-          }}>
-            Where are you exploring?
-          </h2>
-          <p style={{ color: '#689f38', margin: '0 0 32px 0' }}>
-            Enter your destination city
-          </p>
-
-          <input
-            type="text"
-            value={city}
-            onChange={e => setCity(e.target.value)}
-            placeholder="e.g., Paris, Istanbul, Tokyo..."
-            style={{
-              width: '100%',
-              padding: '18px 20px',
-              borderRadius: '14px',
-              border: '2px solid #c8e6c9',
-              fontSize: '16px',
-              outline: 'none',
-              marginBottom: '20px',
-              boxSizing: 'border-box',
-              fontFamily: "'DM Sans', sans-serif"
-            }}
-          />
-
-          <button
-            onClick={() => {
-              setInitialLoadDone(false);
-              setChatHistory([]);
-              setScreen('chat');
-            }}
-            disabled={!city.trim()}
-            style={{
-              width: '100%',
-              background: city.trim()
-                ? 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)'
-                : '#e0e0e0',
-              color: city.trim() ? 'white' : '#9e9e9e',
+              background: 'none',
               border: 'none',
-              padding: '16px',
-              borderRadius: '14px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: city.trim() ? 'pointer' : 'not-allowed',
-              fontFamily: "'DM Sans', sans-serif"
-            }}
-          >
-            Let's Go! 🚀
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ==================== CHAT SCREEN ====================
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#f5faf6',
-      fontFamily: "'DM Sans', sans-serif",
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
-
-      {/* Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)',
-        padding: '16px 20px',
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            onClick={() => {
-              setScreen('city');
-              setChatHistory([]);
-              setInitialLoadDone(false);
-            }}
-            style={{
-              background: 'rgba(255,255,255,0.2)',
-              border: 'none',
-              borderRadius: '10px',
-              padding: '8px 12px',
-              color: 'white',
+              color: '#00695c',
+              fontSize: '24px',
               cursor: 'pointer'
             }}
           >
             ←
           </button>
-          <span style={{ fontSize: '24px' }}>🧭</span>
-          <div>
-            <h1 style={{
-              margin: 0,
-              fontSize: '18px',
-              fontWeight: '700',
-              fontFamily: "'Playfair Display', serif"
-            }}>
-              TOURISTA
-            </h1>
-            <p style={{ margin: 0, fontSize: '12px', opacity: 0.9 }}>📍 {city}</p>
-          </div>
-        </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            background: 'rgba(255,255,255,0.2)',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '8px 12px',
-            color: 'white',
-            cursor: 'pointer',
-            fontFamily: "'DM Sans', sans-serif"
-          }}
-        >
-          Logout
-        </button>
-      </div>
-
-      {/* Chat Messages */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px'
-      }}>
-        {chatHistory.map((msg, i) => (
-          <div key={i}>
-            {msg.role === 'user' ? (
-              <div style={{
-                background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
-                color: 'white',
-                padding: '12px 16px',
-                borderRadius: '16px 16px 4px 16px',
-                maxWidth: '80%',
-                marginLeft: 'auto'
-              }}>
-                {msg.content}
-              </div>
-            ) : (
-              <div style={{
-                background: 'white',
-                borderRadius: '16px',
-                padding: '20px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-              }}>
-                {msg.content.summary && (
-                  <p style={{
-                    margin: '0 0 16px 0',
-                    color: '#1b5e20',
-                    fontSize: '15px',
-                    fontWeight: '500'
-                  }}>
-                    {msg.content.summary}
-                  </p>
-                )}
-
-                {/* Compact Card Design */}
-                {msg.content.recommendations?.map((rec, j) => (
-                  <div
-                    key={j}
-                    style={{
-                      background: '#f9fdf9',
-                      borderRadius: '12px',
-                      marginBottom: '12px',
-                      overflow: 'hidden',
-                      borderLeft: '4px solid #4caf50',
-                      display: 'flex',
-                      flexDirection: 'row'
-                    }}
-                  >
-                    {/* Small Image Left */}
-                    <div style={{
-                      width: '120px',
-                      minWidth: '120px',
-                      height: '140px',
-                      position: 'relative',
-                      flexShrink: 0
-                    }}>
-                      <img
-                        src={rec.image || fallbackImage}
-                        alt={rec.name}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover'
-                        }}
-                        onError={(e) => { e.target.src = fallbackImage; }}
-                      />
-                      {rec.rating && (
-                        <div style={{
-                          position: 'absolute',
-                          bottom: '6px',
-                          left: '6px',
-                          background: 'rgba(0,0,0,0.75)',
-                          color: 'white',
-                          padding: '3px 8px',
-                          borderRadius: '12px',
-                          fontSize: '11px',
-                          fontWeight: '600'
-                        }}>
-                          ⭐ {rec.rating?.toFixed(1)}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Info Right */}
-                    <div style={{ 
-                      padding: '12px 14px', 
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      minWidth: 0
-                    }}>
-                      <div>
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          marginBottom: '4px',
-                          gap: '8px'
-                        }}>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <strong style={{ 
-                              color: '#1b5e20', 
-                              fontSize: '14px',
-                              display: 'block',
-                              lineHeight: '1.2',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {rec.name}
-                            </strong>
-                            <span style={{
-                              fontSize: '11px',
-                              color: '#689f38',
-                              fontWeight: '500'
-                            }}>
-                              {rec.emoji} {rec.type}
-                            </span>
-                          </div>
-                          <span style={{
-                            background: '#e8f5e9',
-                            color: '#2e7d32',
-                            padding: '3px 10px',
-                            borderRadius: '10px',
-                            fontSize: '11px',
-                            fontWeight: '600',
-                            whiteSpace: 'nowrap',
-                            flexShrink: 0
-                          }}>
-                            {rec.price}
-                          </span>
-                        </div>
-
-                        <p style={{
-                          margin: '6px 0',
-                          color: '#558b2f',
-                          fontSize: '12px',
-                          lineHeight: '1.4',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden'
-                        }}>
-                          {rec.description}
-                        </p>
-
-                        <div style={{
-                          fontSize: '11px',
-                          color: '#7cb342'
-                        }}>
-                          <span>📍 {rec.neighborhood}</span>
-                          {rec.totalRatings > 0 && (
-                            <span style={{ marginLeft: '10px' }}>
-                              👥 {rec.totalRatings?.toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => openPlaceDetail(rec)}
-                        style={{
-                          width: '100%',
-                          background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
-                          color: 'white',
-                          border: 'none',
-                          padding: '8px',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          fontFamily: "'DM Sans', sans-serif",
-                          marginTop: '8px'
-                        }}
-                      >
-                        View Details →
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {/* SHOW MORE BUTTON */}
-                {msg.content.canLoadMore && (
-                  <button
-                    onClick={() => loadMoreRecommendations(i)}
-                    disabled={loadingMore}
-                    style={{
-                      width: '100%',
-                      background: loadingMore ? '#e0e0e0' : 'white',
-                      color: loadingMore ? '#9e9e9e' : '#2e7d32',
-                      border: '2px solid #4caf50',
-                      padding: '14px',
-                      borderRadius: '12px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: loadingMore ? 'not-allowed' : 'pointer',
-                      fontFamily: "'DM Sans', sans-serif",
-                      marginTop: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    {loadingMore ? (
-                      <>⏳ Loading more...</>
-                    ) : (
-                      <>🔍 Show More Recommendations</>
-                    )}
-                  </button>
-                )}
-
-                {msg.content.tips?.length > 0 && (
-                  <div style={{
-                    background: '#fff8e1',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    marginTop: '12px'
-                  }}>
-                    <strong style={{ color: '#f57f17', fontSize: '14px' }}>💡 Tips</strong>
-                    {msg.content.tips.map((tip, j) => (
-                      <p key={j} style={{
-                        margin: '8px 0 0',
-                        color: '#6d4c41',
-                        fontSize: '13px'
-                      }}>
-                        • {tip}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-
-        {/* Loading Indicator */}
-        {isLoading && (
+          
+          {/* Toggle */}
           <div style={{
             background: 'white',
-            borderRadius: '16px',
-            padding: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
+            borderRadius: '25px',
+            padding: '4px',
+            display: 'flex'
           }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              background: '#4caf50',
-              animation: 'pulse 1s infinite'
-            }} />
-            <span style={{ color: '#689f38' }}>
-              🔍 Finding real places in {city}...
-            </span>
+            <button
+              onClick={() => setTripDurationType('dates')}
+              style={{
+                background: tripDurationType === 'dates' ? '#1a1a1a' : 'transparent',
+                color: tripDurationType === 'dates' ? 'white' : '#666',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '20px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif"
+              }}
+            >
+              Dates
+            </button>
+            <button
+              onClick={() => setTripDurationType('flexible')}
+              style={{
+                background: tripDurationType === 'flexible' ? '#1a1a1a' : 'transparent',
+                color: tripDurationType === 'flexible' ? 'white' : '#666',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '20px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif"
+              }}
+            >
+              Flexible
+            </button>
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Search Input */}
-      <div style={{
-        background: 'white',
-        padding: '16px 20px',
-        borderTop: '1px solid #e8f5e9'
-      }}>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <input
-            type="text"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleGetRecommendations()}
-            placeholder="Search for restaurants, cafes, museums..."
-            style={{
+        {/* Content */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '20px'
+        }}>
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: '700',
+            color: '#004d40',
+            margin: '0 0 40px 0'
+          }}>
+            How many days?
+          </h1>
+
+          {tripDurationType === 'flexible' ? (
+            /* Day Picker */
+            <div style={{
               flex: 1,
-              padding: '14px 16px',
-              borderRadius: '14px',
-              border: '2px solid #c8e6c9',
-              fontSize: '15px',
-              outline: 'none',
-              fontFamily: "'DM Sans', sans-serif"
-            }}
-          />
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '16px'
+            }}>
+              {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+                <button
+                  key={day}
+                  onClick={() => setNewTripDays(day)}
+                  style={{
+                    background: newTripDays === day ? 'rgba(255,255,255,0.9)' : 'transparent',
+                    border: 'none',
+                    padding: newTripDays === day ? '16px 60px' : '8px 40px',
+                    borderRadius: '16px',
+                    fontSize: newTripDays === day ? '48px' : '32px',
+                    fontWeight: '700',
+                    color: newTripDays === day ? '#004d40' : 'rgba(0,77,64,0.3)',
+                    cursor: 'pointer',
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {day}
+                </button>
+              ))}
+            </div>
+          ) : (
+            /* Calendar (Placeholder) */
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <p style={{ color: '#00695c', fontSize: '16px' }}>
+                📅 Calendar coming soon...
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Confirm Button */}
+        <div style={{ padding: '20px' }}>
           <button
-            onClick={handleGetRecommendations}
-            disabled={!query.trim() || isLoading}
+            onClick={() => {
+              // For now, just show a loading state and go back home
+              // AI trip generation will be added later
+              const newTrip = {
+                id: Date.now(),
+                city: newTripCity,
+                title: `${newTripDays}-Day ${newTripCity} Trip`,
+                days: newTripDays,
+                spots: newTripDays * 6,
+                preferences: newTripPreferences,
+                image: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400&h=300&fit=crop'
+              };
+              setMyTrips(prev => [...prev, newTrip]);
+              setNewTripCity('');
+              setNewTripPreferences([]);
+              setNewTripDays(3);
+              setScreen('home');
+            }}
             style={{
-              background: query.trim() && !isLoading
-                ? 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)'
-                : '#e0e0e0',
+              width: '100%',
+              background: '#1a1a1a',
               color: 'white',
               border: 'none',
-              padding: '14px 20px',
-              borderRadius: '14px',
-              fontSize: '18px',
-              cursor: query.trim() && !isLoading ? 'pointer' : 'not-allowed'
+              padding: '18px',
+              borderRadius: '30px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif"
             }}
           >
-            🔍
+            Confirm
           </button>
         </div>
       </div>
+    );
+  }
 
-      {/* Pulse Animation */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-      `}</style>
+  // ==================== DEFAULT - LOADING ====================
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: '#f5faf6',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🧭</div>
+        <p style={{ color: '#689f38' }}>Loading...</p>
+      </div>
     </div>
   );
 }
