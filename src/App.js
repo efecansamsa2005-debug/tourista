@@ -458,15 +458,6 @@ const TripMap = ({ guide, selectedDay, onSpotClick, expanded }) => {
   const mapRef = React.useRef(null);
   const mapInstanceRef = React.useRef(null);
 
-  // Handle map resize when expanded changes
-  useEffect(() => {
-    if (mapInstanceRef.current) {
-      setTimeout(() => {
-        mapInstanceRef.current.invalidateSize();
-      }, 350);
-    }
-  }, [expanded]);
-
   useEffect(() => {
     // Load Leaflet CSS
     if (!document.getElementById('leaflet-css')) {
@@ -585,7 +576,7 @@ const TripMap = ({ guide, selectedDay, onSpotClick, expanded }) => {
         mapInstanceRef.current = null;
       }
     };
-  }, [guide, selectedDay, onSpotClick]);
+  }, [guide, selectedDay, onSpotClick, expanded]);
 
   return (
     <div 
