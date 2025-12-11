@@ -713,6 +713,7 @@ function App() {
   const [showAllDaysOnMap, setShowAllDaysOnMap] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState(null);
+  const [tripToDelete, setTripToDelete] = useState(null);
 
   // Auth effect
   useEffect(() => {
@@ -1269,7 +1270,7 @@ function App() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setMyTrips(prev => prev.filter((_, i) => i !== index));
+                      setTripToDelete(index);
                     }}
                     style={{
                       background: '#ffebee',
@@ -1291,6 +1292,80 @@ function App() {
             </div>
           )}
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {tripToDelete !== null && (
+          <div 
+            onClick={() => setTripToDelete(null)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000
+            }}
+          >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'white',
+                borderRadius: '20px',
+                padding: '24px',
+                margin: '20px',
+                maxWidth: '320px',
+                textAlign: 'center'
+              }}
+            >
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗑️</div>
+              <h3 style={{ margin: '0 0 8px', color: '#1b5e20', fontSize: '18px' }}>
+                Delete Trip?
+              </h3>
+              <p style={{ margin: '0 0 20px', color: '#666', fontSize: '14px' }}>
+                Are you sure you want to delete "{myTrips[tripToDelete]?.title}"? This action cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <button
+                  onClick={() => setTripToDelete(null)}
+                  style={{
+                    background: '#f5f5f5',
+                    border: 'none',
+                    borderRadius: '12px',
+                    padding: '12px 24px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    color: '#666'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setMyTrips(prev => prev.filter((_, i) => i !== tripToDelete));
+                    setTripToDelete(null);
+                  }}
+                  style={{
+                    background: '#e53935',
+                    border: 'none',
+                    borderRadius: '12px',
+                    padding: '12px 24px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    color: 'white'
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
