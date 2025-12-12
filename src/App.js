@@ -1678,24 +1678,27 @@ function App() {
             onClick={() => { setMapExpanded(!mapExpanded); setTimeout(() => window.dispatchEvent(new Event('resize')), 350); }} 
             style={{ 
               position: 'absolute', 
-              top: '10px', 
-              right: '10px', 
+              bottom: '12px', 
+              left: '50%',
+              transform: 'translateX(-50%)',
               background: 'white', 
               border: 'none', 
-              borderRadius: '8px', 
-              padding: '8px 12px', 
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)', 
+              borderRadius: '20px', 
+              padding: '10px 32px', 
+              boxShadow: '0 2px 12px rgba(0,0,0,0.2)', 
               cursor: 'pointer', 
-              fontSize: '12px', 
+              fontSize: '13px', 
               fontWeight: '600', 
-              color: '#333',
+              color: '#1b5e20',
               zIndex: 1000,
               display: 'flex',
               alignItems: 'center',
-              gap: '4px'
+              justifyContent: 'center',
+              gap: '6px',
+              minWidth: '140px'
             }}
           >
-            {mapExpanded ? '🗕 Shrink' : '🗖 Expand'}
+            {mapExpanded ? '↓ Shrink Map' : '↑ Expand Map'}
           </button>
         </div>
 
@@ -1861,24 +1864,27 @@ function App() {
             onClick={() => { setMapExpanded(!mapExpanded); setTimeout(() => window.dispatchEvent(new Event('resize')), 350); }} 
             style={{ 
               position: 'absolute', 
-              top: '10px', 
-              right: '10px', 
+              bottom: '12px', 
+              left: '50%',
+              transform: 'translateX(-50%)',
               background: 'white', 
               border: 'none', 
-              borderRadius: '8px', 
-              padding: '8px 12px', 
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)', 
+              borderRadius: '20px', 
+              padding: '10px 32px', 
+              boxShadow: '0 2px 12px rgba(0,0,0,0.2)', 
               cursor: 'pointer', 
-              fontSize: '12px', 
+              fontSize: '13px', 
               fontWeight: '600', 
-              color: '#333',
+              color: '#1b5e20',
               zIndex: 1000,
               display: 'flex',
               alignItems: 'center',
-              gap: '4px'
+              justifyContent: 'center',
+              gap: '6px',
+              minWidth: '140px'
             }}
           >
-            {mapExpanded ? '🗕 Shrink' : '🗖 Expand'}
+            {mapExpanded ? '↓ Shrink Map' : '↑ Expand Map'}
           </button>
         </div>
 
