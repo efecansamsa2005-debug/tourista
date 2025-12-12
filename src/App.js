@@ -712,6 +712,9 @@ function App() {
   // Premium states
   const [isPremiumUser, setIsPremiumUser] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  
+  // Logout confirmation
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Country code to flag emoji
   const getCountryFlag = useCallback((countryCode) => {
@@ -720,19 +723,51 @@ function App() {
     return String.fromCodePoint(...codePoints);
   }, []);
 
-  // Auth effect
+  // Save state to sessionStorage when it changes
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setCurrentUser(session.user);
-        setScreen('home');
-      }
-    });
+    if (currentUser && screen !== 'auth') {
+      sessionStorage.setItem('tourista_screen', screen);
+      sessionStorage.setItem('tourista_user', JSON.stringify(currentUser));
+    }
+  }, [screen, currentUser]);
 
+  // Save selected guide and trip data
+  useEffect(() => {
+    if (selectedGuide) {
+      sessionStorage.setItem('tourista_selectedGuide', JSON.stringify(selectedGuide));
+    }
+    if (generatedTrip) {
+      sessionStorage.setItem('tourista_generatedTrip', JSON.stringify(generatedTrip));
+    }
+  }, [selectedGuide, generatedTrip]);
+
+  // Restore state on mount (tab switch protection)
+  useEffect(() => {
+    const savedScreen = sessionStorage.getItem('tourista_screen');
+    const savedUser = sessionStorage.getItem('tourista_user');
+    const savedGuide = sessionStorage.getItem('tourista_selectedGuide');
+    const savedTrip = sessionStorage.getItem('tourista_generatedTrip');
+    
+    if (savedUser && savedScreen) {
+      try {
+        setCurrentUser(JSON.parse(savedUser));
+        setScreen(savedScreen);
+        if (savedGuide) setSelectedGuide(JSON.parse(savedGuide));
+        if (savedTrip) setGeneratedTrip(JSON.parse(savedTrip));
+      } catch (e) {
+        console.error('Error restoring state:', e);
+      }
+    }
+  }, []);
+
+  // Auth effect - check session but don't auto-redirect
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setCurrentUser(session.user);
-        setScreen('home');
+      if (!session) {
+        // User logged out - clear everything
+        setCurrentUser(null);
+        setScreen('auth');
+        sessionStorage.clear();
       }
     });
 
@@ -861,6 +896,9 @@ function App() {
     setEmail('');
     setPassword('');
     setMyTrips([]);
+    setSelectedGuide(null);
+    setGeneratedTrip(null);
+    sessionStorage.clear();
     setScreen('auth');
   };
 
@@ -1240,7 +1278,7 @@ function App() {
               <span style={{ fontSize: '28px' }}>🧭</span>
               <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', fontWeight: '700', color: 'white', margin: 0 }}>TOURISTA</h1>
             </div>
-            <div onClick={handleLogout} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '600', cursor: 'pointer' }}>
+            <div onClick={() => setShowLogoutConfirm(true)} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '600', cursor: 'pointer' }}>
               {currentUser?.email?.charAt(0).toUpperCase()}
             </div>
           </div>
@@ -1303,6 +1341,21 @@ function App() {
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button onClick={() => setTripToDelete(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '2px solid #e0e0e0', background: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#666' }}>Cancel</button>
                 <button onClick={() => { setMyTrips(prev => prev.filter(t => t.id !== tripToDelete.id)); setTripToDelete(null); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef5350', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Logout Confirmation Modal */}
+        {showLogoutConfirm && (
+          <div onClick={() => setShowLogoutConfirm(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px', padding: '24px', margin: '20px', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
+              <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#f1f8e9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '28px' }}>👋</div>
+              <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: '#1b5e20' }}>Log Out?</h3>
+              <p style={{ margin: '0 0 20px', fontSize: '14px', color: '#666' }}>Are you sure you want to log out?</p>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => setShowLogoutConfirm(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '2px solid #e0e0e0', background: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#666', fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
+                <button onClick={() => { setShowLogoutConfirm(false); handleLogout(); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef5350', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Log Out</button>
               </div>
             </div>
           </div>
@@ -1606,7 +1659,7 @@ function App() {
         </div>
 
         {/* Map */}
-        <div onClick={() => { setMapExpanded(!mapExpanded); setTimeout(() => window.dispatchEvent(new Event('resize')), 350); }} style={{ height: mapExpanded ? '50vh' : '200px', margin: '14px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', transition: 'height 0.3s ease', cursor: 'pointer' }}>
+        <div style={{ height: mapExpanded ? '50vh' : '200px', margin: '14px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', transition: 'height 0.3s ease', position: 'relative' }}>
           <TripMap 
             guide={generatedTrip} 
             selectedDay={showAllDaysOnMap ? null : selectedDay} 
@@ -1620,6 +1673,30 @@ function App() {
             }} 
             expanded={mapExpanded} 
           />
+          {/* Map expand/shrink button */}
+          <button 
+            onClick={() => { setMapExpanded(!mapExpanded); setTimeout(() => window.dispatchEvent(new Event('resize')), 350); }} 
+            style={{ 
+              position: 'absolute', 
+              top: '10px', 
+              right: '10px', 
+              background: 'white', 
+              border: 'none', 
+              borderRadius: '8px', 
+              padding: '8px 12px', 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)', 
+              cursor: 'pointer', 
+              fontSize: '12px', 
+              fontWeight: '600', 
+              color: '#333',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            {mapExpanded ? '🗕 Shrink' : '🗖 Expand'}
+          </button>
         </div>
 
         {/* Trip Info */}
@@ -1777,13 +1854,33 @@ function App() {
         </div>
 
         {/* Map */}
-        <div onClick={() => { setMapExpanded(!mapExpanded); setTimeout(() => window.dispatchEvent(new Event('resize')), 350); }} style={{ height: mapExpanded ? '50vh' : '250px', margin: '16px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', transition: 'height 0.3s ease', cursor: 'pointer' }}>
+        <div style={{ height: mapExpanded ? '50vh' : '250px', margin: '16px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', transition: 'height 0.3s ease', position: 'relative' }}>
           <TripMap guide={selectedGuide} selectedDay={showAllDaysOnMap ? null : selectedDay} onSpotClick={(day) => { setSelectedDay(day); setShowAllDaysOnMap(false); }} expanded={mapExpanded} />
+          {/* Map expand/shrink button */}
+          <button 
+            onClick={() => { setMapExpanded(!mapExpanded); setTimeout(() => window.dispatchEvent(new Event('resize')), 350); }} 
+            style={{ 
+              position: 'absolute', 
+              top: '10px', 
+              right: '10px', 
+              background: 'white', 
+              border: 'none', 
+              borderRadius: '8px', 
+              padding: '8px 12px', 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)', 
+              cursor: 'pointer', 
+              fontSize: '12px', 
+              fontWeight: '600', 
+              color: '#333',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            {mapExpanded ? '🗕 Shrink' : '🗖 Expand'}
+          </button>
         </div>
-
-        <p style={{ textAlign: 'center', fontSize: '11px', color: '#999', margin: '-8px 0 8px' }}>
-          {mapExpanded ? '📍 Click map to shrink' : '📍 Click map to expand'}
-        </p>
 
         {/* Day Legend */}
         <div style={{ padding: '0 16px 8px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
