@@ -893,12 +893,83 @@ function App() {
     setGeneratedTrip(null);
   };
 
-  // AI Trip Generation with Claude API
+  // Google Places API key
+  const GOOGLE_PLACES_API_KEY = 'AIzaSyBy4tEpe49fgTAUd8P_A2PQ4swlvCDMlFw';
+
+  // Search places using Google Places API (New)
+  const searchPlacesInCity = async (cityData, preferences) => {
+    const typeMapping = {
+      'architecture': 'historical_landmark',
+      'nightlife': 'night_club|bar',
+      'art': 'art_gallery|museum',
+      'cuisine': 'restaurant',
+      'adventure': 'tourist_attraction|park',
+      'instagram': 'tourist_attraction|point_of_interest'
+    };
+    
+    // Determine search types based on preferences
+    let searchTypes = ['tourist_attraction', 'museum', 'historical_landmark', 'restaurant'];
+    if (preferences && preferences.length > 0) {
+      searchTypes = preferences.map(p => typeMapping[p] || 'tourist_attraction');
+    }
+    
+    const allPlaces = [];
+    
+    // Search for places using Text Search
+    for (const searchType of searchTypes.slice(0, 3)) {
+      try {
+        const query = `top ${searchType.replace('_', ' ')} in ${cityData.city}`;
+        const response = await fetch(
+          `https://places.googleapis.com/v1/places:searchText`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+              'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.photos,places.primaryType,places.editorialSummary'
+            },
+            body: JSON.stringify({
+              textQuery: query,
+              maxResultCount: 10,
+              locationBias: {
+                circle: {
+                  center: { latitude: cityData.lat, longitude: cityData.lng },
+                  radius: 15000.0
+                }
+              }
+            })
+          }
+        );
+        
+        const data = await response.json();
+        if (data.places) {
+          allPlaces.push(...data.places);
+        }
+      } catch (err) {
+        console.error('Places search error:', err);
+      }
+    }
+    
+    // Remove duplicates based on name
+    const uniquePlaces = allPlaces.filter((place, index, self) =>
+      index === self.findIndex(p => p.displayName?.text === place.displayName?.text)
+    );
+    
+    return uniquePlaces;
+  };
+
+  // Get photo URL from Google Places
+  const getPlacePhotoUrl = (photoName) => {
+    if (!photoName) return 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300';
+    return `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=300&maxWidthPx=300&key=${GOOGLE_PLACES_API_KEY}`;
+  };
+
+  // AI Trip Generation with Google Places API
   const generateAiTrip = async () => {
     setAiGenerating(true);
     setScreen('aiGenerating');
 
-    const messages = ['Finding the best spots...', 'Checking local favorites...', 'Optimizing your route...', 'Adding hidden gems...', 'Almost ready...'];
+    const messages = ['Searching real places...', 'Finding top attractions...', 'Getting photos & ratings...', 'Creating your route...', 'Almost ready...'];
     let messageIndex = 0;
     setAiLoadingMessage(messages[0]);
 
@@ -909,80 +980,60 @@ function App() {
 
     try {
       const cityData = newTripCityData || { city: newTripCity, country: 'Unknown', flag: '📍', lat: 48.8566, lng: 2.3522 };
-      const prefsText = newTripPreferences.length > 0 
-        ? newTripPreferences.map(p => TRIP_CATEGORIES.find(c => c.id === p)?.label).join(', ')
-        : 'general sightseeing';
-
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 4096,
-          messages: [{
-            role: "user",
-            content: `Create a ${newTripDays}-day travel itinerary for ${cityData.city}, ${cityData.country}.
-Focus on: ${prefsText}
-
-Return ONLY valid JSON (no markdown, no explanation):
-{
-  "itinerary": [
-    {
-      "day": 1,
-      "title": "Day theme title",
-      "spots": [
-        {
-          "name": "Real place name",
-          "type": "Museum/Restaurant/Landmark/Park",
-          "duration": "2 hours",
-          "walkTime": "10 min",
-          "lat": 48.8584,
-          "lng": 2.2945
-        }
-      ]
-    }
-  ]
-}
-
-Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
-          }]
-        })
-      });
-
-      const data = await response.json();
       
-      if (data.content && data.content[0] && data.content[0].text) {
-        const jsonText = data.content[0].text.replace(/```json\n?|\n?```/g, '').trim();
-        const tripData = JSON.parse(jsonText);
-
-        if (tripData && tripData.itinerary) {
-          const newTrip = {
-            id: 'ai-' + Date.now(),
-            city: cityData.city,
-            country: cityData.country,
-            flag: cityData.flag,
-            title: `${newTripDays}-Day ${cityData.city} Trip`,
-            days: newTripDays,
-            center: [cityData.lat, cityData.lng],
-            image: `https://source.unsplash.com/400x300/?${encodeURIComponent(cityData.city)},travel`,
-            itinerary: tripData.itinerary.map(day => ({
-              ...day,
-              spots: day.spots.map(spot => ({
-                ...spot,
-                image: `https://source.unsplash.com/100x100/?${encodeURIComponent(spot.name)}`
-              }))
-            })),
-            isAiGenerated: true
-          };
-          
-          clearInterval(messageInterval);
-          setGeneratedTrip(newTrip);
-          setAiGenerating(false);
-          setScreen('tripResult');
-          return;
-        }
+      // Fetch real places from Google Places API
+      const places = await searchPlacesInCity(cityData, newTripPreferences);
+      
+      if (places.length === 0) {
+        throw new Error('No places found');
       }
-      throw new Error('Invalid response');
+      
+      // Convert Google Places data to our format
+      const spots = places.slice(0, newTripDays * 5).map(place => ({
+        name: place.displayName?.text || 'Unknown Place',
+        type: place.primaryType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Attraction',
+        duration: place.primaryType?.includes('museum') ? '2 hours' : 
+                  place.primaryType?.includes('restaurant') ? '1.5 hours' : '1 hour',
+        lat: place.location?.latitude || cityData.lat,
+        lng: place.location?.longitude || cityData.lng,
+        image: place.photos?.[0]?.name ? getPlacePhotoUrl(place.photos[0].name) : 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
+        rating: place.rating || 4.5,
+        reviews: place.userRatingCount || 1000,
+        description: place.editorialSummary?.text || `Popular ${place.primaryType?.replace(/_/g, ' ') || 'attraction'} in ${cityData.city}`
+      }));
+      
+      // Distribute spots across days
+      const spotsPerDay = Math.ceil(spots.length / newTripDays);
+      const itinerary = Array.from({ length: newTripDays }, (_, dayIndex) => {
+        const daySpots = spots.slice(dayIndex * spotsPerDay, (dayIndex + 1) * spotsPerDay);
+        return {
+          day: dayIndex + 1,
+          title: ['City Highlights', 'Culture & History', 'Local Favorites', 'Hidden Gems', 'Final Discoveries'][dayIndex % 5],
+          spots: daySpots.map((spot, spotIndex) => ({
+            ...spot,
+            walkTime: spotIndex === 0 ? null : `${8 + (spotIndex * 4)} min walk`
+          }))
+        };
+      });
+      
+      const newTrip = {
+        id: 'ai-' + Date.now(),
+        city: cityData.city,
+        country: cityData.country,
+        flag: cityData.flag,
+        title: `${newTripDays}-Day ${cityData.city} Trip`,
+        days: newTripDays,
+        center: [cityData.lat, cityData.lng],
+        image: spots[0]?.image || 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
+        itinerary: itinerary,
+        isAiGenerated: true
+      };
+      
+      clearInterval(messageInterval);
+      setGeneratedTrip(newTrip);
+      setAiGenerating(false);
+      setScreen('tripResult');
+      
     } catch (error) {
       console.error('AI generation error:', error);
       clearInterval(messageInterval);
