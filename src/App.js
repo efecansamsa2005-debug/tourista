@@ -1741,20 +1741,118 @@ function App() {
   // MANUAL PLANNER SCREEN
   // ============================================
   if (screen === 'manualPlanner' && newTripCityData) {
+    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [selectedPlaceInfo, setSelectedPlaceInfo] = useState(null);
+    
+    const categories = [
+      { id: 'all', label: 'All', icon: '🌟', query: 'tourist attractions' },
+      { id: 'restaurants', label: 'Restaurants', icon: '🍽️', query: 'restaurants' },
+      { id: 'museums', label: 'Museums', icon: '🏛️', query: 'museums' },
+      { id: 'parks', label: 'Parks', icon: '🌳', query: 'parks gardens' },
+      { id: 'malls', label: 'Shopping', icon: '🛍️', query: 'shopping malls' },
+      { id: 'cafes', label: 'Cafes', icon: '☕', query: 'cafes coffee shops' },
+      { id: 'nightlife', label: 'Nightlife', icon: '🍸', query: 'bars nightclubs' },
+      { id: 'landmarks', label: 'Landmarks', icon: '🏰', query: 'historical landmarks monuments' },
+    ];
+
+    const searchByCategory = async (category) => {
+      setSelectedCategory(category.id);
+      setPlaceSearchQuery('');
+      setPlaceSearchLoading(true);
+      
+      try {
+        const response = await fetch(
+          `https://places.googleapis.com/v1/places:searchText`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+              'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.photos,places.primaryType,places.editorialSummary,places.currentOpeningHours,places.priceLevel'
+            },
+            body: JSON.stringify({
+              textQuery: `best ${category.query} in ${newTripCityData.city}`,
+              maxResultCount: 15,
+              locationBias: {
+                circle: {
+                  center: { latitude: newTripCityData.lat, longitude: newTripCityData.lng },
+                  radius: 20000.0
+                }
+              }
+            })
+          }
+        );
+        
+        const data = await response.json();
+        if (data.places) {
+          setPlaceSearchResults(data.places.map(place => ({
+            id: place.displayName?.text + '-' + Math.random(),
+            name: place.displayName?.text || 'Unknown Place',
+            type: place.primaryType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Place',
+            address: place.formattedAddress || '',
+            lat: place.location?.latitude || newTripCityData.lat,
+            lng: place.location?.longitude || newTripCityData.lng,
+            rating: place.rating || 0,
+            reviews: place.userRatingCount || 0,
+            image: place.photos?.[0]?.name ? getPlacePhotoUrl(place.photos[0].name) : 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
+            description: place.editorialSummary?.text || `Popular ${category.label.toLowerCase()} in ${newTripCityData.city}`,
+            isOpen: place.currentOpeningHours?.openNow,
+            priceLevel: place.priceLevel
+          })));
+        } else {
+          setPlaceSearchResults([]);
+        }
+      } catch (error) {
+        console.error('Category search error:', error);
+        setPlaceSearchResults([]);
+      }
+      setPlaceSearchLoading(false);
+    };
+
     return (
       <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif", paddingBottom: '100px' }}>
         {/* Header */}
         <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '16px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <button onClick={() => { setScreen('newTripConfirm'); setManualSpots([]); setPlaceSearchQuery(''); setPlaceSearchResults([]); }} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '10px', padding: '8px 12px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
             <h1 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: 0 }}>{newTripCityData.flag} {newTripCityData.city}</h1>
             <div style={{ width: '40px' }} />
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', margin: 0, textAlign: 'center' }}>Add places to your trip</p>
+          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', margin: 0, textAlign: 'center' }}>Build your perfect itinerary</p>
+        </div>
+
+        {/* Category Filters */}
+        <div style={{ background: 'white', padding: '12px 0', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '0 16px', scrollbarWidth: 'none' }}>
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => searchByCategory(cat)}
+                style={{
+                  background: selectedCategory === cat.id ? '#1b5e20' : '#f5f5f5',
+                  color: selectedCategory === cat.id ? 'white' : '#333',
+                  border: 'none',
+                  borderRadius: '20px',
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontFamily: "'DM Sans', sans-serif",
+                  flexShrink: 0
+                }}
+              >
+                <span>{cat.icon}</span> {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Search Bar */}
-        <div style={{ padding: '16px', background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+        <div style={{ padding: '12px 16px', background: 'white', borderTop: '1px solid #eee' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f5f5f5', borderRadius: '14px', padding: '4px 14px' }}>
             <span style={{ fontSize: '18px', color: '#999' }}>🔍</span>
             <input 
@@ -1762,6 +1860,7 @@ function App() {
               value={placeSearchQuery} 
               onChange={(e) => {
                 setPlaceSearchQuery(e.target.value);
+                setSelectedCategory('all');
                 if (e.target.value.length >= 2) {
                   searchPlacesForManual(e.target.value);
                 } else {
@@ -1769,7 +1868,7 @@ function App() {
                 }
               }} 
               placeholder={`Search places in ${newTripCityData.city}...`}
-              style={{ flex: 1, padding: '12px 0', border: 'none', background: 'transparent', fontSize: '15px', outline: 'none', fontFamily: "'DM Sans', sans-serif" }} 
+              style={{ flex: 1, padding: '10px 0', border: 'none', background: 'transparent', fontSize: '14px', outline: 'none', fontFamily: "'DM Sans', sans-serif" }} 
             />
             {placeSearchQuery && (
               <span onClick={() => { setPlaceSearchQuery(''); setPlaceSearchResults([]); }} style={{ fontSize: '16px', cursor: 'pointer', color: '#999' }}>✕</span>
@@ -1777,93 +1876,224 @@ function App() {
           </div>
         </div>
 
-        {/* Search Results */}
-        {placeSearchLoading && (
-          <div style={{ padding: '20px', textAlign: 'center' }}>
-            <p style={{ color: '#689f38', fontSize: '14px' }}>Searching places...</p>
-          </div>
-        )}
-
-        {placeSearchResults.length > 0 && (
-          <div style={{ padding: '8px 16px' }}>
-            <p style={{ fontSize: '12px', color: '#999', margin: '0 0 8px' }}>Search Results</p>
-            {placeSearchResults.map((place, index) => (
-              <div 
-                key={index} 
-                onClick={() => addSpotToTrip(place)}
-                style={{ 
-                  background: 'white', 
-                  borderRadius: '12px', 
-                  padding: '12px', 
-                  marginBottom: '8px', 
-                  display: 'flex', 
-                  gap: '12px', 
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
-                }}
-              >
-                <div style={{ width: '50px', height: '50px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0, background: '#e8f5e9' }}>
-                  <img src={place.image} alt={place.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.name}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38' }}>{place.type}</p>
-                  {place.rating > 0 && <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#999' }}>⭐ {place.rating.toFixed(1)} ({place.reviews})</p>}
-                </div>
-                <div style={{ background: '#e8f5e9', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2e7d32', fontSize: '18px', fontWeight: '600' }}>+</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* My Trip Spots */}
-        <div style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h3 style={{ margin: 0, fontSize: '16px', color: '#1b5e20' }}>📍 My Itinerary ({manualSpots.length})</h3>
-          </div>
-
-          {manualSpots.length === 0 ? (
-            <div style={{ background: 'white', borderRadius: '16px', padding: '32px 20px', textAlign: 'center', border: '2px dashed #c8e6c9' }}>
-              <div style={{ fontSize: '40px', marginBottom: '12px' }}>🗺️</div>
-              <p style={{ color: '#689f38', fontSize: '14px', margin: 0 }}>Search and add places above</p>
+        {/* Content Area */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+          {/* Loading */}
+          {placeSearchLoading && (
+            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔍</div>
+              <p style={{ color: '#689f38', fontSize: '14px', margin: 0 }}>Finding places...</p>
             </div>
-          ) : (
-            <div>
-              {manualSpots.map((spot, index) => (
-                <div key={spot.id} style={{ marginBottom: '8px' }}>
-                  <div style={{ background: 'white', borderRadius: '12px', padding: '12px', display: 'flex', gap: '10px', alignItems: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <button onClick={() => moveSpot(index, -1)} disabled={index === 0} style={{ background: index === 0 ? '#eee' : '#e8f5e9', border: 'none', borderRadius: '6px', width: '24px', height: '20px', cursor: index === 0 ? 'default' : 'pointer', fontSize: '10px', color: '#2e7d32' }}>▲</button>
-                      <button onClick={() => moveSpot(index, 1)} disabled={index === manualSpots.length - 1} style={{ background: index === manualSpots.length - 1 ? '#eee' : '#e8f5e9', border: 'none', borderRadius: '6px', width: '24px', height: '20px', cursor: index === manualSpots.length - 1 ? 'default' : 'pointer', fontSize: '10px', color: '#2e7d32' }}>▼</button>
+          )}
+
+          {/* Results Grid */}
+          {!placeSearchLoading && placeSearchResults.length > 0 && (
+            <div style={{ padding: '16px' }}>
+              <p style={{ fontSize: '12px', color: '#999', margin: '0 0 12px' }}>{placeSearchResults.length} places found</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                {placeSearchResults.map((place, index) => {
+                  const isAdded = manualSpots.find(s => s.name === place.name);
+                  return (
+                    <div 
+                      key={index}
+                      onClick={() => setSelectedPlaceInfo(place)}
+                      style={{ 
+                        background: 'white', 
+                        borderRadius: '16px', 
+                        overflow: 'hidden',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        cursor: 'pointer',
+                        border: selectedPlaceInfo?.name === place.name ? '2px solid #2e7d32' : '2px solid transparent',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ height: '100px', position: 'relative' }}>
+                        <img src={place.image} alt={place.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        {place.isOpen !== undefined && (
+                          <div style={{ 
+                            position: 'absolute', 
+                            top: '8px', 
+                            left: '8px', 
+                            background: place.isOpen ? '#4caf50' : '#ef5350', 
+                            color: 'white', 
+                            padding: '2px 8px', 
+                            borderRadius: '10px', 
+                            fontSize: '10px', 
+                            fontWeight: '600' 
+                          }}>
+                            {place.isOpen ? 'Open' : 'Closed'}
+                          </div>
+                        )}
+                        {isAdded && (
+                          <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#2e7d32', color: 'white', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>✓</div>
+                        )}
+                      </div>
+                      <div style={{ padding: '10px' }}>
+                        <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.name}</p>
+                        <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#999' }}>{place.type}</p>
+                        {place.rating > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                            <span style={{ color: '#ffc107', fontSize: '12px' }}>★</span>
+                            <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>{place.rating.toFixed(1)}</span>
+                            <span style={{ fontSize: '10px', color: '#999' }}>({place.reviews})</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#2e7d32', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
-                    <div style={{ width: '45px', height: '45px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
-                      <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</p>
-                      <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38' }}>{spot.type}</p>
-                    </div>
-                    <button onClick={() => removeSpotFromTrip(spot.id)} style={{ background: '#ffebee', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', fontSize: '14px', color: '#ef5350' }}>✕</button>
-                  </div>
-                  {index < manualSpots.length - 1 && (
-                    <div style={{ display: 'flex', alignItems: 'center', padding: '6px 0 6px 60px', gap: '6px' }}>
-                      <div style={{ width: '2px', height: '16px', background: '#c8e6c9' }} />
-                      <span style={{ fontSize: '10px', color: '#999' }}>🚶 ~10 min</span>
-                    </div>
-                  )}
-                </div>
-              ))}
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!placeSearchLoading && placeSearchResults.length === 0 && (
+            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗺️</div>
+              <p style={{ color: '#1b5e20', fontSize: '16px', fontWeight: '600', margin: '0 0 8px' }}>Explore {newTripCityData.city}</p>
+              <p style={{ color: '#999', fontSize: '13px', margin: 0 }}>Select a category above or search for places</p>
             </div>
           )}
         </div>
 
-        {/* Save Button */}
+        {/* Place Info Panel (Bottom Sheet) */}
+        {selectedPlaceInfo && (
+          <div 
+            onClick={() => setSelectedPlaceInfo(null)}
+            style={{ 
+              position: 'fixed', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0, 
+              background: 'rgba(0,0,0,0.5)', 
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'flex-end'
+            }}
+          >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              style={{ 
+                background: 'white', 
+                borderRadius: '24px 24px 0 0', 
+                width: '100%',
+                maxHeight: '70vh',
+                overflow: 'auto'
+              }}
+            >
+              {/* Image Header */}
+              <div style={{ height: '180px', position: 'relative' }}>
+                <img src={selectedPlaceInfo.image} alt={selectedPlaceInfo.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <button 
+                  onClick={() => setSelectedPlaceInfo(null)}
+                  style={{ position: 'absolute', top: '12px', right: '12px', background: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
+                >✕</button>
+                {selectedPlaceInfo.isOpen !== undefined && (
+                  <div style={{ 
+                    position: 'absolute', 
+                    bottom: '12px', 
+                    left: '12px', 
+                    background: selectedPlaceInfo.isOpen ? '#4caf50' : '#ef5350', 
+                    color: 'white', 
+                    padding: '6px 14px', 
+                    borderRadius: '20px', 
+                    fontSize: '12px', 
+                    fontWeight: '600' 
+                  }}>
+                    {selectedPlaceInfo.isOpen ? '🟢 Open Now' : '🔴 Closed'}
+                  </div>
+                )}
+              </div>
+
+              {/* Info Content */}
+              <div style={{ padding: '20px' }}>
+                <h2 style={{ margin: '0 0 8px', fontSize: '22px', fontWeight: '700', color: '#1b5e20' }}>{selectedPlaceInfo.name}</h2>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <span style={{ background: '#f1f8e9', color: '#2e7d32', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '500' }}>{selectedPlaceInfo.type}</span>
+                  {selectedPlaceInfo.priceLevel && (
+                    <span style={{ color: '#666', fontSize: '13px' }}>{'💵'.repeat(selectedPlaceInfo.priceLevel)}</span>
+                  )}
+                </div>
+
+                {selectedPlaceInfo.rating > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <span style={{ color: '#ffc107', fontSize: '18px' }}>★</span>
+                    <span style={{ fontSize: '16px', fontWeight: '700', color: '#333' }}>{selectedPlaceInfo.rating.toFixed(1)}</span>
+                    <span style={{ fontSize: '14px', color: '#999' }}>({selectedPlaceInfo.reviews.toLocaleString()} reviews)</span>
+                  </div>
+                )}
+
+                <p style={{ fontSize: '14px', color: '#666', lineHeight: '1.6', margin: '0 0 16px' }}>
+                  {selectedPlaceInfo.description}
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: '#f5f5f5', borderRadius: '12px', marginBottom: '20px' }}>
+                  <span style={{ fontSize: '16px' }}>📍</span>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#666', flex: 1 }}>{selectedPlaceInfo.address}</p>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button 
+                    onClick={() => openGoogleMaps(selectedPlaceInfo.name, newTripCityData.city)}
+                    style={{ flex: 1, background: 'white', border: '2px solid #e0e0e0', borderRadius: '14px', padding: '14px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    🗺️ Directions
+                  </button>
+                  <button 
+                    onClick={() => {
+                      addSpotToTrip(selectedPlaceInfo);
+                      setSelectedPlaceInfo(null);
+                    }}
+                    disabled={manualSpots.find(s => s.name === selectedPlaceInfo.name)}
+                    style={{ 
+                      flex: 1, 
+                      background: manualSpots.find(s => s.name === selectedPlaceInfo.name) ? '#c8e6c9' : 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', 
+                      border: 'none', 
+                      borderRadius: '14px', 
+                      padding: '14px', 
+                      fontSize: '14px', 
+                      fontWeight: '600', 
+                      color: 'white', 
+                      cursor: manualSpots.find(s => s.name === selectedPlaceInfo.name) ? 'default' : 'pointer', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '8px', 
+                      fontFamily: "'DM Sans', sans-serif" 
+                    }}
+                  >
+                    {manualSpots.find(s => s.name === selectedPlaceInfo.name) ? '✓ Added' : '+ Add to Trip'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* My Itinerary Footer */}
         {manualSpots.length > 0 && (
-          <div style={{ position: 'fixed', bottom: '20px', left: '20px', right: '20px' }}>
-            <button onClick={saveManualTrip} style={{ width: '100%', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 15px rgba(46,125,50,0.3)', fontFamily: "'DM Sans', sans-serif" }}>
-              💾 Save Trip ({manualSpots.length} places)
+          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'white', boxShadow: '0 -4px 20px rgba(0,0,0,0.1)', padding: '16px 20px', zIndex: 999 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', marginLeft: '-8px' }}>
+                {manualSpots.slice(0, 4).map((spot, i) => (
+                  <div key={i} style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', border: '2px solid white', marginLeft: '-8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                    <img src={spot.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ))}
+                {manualSpots.length > 4 && (
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#e8f5e9', border: '2px solid white', marginLeft: '-8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '600', color: '#2e7d32' }}>+{manualSpots.length - 4}</div>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20' }}>{manualSpots.length} places added</p>
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#999' }}>Tap to review your itinerary</p>
+              </div>
+            </div>
+            <button onClick={saveManualTrip} style={{ width: '100%', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', padding: '14px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+              💾 Save Trip
             </button>
           </div>
         )}
