@@ -1844,6 +1844,9 @@ function App() {
   // ============================================
   if (screen === 'guideDetail' && selectedGuide) {
     const currentDay = selectedGuide.itinerary.find(d => d.day === selectedDay) || selectedGuide.itinerary[0];
+    // Paywall for AI generated trips (Day 2+ locked)
+    const isAiTrip = selectedGuide.isAiGenerated === true;
+    const isLockedDay = isAiTrip && !isPremiumUser && selectedGuide.days > 1 && selectedDay > 1;
 
     return (
       <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif" }}>
@@ -1913,11 +1916,37 @@ function App() {
 
         {/* Day Tabs */}
         <div style={{ display: 'flex', gap: '8px', padding: '8px 16px 16px', overflowX: 'auto' }}>
-          {selectedGuide.itinerary.map((day, index) => (
-            <button key={day.day} onClick={() => { setSelectedDay(day.day); setShowAllDaysOnMap(false); }} style={{ background: selectedDay === day.day ? DAY_COLORS[index % DAY_COLORS.length] : 'white', color: selectedDay === day.day ? 'white' : '#333', border: selectedDay === day.day ? 'none' : '2px solid #e0e0e0', padding: '10px 20px', borderRadius: '20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: "'DM Sans', sans-serif" }}>
-              Day {day.day}
-            </button>
-          ))}
+          {selectedGuide.itinerary.map((day, index) => {
+            const dayLocked = isAiTrip && !isPremiumUser && selectedGuide.days > 1 && day.day > 1;
+            return (
+              <button 
+                key={day.day} 
+                onClick={() => { 
+                  if (dayLocked) {
+                    setShowSubscriptionModal(true);
+                  } else {
+                    setSelectedDay(day.day); 
+                    setShowAllDaysOnMap(false); 
+                  }
+                }} 
+                style={{ 
+                  background: selectedDay === day.day ? DAY_COLORS[index % DAY_COLORS.length] : 'white', 
+                  color: selectedDay === day.day ? 'white' : '#333', 
+                  border: selectedDay === day.day ? 'none' : '2px solid #e0e0e0', 
+                  padding: '10px 20px', 
+                  borderRadius: '20px', 
+                  fontSize: '14px', 
+                  fontWeight: '600', 
+                  cursor: 'pointer', 
+                  whiteSpace: 'nowrap', 
+                  fontFamily: "'DM Sans', sans-serif",
+                  opacity: dayLocked ? 0.7 : 1
+                }}
+              >
+                Day {day.day} {dayLocked && '🔒'}
+              </button>
+            );
+          })}
         </div>
 
         {/* Day Title */}
@@ -1929,27 +1958,82 @@ function App() {
         <div style={{ padding: '0 16px 100px' }}>
           {currentDay.spots.map((spot, index) => (
             <div key={index}>
-              <div onClick={() => setSelectedSpot({ ...spot, city: selectedGuide.city })} style={{ background: 'white', borderRadius: '14px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', cursor: 'pointer' }}>
+              <div onClick={() => !isLockedDay && setSelectedSpot({ ...spot, city: selectedGuide.city })} style={{ background: 'white', borderRadius: '14px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', cursor: isLockedDay ? 'default' : 'pointer', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
                 <div style={{ width: '55px', height: '55px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
-                  <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isLockedDay ? 'blur(4px)' : 'none' }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38', background: '#f1f8e9', display: 'inline-block', padding: '2px 8px', borderRadius: '10px' }}>{spot.type}</p>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', filter: isLockedDay ? 'blur(4px)' : 'none' }}>{spot.name}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38', background: '#f1f8e9', display: 'inline-block', padding: '2px 8px', borderRadius: '10px', filter: isLockedDay ? 'blur(4px)' : 'none' }}>{spot.type}</p>
                   <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#9e9e9e' }}>⏱️ {spot.duration}</p>
                 </div>
+                {isLockedDay && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '24px' }}>🔒</span>
+                  </div>
+                )}
               </div>
               {index < currentDay.spots.length - 1 && currentDay.spots[index + 1].walkTime && (
                 <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0 8px 14px', gap: '8px' }}>
                   <div style={{ width: '2px', height: '24px', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length] + '40', marginLeft: '13px' }} />
-                  <span style={{ fontSize: '11px', color: '#9e9e9e' }}>🚶 {currentDay.spots[index + 1].walkTime}</span>
-                  <button onClick={() => openGoogleMaps(currentDay.spots[index + 1].name, selectedGuide.city)} style={{ background: '#e8f5e9', border: 'none', borderRadius: '12px', padding: '4px 10px', fontSize: '10px', color: '#2e7d32', cursor: 'pointer', fontWeight: '600', fontFamily: "'DM Sans', sans-serif" }}>📍 Directions</button>
+                  <span style={{ fontSize: '11px', color: '#9e9e9e', filter: isLockedDay ? 'blur(3px)' : 'none' }}>🚶 {currentDay.spots[index + 1].walkTime}</span>
+                  {!isLockedDay && <button onClick={() => openGoogleMaps(currentDay.spots[index + 1].name, selectedGuide.city)} style={{ background: '#e8f5e9', border: 'none', borderRadius: '12px', padding: '4px 10px', fontSize: '10px', color: '#2e7d32', cursor: 'pointer', fontWeight: '600', fontFamily: "'DM Sans', sans-serif" }}>📍 Directions</button>}
                 </div>
               )}
             </div>
           ))}
+          
+          {/* Paywall Card for AI trips */}
+          {isLockedDay && (
+            <div style={{ background: 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)', borderRadius: '18px', padding: '22px', marginTop: '14px', textAlign: 'center' }}>
+              <span style={{ fontSize: '36px' }}>🔓</span>
+              <h3 style={{ margin: '10px 0 6px', color: '#1b5e20', fontSize: '17px' }}>Unlock Full Plan</h3>
+              <p style={{ margin: '0 0 14px', color: '#689f38', fontSize: '13px' }}>Get access to all {selectedGuide.days} days</p>
+              <div style={{ background: 'white', borderRadius: '10px', padding: '10px', marginBottom: '14px' }}>
+                <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>✓ 7-day free trial</p>
+                <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#666' }}>✓ $4.99/mo or $3.74/mo annual</p>
+              </div>
+              <button onClick={() => setShowSubscriptionModal(true)} style={{ width: '100%', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                Start Free Trial
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Subscription Modal */}
+        {showSubscriptionModal && (
+          <div onClick={() => setShowSubscriptionModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '24px', padding: '28px 22px', margin: '20px', maxWidth: '340px', width: '100%', textAlign: 'center' }}>
+              <span style={{ fontSize: '44px' }}>✨</span>
+              <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#1b5e20', margin: '14px 0 6px' }}>Unlock Premium</h2>
+              <p style={{ fontSize: '13px', color: '#666', margin: '0 0 20px' }}>Start your 7-day free trial</p>
+              <div style={{ border: '2px solid #e0e0e0', borderRadius: '14px', padding: '14px', marginBottom: '10px', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ margin: 0, fontWeight: '600', color: '#333', fontSize: '14px' }}>Monthly</p>
+                    <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#999' }}>Cancel anytime</p>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1b5e20' }}>$4.99<span style={{ fontSize: '12px', fontWeight: '400' }}>/mo</span></p>
+                </div>
+              </div>
+              <div style={{ border: '2px solid #4caf50', borderRadius: '14px', padding: '14px', marginBottom: '20px', cursor: 'pointer', background: '#f1f8e9', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '-10px', right: '14px', background: '#4caf50', color: 'white', padding: '3px 10px', borderRadius: '8px', fontSize: '10px', fontWeight: '600' }}>SAVE 25%</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ margin: 0, fontWeight: '600', color: '#333', fontSize: '14px' }}>Annual</p>
+                    <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#999' }}>Best value</p>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1b5e20' }}>$3.74<span style={{ fontSize: '12px', fontWeight: '400' }}>/mo</span></p>
+                </div>
+              </div>
+              <button style={{ width: '100%', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                Start 7-Day Free Trial
+              </button>
+              <p style={{ margin: '12px 0 0', fontSize: '11px', color: '#999' }}>Cancel anytime. No commitment.</p>
+            </div>
+          </div>
+        )}
 
         {/* Spot Detail Modal */}
         {selectedSpot && (
