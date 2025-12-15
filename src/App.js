@@ -709,6 +709,12 @@ function App() {
   const [generatedTrip, setGeneratedTrip] = useState(null);
   const [aiLoadingMessage, setAiLoadingMessage] = useState('');
   
+  // Manual planner states
+  const [manualSpots, setManualSpots] = useState([]);
+  const [placeSearchQuery, setPlaceSearchQuery] = useState('');
+  const [placeSearchResults, setPlaceSearchResults] = useState([]);
+  const [placeSearchLoading, setPlaceSearchLoading] = useState(false);
+  
   // Premium states
   const [isPremiumUser, setIsPremiumUser] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
@@ -929,10 +935,116 @@ function App() {
     setDurationMode('flexible');
     setSelectedDates({ start: null, end: null });
     setGeneratedTrip(null);
+    setManualSpots([]);
+    setPlaceSearchQuery('');
+    setPlaceSearchResults([]);
   };
 
   // Google Places API key
   const GOOGLE_PLACES_API_KEY = 'AIzaSyBy4tEpe49fgTAUd8P_A2PQ4swlvCDMlFw';
+
+  // Search places for manual planner
+  const searchPlacesForManual = async (query) => {
+    if (!query || query.length < 2 || !newTripCityData) return;
+    
+    setPlaceSearchLoading(true);
+    try {
+      const response = await fetch(
+        `https://places.googleapis.com/v1/places:searchText`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+            'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.photos,places.primaryType'
+          },
+          body: JSON.stringify({
+            textQuery: `${query} in ${newTripCityData.city}`,
+            maxResultCount: 8,
+            locationBias: {
+              circle: {
+                center: { latitude: newTripCityData.lat, longitude: newTripCityData.lng },
+                radius: 20000.0
+              }
+            }
+          })
+        }
+      );
+      
+      const data = await response.json();
+      if (data.places) {
+        setPlaceSearchResults(data.places.map(place => ({
+          id: place.displayName?.text + '-' + Math.random(),
+          name: place.displayName?.text || 'Unknown Place',
+          type: place.primaryType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Place',
+          address: place.formattedAddress || '',
+          lat: place.location?.latitude || newTripCityData.lat,
+          lng: place.location?.longitude || newTripCityData.lng,
+          rating: place.rating || 4.0,
+          reviews: place.userRatingCount || 0,
+          image: place.photos?.[0]?.name ? getPlacePhotoUrl(place.photos[0].name) : 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300'
+        })));
+      } else {
+        setPlaceSearchResults([]);
+      }
+    } catch (error) {
+      console.error('Place search error:', error);
+      setPlaceSearchResults([]);
+    }
+    setPlaceSearchLoading(false);
+  };
+
+  // Add spot to manual trip
+  const addSpotToTrip = (spot) => {
+    if (!manualSpots.find(s => s.name === spot.name)) {
+      setManualSpots(prev => [...prev, { ...spot, duration: '1 hour' }]);
+    }
+    setPlaceSearchQuery('');
+    setPlaceSearchResults([]);
+  };
+
+  // Remove spot from manual trip
+  const removeSpotFromTrip = (spotId) => {
+    setManualSpots(prev => prev.filter(s => s.id !== spotId));
+  };
+
+  // Reorder spots
+  const moveSpot = (index, direction) => {
+    const newSpots = [...manualSpots];
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= newSpots.length) return;
+    [newSpots[index], newSpots[newIndex]] = [newSpots[newIndex], newSpots[index]];
+    setManualSpots(newSpots);
+  };
+
+  // Save manual trip
+  const saveManualTrip = () => {
+    if (manualSpots.length === 0) return;
+    
+    const newTrip = {
+      id: 'manual-' + Date.now(),
+      city: newTripCityData.city,
+      country: newTripCityData.country,
+      flag: newTripCityData.flag,
+      title: `My ${newTripCityData.city} Trip`,
+      days: 1,
+      center: [newTripCityData.lat, newTripCityData.lng],
+      image: manualSpots[0]?.image || 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
+      itinerary: [{
+        day: 1,
+        title: 'My Itinerary',
+        spots: manualSpots.map((spot, index) => ({
+          ...spot,
+          walkTime: index === 0 ? null : '~10 min'
+        }))
+      }],
+      isManual: true
+    };
+    
+    setMyTrips(prev => [...prev, newTrip]);
+    setScreen('home');
+    resetNewTrip();
+  };
 
   // Search places using Google Places API (New)
   const searchPlacesInCity = async (cityData, preferences) => {
@@ -1615,10 +1727,144 @@ function App() {
               <button onClick={() => { setShowAiPlanOffer(false); generateAiTrip(); }} style={{ width: '100%', background: '#1b5e20', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontFamily: "'DM Sans', sans-serif" }}>
                 <span>✨</span> Yes, plan for me!
               </button>
-              <button onClick={() => { setShowAiPlanOffer(false); setScreen('home'); }} style={{ width: '100%', background: 'transparent', color: '#666', border: 'none', padding: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+              <button onClick={() => { setShowAiPlanOffer(false); setScreen('manualPlanner'); }} style={{ width: '100%', background: 'transparent', color: '#666', border: 'none', padding: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
                 No thanks, I'll plan myself
               </button>
             </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ============================================
+  // MANUAL PLANNER SCREEN
+  // ============================================
+  if (screen === 'manualPlanner' && newTripCityData) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif", paddingBottom: '100px' }}>
+        {/* Header */}
+        <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '16px 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <button onClick={() => { setScreen('newTripConfirm'); setManualSpots([]); setPlaceSearchQuery(''); setPlaceSearchResults([]); }} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '10px', padding: '8px 12px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
+            <h1 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: 0 }}>{newTripCityData.flag} {newTripCityData.city}</h1>
+            <div style={{ width: '40px' }} />
+          </div>
+          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', margin: 0, textAlign: 'center' }}>Add places to your trip</p>
+        </div>
+
+        {/* Search Bar */}
+        <div style={{ padding: '16px', background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f5f5f5', borderRadius: '14px', padding: '4px 14px' }}>
+            <span style={{ fontSize: '18px', color: '#999' }}>🔍</span>
+            <input 
+              type="text" 
+              value={placeSearchQuery} 
+              onChange={(e) => {
+                setPlaceSearchQuery(e.target.value);
+                if (e.target.value.length >= 2) {
+                  searchPlacesForManual(e.target.value);
+                } else {
+                  setPlaceSearchResults([]);
+                }
+              }} 
+              placeholder={`Search places in ${newTripCityData.city}...`}
+              style={{ flex: 1, padding: '12px 0', border: 'none', background: 'transparent', fontSize: '15px', outline: 'none', fontFamily: "'DM Sans', sans-serif" }} 
+            />
+            {placeSearchQuery && (
+              <span onClick={() => { setPlaceSearchQuery(''); setPlaceSearchResults([]); }} style={{ fontSize: '16px', cursor: 'pointer', color: '#999' }}>✕</span>
+            )}
+          </div>
+        </div>
+
+        {/* Search Results */}
+        {placeSearchLoading && (
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <p style={{ color: '#689f38', fontSize: '14px' }}>Searching places...</p>
+          </div>
+        )}
+
+        {placeSearchResults.length > 0 && (
+          <div style={{ padding: '8px 16px' }}>
+            <p style={{ fontSize: '12px', color: '#999', margin: '0 0 8px' }}>Search Results</p>
+            {placeSearchResults.map((place, index) => (
+              <div 
+                key={index} 
+                onClick={() => addSpotToTrip(place)}
+                style={{ 
+                  background: 'white', 
+                  borderRadius: '12px', 
+                  padding: '12px', 
+                  marginBottom: '8px', 
+                  display: 'flex', 
+                  gap: '12px', 
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+                }}
+              >
+                <div style={{ width: '50px', height: '50px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0, background: '#e8f5e9' }}>
+                  <img src={place.image} alt={place.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.name}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38' }}>{place.type}</p>
+                  {place.rating > 0 && <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#999' }}>⭐ {place.rating.toFixed(1)} ({place.reviews})</p>}
+                </div>
+                <div style={{ background: '#e8f5e9', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2e7d32', fontSize: '18px', fontWeight: '600' }}>+</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* My Trip Spots */}
+        <div style={{ padding: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', color: '#1b5e20' }}>📍 My Itinerary ({manualSpots.length})</h3>
+          </div>
+
+          {manualSpots.length === 0 ? (
+            <div style={{ background: 'white', borderRadius: '16px', padding: '32px 20px', textAlign: 'center', border: '2px dashed #c8e6c9' }}>
+              <div style={{ fontSize: '40px', marginBottom: '12px' }}>🗺️</div>
+              <p style={{ color: '#689f38', fontSize: '14px', margin: 0 }}>Search and add places above</p>
+            </div>
+          ) : (
+            <div>
+              {manualSpots.map((spot, index) => (
+                <div key={spot.id} style={{ marginBottom: '8px' }}>
+                  <div style={{ background: 'white', borderRadius: '12px', padding: '12px', display: 'flex', gap: '10px', alignItems: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <button onClick={() => moveSpot(index, -1)} disabled={index === 0} style={{ background: index === 0 ? '#eee' : '#e8f5e9', border: 'none', borderRadius: '6px', width: '24px', height: '20px', cursor: index === 0 ? 'default' : 'pointer', fontSize: '10px', color: '#2e7d32' }}>▲</button>
+                      <button onClick={() => moveSpot(index, 1)} disabled={index === manualSpots.length - 1} style={{ background: index === manualSpots.length - 1 ? '#eee' : '#e8f5e9', border: 'none', borderRadius: '6px', width: '24px', height: '20px', cursor: index === manualSpots.length - 1 ? 'default' : 'pointer', fontSize: '10px', color: '#2e7d32' }}>▼</button>
+                    </div>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#2e7d32', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
+                    <div style={{ width: '45px', height: '45px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
+                      <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38' }}>{spot.type}</p>
+                    </div>
+                    <button onClick={() => removeSpotFromTrip(spot.id)} style={{ background: '#ffebee', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', fontSize: '14px', color: '#ef5350' }}>✕</button>
+                  </div>
+                  {index < manualSpots.length - 1 && (
+                    <div style={{ display: 'flex', alignItems: 'center', padding: '6px 0 6px 60px', gap: '6px' }}>
+                      <div style={{ width: '2px', height: '16px', background: '#c8e6c9' }} />
+                      <span style={{ fontSize: '10px', color: '#999' }}>🚶 ~10 min</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Save Button */}
+        {manualSpots.length > 0 && (
+          <div style={{ position: 'fixed', bottom: '20px', left: '20px', right: '20px' }}>
+            <button onClick={saveManualTrip} style={{ width: '100%', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 15px rgba(46,125,50,0.3)', fontFamily: "'DM Sans', sans-serif" }}>
+              💾 Save Trip ({manualSpots.length} places)
+            </button>
           </div>
         )}
       </div>
