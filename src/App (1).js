@@ -22,7 +22,25 @@ const TRIP_CATEGORIES = [
   { id: 'art', emoji: '🎨', label: 'Art & Culture' },
   { id: 'cuisine', emoji: '🍽️', label: 'Local Cuisine' },
   { id: 'adventure', emoji: '🏔️', label: 'Adventure' },
-  { id: 'instagram', emoji: '📸', label: 'Instagram Spots' }
+  { id: 'instagram', emoji: '📸', label: 'Instagram Spots' },
+  { id: 'shopping', emoji: '🛍️', label: 'Shopping' },
+  { id: 'nature', emoji: '🌳', label: 'Nature & Parks' },
+  { id: 'beaches', emoji: '🏖️', label: 'Beaches' },
+  { id: 'museums', emoji: '🖼️', label: 'Museums' },
+  { id: 'history', emoji: '📜', label: 'History' },
+  { id: 'romantic', emoji: '💕', label: 'Romantic' },
+  { id: 'family', emoji: '👨‍👩‍👧‍👦', label: 'Family Friendly' },
+  { id: 'budget', emoji: '💰', label: 'Budget Travel' },
+  { id: 'luxury', emoji: '✨', label: 'Luxury' },
+  { id: 'cafes', emoji: '☕', label: 'Cafes' },
+  { id: 'bars', emoji: '🍺', label: 'Bars & Pubs' },
+  { id: 'wellness', emoji: '💆', label: 'Wellness & Spa' },
+  { id: 'sports', emoji: '⚽', label: 'Sports' },
+  { id: 'religious', emoji: '🛕', label: 'Religious Sites' },
+  { id: 'markets', emoji: '🏪', label: 'Local Markets' },
+  { id: 'viewpoints', emoji: '🌄', label: 'Viewpoints' },
+  { id: 'street_food', emoji: '🥡', label: 'Street Food' },
+  { id: 'hidden_gems', emoji: '💎', label: 'Hidden Gems' },
 ];
 
 const TRAVEL_GUIDES = [
@@ -709,9 +727,20 @@ function App() {
   const [generatedTrip, setGeneratedTrip] = useState(null);
   const [aiLoadingMessage, setAiLoadingMessage] = useState('');
   
+  // Manual planner states
+  const [manualSpots, setManualSpots] = useState([]);
+  const [placeSearchQuery, setPlaceSearchQuery] = useState('');
+  const [placeSearchResults, setPlaceSearchResults] = useState([]);
+  const [placeSearchLoading, setPlaceSearchLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedPlaceInfo, setSelectedPlaceInfo] = useState(null);
+  
   // Premium states
   const [isPremiumUser, setIsPremiumUser] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  
+  // Logout confirmation
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Country code to flag emoji
   const getCountryFlag = useCallback((countryCode) => {
@@ -720,26 +749,58 @@ function App() {
     return String.fromCodePoint(...codePoints);
   }, []);
 
-  // Auth effect
+  // Save state to sessionStorage when it changes
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setCurrentUser(session.user);
-        setScreen('home');
-      }
-    });
+    if (currentUser && screen !== 'auth') {
+      sessionStorage.setItem('tourista_screen', screen);
+      sessionStorage.setItem('tourista_user', JSON.stringify(currentUser));
+    }
+  }, [screen, currentUser]);
 
+  // Save selected guide and trip data
+  useEffect(() => {
+    if (selectedGuide) {
+      sessionStorage.setItem('tourista_selectedGuide', JSON.stringify(selectedGuide));
+    }
+    if (generatedTrip) {
+      sessionStorage.setItem('tourista_generatedTrip', JSON.stringify(generatedTrip));
+    }
+  }, [selectedGuide, generatedTrip]);
+
+  // Restore state on mount (tab switch protection)
+  useEffect(() => {
+    const savedScreen = sessionStorage.getItem('tourista_screen');
+    const savedUser = sessionStorage.getItem('tourista_user');
+    const savedGuide = sessionStorage.getItem('tourista_selectedGuide');
+    const savedTrip = sessionStorage.getItem('tourista_generatedTrip');
+    
+    if (savedUser && savedScreen) {
+      try {
+        setCurrentUser(JSON.parse(savedUser));
+        setScreen(savedScreen);
+        if (savedGuide) setSelectedGuide(JSON.parse(savedGuide));
+        if (savedTrip) setGeneratedTrip(JSON.parse(savedTrip));
+      } catch (e) {
+        console.error('Error restoring state:', e);
+      }
+    }
+  }, []);
+
+  // Auth effect - check session but don't auto-redirect
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setCurrentUser(session.user);
-        setScreen('home');
+      if (!session) {
+        // User logged out - clear everything
+        setCurrentUser(null);
+        setScreen('auth');
+        sessionStorage.clear();
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // GeoDB Cities API search
+  // GeoDB Cities API search with user's API key
   const searchCities = useCallback(async (query) => {
     if (query.length < 2) {
       setCitySearchResults([]);
@@ -751,13 +812,13 @@ function App() {
         `https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${encodeURIComponent(query)}&limit=10&sort=-population`,
         {
           headers: {
-            'X-RapidAPI-Key': '2f4693bda7msh5205f3c56d65388p118812jsn4454375e498c',
+            'X-RapidAPI-Key': '943c32f617mshfd3b5c97307001bp1be778jsn3816330dc864',
             'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
           }
         }
       );
       const data = await response.json();
-      if (data.data) {
+      if (data.data && data.data.length > 0) {
         setCitySearchResults(data.data.map(city => ({
           city: city.city,
           country: city.country,
@@ -766,9 +827,12 @@ function App() {
           lat: city.latitude,
           lng: city.longitude
         })));
+      } else {
+        setCitySearchResults([]);
       }
     } catch (error) {
       console.error('City search error:', error);
+      setCitySearchResults([]);
     }
     setCitySearchLoading(false);
   }, [getCountryFlag]);
@@ -858,6 +922,9 @@ function App() {
     setEmail('');
     setPassword('');
     setMyTrips([]);
+    setSelectedGuide(null);
+    setGeneratedTrip(null);
+    sessionStorage.clear();
     setScreen('auth');
   };
 
@@ -888,14 +955,193 @@ function App() {
     setDurationMode('flexible');
     setSelectedDates({ start: null, end: null });
     setGeneratedTrip(null);
+    setManualSpots([]);
+    setPlaceSearchQuery('');
+    setPlaceSearchResults([]);
+    setSelectedCategory('all');
+    setSelectedPlaceInfo(null);
   };
 
-  // AI Trip Generation with Claude API
+  // Google Places API key
+  const GOOGLE_PLACES_API_KEY = 'AIzaSyBy4tEpe49fgTAUd8P_A2PQ4swlvCDMlFw';
+
+  // Search places for manual planner
+  const searchPlacesForManual = async (query) => {
+    if (!query || query.length < 2 || !newTripCityData) return;
+    
+    setPlaceSearchLoading(true);
+    try {
+      const response = await fetch(
+        `https://places.googleapis.com/v1/places:searchText`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+            'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.photos,places.primaryType'
+          },
+          body: JSON.stringify({
+            textQuery: `${query} in ${newTripCityData.city}`,
+            maxResultCount: 8,
+            locationBias: {
+              circle: {
+                center: { latitude: newTripCityData.lat, longitude: newTripCityData.lng },
+                radius: 20000.0
+              }
+            }
+          })
+        }
+      );
+      
+      const data = await response.json();
+      if (data.places) {
+        setPlaceSearchResults(data.places.map(place => ({
+          id: place.displayName?.text + '-' + Math.random(),
+          name: place.displayName?.text || 'Unknown Place',
+          type: place.primaryType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Place',
+          address: place.formattedAddress || '',
+          lat: place.location?.latitude || newTripCityData.lat,
+          lng: place.location?.longitude || newTripCityData.lng,
+          rating: place.rating || 4.0,
+          reviews: place.userRatingCount || 0,
+          image: place.photos?.[0]?.name ? getPlacePhotoUrl(place.photos[0].name) : 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300'
+        })));
+      } else {
+        setPlaceSearchResults([]);
+      }
+    } catch (error) {
+      console.error('Place search error:', error);
+      setPlaceSearchResults([]);
+    }
+    setPlaceSearchLoading(false);
+  };
+
+  // Add spot to manual trip
+  const addSpotToTrip = (spot) => {
+    if (!manualSpots.find(s => s.name === spot.name)) {
+      setManualSpots(prev => [...prev, { ...spot, duration: '1 hour' }]);
+    }
+    setPlaceSearchQuery('');
+    setPlaceSearchResults([]);
+  };
+
+  // Remove spot from manual trip
+  const removeSpotFromTrip = (spotId) => {
+    setManualSpots(prev => prev.filter(s => s.id !== spotId));
+  };
+
+  // Reorder spots
+  const moveSpot = (index, direction) => {
+    const newSpots = [...manualSpots];
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= newSpots.length) return;
+    [newSpots[index], newSpots[newIndex]] = [newSpots[newIndex], newSpots[index]];
+    setManualSpots(newSpots);
+  };
+
+  // Save manual trip
+  const saveManualTrip = () => {
+    if (manualSpots.length === 0) return;
+    
+    const newTrip = {
+      id: 'manual-' + Date.now(),
+      city: newTripCityData.city,
+      country: newTripCityData.country,
+      flag: newTripCityData.flag,
+      title: `My ${newTripCityData.city} Trip`,
+      days: 1,
+      center: [newTripCityData.lat, newTripCityData.lng],
+      image: manualSpots[0]?.image || 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
+      itinerary: [{
+        day: 1,
+        title: 'My Itinerary',
+        spots: manualSpots.map((spot, index) => ({
+          ...spot,
+          walkTime: index === 0 ? null : '~10 min'
+        }))
+      }],
+      isManual: true
+    };
+    
+    setMyTrips(prev => [...prev, newTrip]);
+    setScreen('home');
+    resetNewTrip();
+  };
+
+  // Search places using Google Places API (New)
+  const searchPlacesInCity = async (cityData, preferences) => {
+    const typeMapping = {
+      'architecture': 'historical_landmark',
+      'nightlife': 'night_club|bar',
+      'art': 'art_gallery|museum',
+      'cuisine': 'restaurant',
+      'adventure': 'tourist_attraction|park',
+      'instagram': 'tourist_attraction|point_of_interest'
+    };
+    
+    // Determine search types based on preferences
+    let searchTypes = ['tourist_attraction', 'museum', 'historical_landmark', 'restaurant'];
+    if (preferences && preferences.length > 0) {
+      searchTypes = preferences.map(p => typeMapping[p] || 'tourist_attraction');
+    }
+    
+    const allPlaces = [];
+    
+    // Search for places using Text Search
+    for (const searchType of searchTypes.slice(0, 3)) {
+      try {
+        const query = `top ${searchType.replace('_', ' ')} in ${cityData.city}`;
+        const response = await fetch(
+          `https://places.googleapis.com/v1/places:searchText`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+              'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.photos,places.primaryType,places.editorialSummary'
+            },
+            body: JSON.stringify({
+              textQuery: query,
+              maxResultCount: 10,
+              locationBias: {
+                circle: {
+                  center: { latitude: cityData.lat, longitude: cityData.lng },
+                  radius: 15000.0
+                }
+              }
+            })
+          }
+        );
+        
+        const data = await response.json();
+        if (data.places) {
+          allPlaces.push(...data.places);
+        }
+      } catch (err) {
+        console.error('Places search error:', err);
+      }
+    }
+    
+    // Remove duplicates based on name
+    const uniquePlaces = allPlaces.filter((place, index, self) =>
+      index === self.findIndex(p => p.displayName?.text === place.displayName?.text)
+    );
+    
+    return uniquePlaces;
+  };
+
+  // Get photo URL from Google Places
+  const getPlacePhotoUrl = (photoName) => {
+    if (!photoName) return 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300';
+    return `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=300&maxWidthPx=300&key=${GOOGLE_PLACES_API_KEY}`;
+  };
+
+  // AI Trip Generation with Google Places API
   const generateAiTrip = async () => {
     setAiGenerating(true);
     setScreen('aiGenerating');
 
-    const messages = ['Finding the best spots...', 'Checking local favorites...', 'Optimizing your route...', 'Adding hidden gems...', 'Almost ready...'];
+    const messages = ['Searching real places...', 'Finding top attractions...', 'Getting photos & ratings...', 'Creating your route...', 'Almost ready...'];
     let messageIndex = 0;
     setAiLoadingMessage(messages[0]);
 
@@ -906,87 +1152,43 @@ function App() {
 
     try {
       const cityData = newTripCityData || { city: newTripCity, country: 'Unknown', flag: '📍', lat: 48.8566, lng: 2.3522 };
-      const prefsText = newTripPreferences.length > 0 
-        ? newTripPreferences.map(p => TRIP_CATEGORIES.find(c => c.id === p)?.label).join(', ')
-        : 'general sightseeing';
-
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 4096,
-          messages: [{
-            role: "user",
-            content: `Create a ${newTripDays}-day travel itinerary for ${cityData.city}, ${cityData.country}.
-Focus on: ${prefsText}
-
-Return ONLY valid JSON (no markdown, no explanation):
-{
-  "itinerary": [
-    {
-      "day": 1,
-      "title": "Day theme title",
-      "spots": [
-        {
-          "name": "Real place name",
-          "type": "Museum/Restaurant/Landmark/Park",
-          "duration": "2 hours",
-          "walkTime": "10 min",
-          "lat": 48.8584,
-          "lng": 2.2945
-        }
-      ]
-    }
-  ]
-}
-
-Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
-          }]
-        })
-      });
-
-      const data = await response.json();
       
-      if (data.content && data.content[0] && data.content[0].text) {
-        const jsonText = data.content[0].text.replace(/```json\n?|\n?```/g, '').trim();
-        const tripData = JSON.parse(jsonText);
-
-        if (tripData && tripData.itinerary) {
-          const newTrip = {
-            id: 'ai-' + Date.now(),
-            city: cityData.city,
-            country: cityData.country,
-            flag: cityData.flag,
-            title: `${newTripDays}-Day ${cityData.city} Trip`,
-            days: newTripDays,
-            center: [cityData.lat, cityData.lng],
-            image: `https://source.unsplash.com/400x300/?${encodeURIComponent(cityData.city)},travel`,
-            itinerary: tripData.itinerary.map(day => ({
-              ...day,
-              spots: day.spots.map(spot => ({
-                ...spot,
-                image: `https://source.unsplash.com/100x100/?${encodeURIComponent(spot.name)}`
-              }))
-            })),
-            isAiGenerated: true
-          };
-          
-          clearInterval(messageInterval);
-          setGeneratedTrip(newTrip);
-          setAiGenerating(false);
-          setScreen('tripResult');
-          return;
-        }
+      // Fetch real places from Google Places API
+      const places = await searchPlacesInCity(cityData, newTripPreferences);
+      
+      if (places.length === 0) {
+        throw new Error('No places found');
       }
-      throw new Error('Invalid response');
-    } catch (error) {
-      console.error('AI generation error:', error);
-      clearInterval(messageInterval);
       
-      // Fallback: generate mock trip
-      const cityData = newTripCityData || { city: newTripCity, country: 'Unknown', flag: '📍', lat: 48.8566, lng: 2.3522 };
-      const mockTrip = {
+      // Convert Google Places data to our format
+      const spots = places.slice(0, newTripDays * 5).map(place => ({
+        name: place.displayName?.text || 'Unknown Place',
+        type: place.primaryType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Attraction',
+        duration: place.primaryType?.includes('museum') ? '2 hours' : 
+                  place.primaryType?.includes('restaurant') ? '1.5 hours' : '1 hour',
+        lat: place.location?.latitude || cityData.lat,
+        lng: place.location?.longitude || cityData.lng,
+        image: place.photos?.[0]?.name ? getPlacePhotoUrl(place.photos[0].name) : 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
+        rating: place.rating || 4.5,
+        reviews: place.userRatingCount || 1000,
+        description: place.editorialSummary?.text || `Popular ${place.primaryType?.replace(/_/g, ' ') || 'attraction'} in ${cityData.city}`
+      }));
+      
+      // Distribute spots across days
+      const spotsPerDay = Math.ceil(spots.length / newTripDays);
+      const itinerary = Array.from({ length: newTripDays }, (_, dayIndex) => {
+        const daySpots = spots.slice(dayIndex * spotsPerDay, (dayIndex + 1) * spotsPerDay);
+        return {
+          day: dayIndex + 1,
+          title: ['City Highlights', 'Culture & History', 'Local Favorites', 'Hidden Gems', 'Final Discoveries'][dayIndex % 5],
+          spots: daySpots.map((spot, spotIndex) => ({
+            ...spot,
+            walkTime: spotIndex === 0 ? null : `${8 + (spotIndex * 4)} min walk`
+          }))
+        };
+      });
+      
+      const newTrip = {
         id: 'ai-' + Date.now(),
         city: cityData.city,
         country: cityData.country,
@@ -994,24 +1196,163 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
         title: `${newTripDays}-Day ${cityData.city} Trip`,
         days: newTripDays,
         center: [cityData.lat, cityData.lng],
-        image: `https://source.unsplash.com/400x300/?${encodeURIComponent(cityData.city)},travel`,
-        itinerary: Array.from({ length: newTripDays }, (_, i) => ({
-          day: i + 1,
-          title: ['Exploration', 'Discovery', 'Adventure', 'Culture', 'Local Life'][i % 5],
-          spots: Array.from({ length: 4 }, (_, j) => ({
-            name: `${cityData.city} Attraction ${i * 4 + j + 1}`,
-            type: ['Landmark', 'Museum', 'Restaurant', 'Park'][j % 4],
-            duration: `${1 + j} hours`,
-            walkTime: j === 0 ? null : `${5 + j * 3} min`,
-            lat: cityData.lat + (Math.random() - 0.5) * 0.05,
-            lng: cityData.lng + (Math.random() - 0.5) * 0.05,
-            image: `https://source.unsplash.com/100x100/?${encodeURIComponent(cityData.city)},landmark`
-          }))
-        })),
+        image: spots[0]?.image || 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
+        itinerary: itinerary,
         isAiGenerated: true
       };
       
-      setGeneratedTrip(mockTrip);
+      clearInterval(messageInterval);
+      setGeneratedTrip(newTrip);
+      setAiGenerating(false);
+      setScreen('tripResult');
+      
+    } catch (error) {
+      console.error('AI generation error:', error);
+      clearInterval(messageInterval);
+      
+      // Fallback: use real city itineraries
+      const cityData = newTripCityData || { city: newTripCity, country: 'Unknown', flag: '📍', lat: 48.8566, lng: 2.3522 };
+      
+      // Real city spots database
+      const REAL_CITY_SPOTS = {
+        'Rome': [
+          { name: 'Colosseum', type: 'Landmark', duration: '2 hours', lat: 41.8902, lng: 12.4922, image: 'https://images.pexels.com/photos/2064827/pexels-photo-2064827.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Roman Forum', type: 'History', duration: '1.5 hours', lat: 41.8925, lng: 12.4853, image: 'https://images.pexels.com/photos/2225439/pexels-photo-2225439.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Trevi Fountain', type: 'Landmark', duration: '30 min', lat: 41.9009, lng: 12.4833, image: 'https://images.pexels.com/photos/2748019/pexels-photo-2748019.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Pantheon', type: 'Landmark', duration: '45 min', lat: 41.8986, lng: 12.4769, image: 'https://images.pexels.com/photos/2676589/pexels-photo-2676589.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Vatican Museums', type: 'Museum', duration: '3 hours', lat: 41.9065, lng: 12.4536, image: 'https://images.pexels.com/photos/3004909/pexels-photo-3004909.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'St. Peters Basilica', type: 'Landmark', duration: '1.5 hours', lat: 41.9022, lng: 12.4539, image: 'https://images.pexels.com/photos/326709/pexels-photo-326709.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Spanish Steps', type: 'Landmark', duration: '30 min', lat: 41.9060, lng: 12.4828, image: 'https://images.pexels.com/photos/4819547/pexels-photo-4819547.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Piazza Navona', type: 'Square', duration: '45 min', lat: 41.8992, lng: 12.4731, image: 'https://images.pexels.com/photos/3278939/pexels-photo-3278939.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Trastevere', type: 'Neighborhood', duration: '2 hours', lat: 41.8869, lng: 12.4699, image: 'https://images.pexels.com/photos/4388167/pexels-photo-4388167.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Castel Sant Angelo', type: 'History', duration: '1 hour', lat: 41.9031, lng: 12.4663, image: 'https://images.pexels.com/photos/2928058/pexels-photo-2928058.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'Paris': [
+          { name: 'Eiffel Tower', type: 'Landmark', duration: '2 hours', lat: 48.8584, lng: 2.2945, image: 'https://images.pexels.com/photos/338515/pexels-photo-338515.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Louvre Museum', type: 'Museum', duration: '3 hours', lat: 48.8606, lng: 2.3376, image: 'https://images.pexels.com/photos/2363/france-landmark-lights-night.jpg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Arc de Triomphe', type: 'Landmark', duration: '1 hour', lat: 48.8738, lng: 2.2950, image: 'https://images.pexels.com/photos/2082103/pexels-photo-2082103.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Notre-Dame', type: 'Landmark', duration: '1 hour', lat: 48.8530, lng: 2.3499, image: 'https://images.pexels.com/photos/2344/cars-france-landmark-lights.jpg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Sacré-Cœur', type: 'Landmark', duration: '1 hour', lat: 48.8867, lng: 2.3431, image: 'https://images.pexels.com/photos/1461974/pexels-photo-1461974.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Montmartre', type: 'Neighborhood', duration: '2 hours', lat: 48.8862, lng: 2.3410, image: 'https://images.pexels.com/photos/2738173/pexels-photo-2738173.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Champs-Élysées', type: 'Shopping', duration: '2 hours', lat: 48.8698, lng: 2.3076, image: 'https://images.pexels.com/photos/2901209/pexels-photo-2901209.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Musée d\'Orsay', type: 'Museum', duration: '2 hours', lat: 48.8600, lng: 2.3266, image: 'https://images.pexels.com/photos/2363/france-landmark-lights-night.jpg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'Vienna': [
+          { name: 'Schönbrunn Palace', type: 'Landmark', duration: '3 hours', lat: 48.1845, lng: 16.3122, image: 'https://images.pexels.com/photos/2351425/pexels-photo-2351425.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'St. Stephens Cathedral', type: 'Landmark', duration: '1 hour', lat: 48.2082, lng: 16.3738, image: 'https://images.pexels.com/photos/2422259/pexels-photo-2422259.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Belvedere Palace', type: 'Museum', duration: '2 hours', lat: 48.1914, lng: 16.3805, image: 'https://images.pexels.com/photos/2351425/pexels-photo-2351425.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Vienna State Opera', type: 'Culture', duration: '1.5 hours', lat: 48.2035, lng: 16.3689, image: 'https://images.pexels.com/photos/2893177/pexels-photo-2893177.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Hofburg Palace', type: 'History', duration: '2 hours', lat: 48.2066, lng: 16.3656, image: 'https://images.pexels.com/photos/2422259/pexels-photo-2422259.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Prater Park', type: 'Park', duration: '2 hours', lat: 48.2166, lng: 16.3999, image: 'https://images.pexels.com/photos/2893177/pexels-photo-2893177.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Naschmarkt', type: 'Market', duration: '1.5 hours', lat: 48.1986, lng: 16.3633, image: 'https://images.pexels.com/photos/2351425/pexels-photo-2351425.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Kunsthistorisches Museum', type: 'Museum', duration: '2 hours', lat: 48.2038, lng: 16.3616, image: 'https://images.pexels.com/photos/2422259/pexels-photo-2422259.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'Istanbul': [
+          { name: 'Hagia Sophia', type: 'Landmark', duration: '1.5 hours', lat: 41.0086, lng: 28.9802, image: 'https://images.pexels.com/photos/3889843/pexels-photo-3889843.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Blue Mosque', type: 'Landmark', duration: '1 hour', lat: 41.0054, lng: 28.9768, image: 'https://images.pexels.com/photos/3889704/pexels-photo-3889704.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Topkapi Palace', type: 'Museum', duration: '2.5 hours', lat: 41.0115, lng: 28.9833, image: 'https://images.pexels.com/photos/4825701/pexels-photo-4825701.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Grand Bazaar', type: 'Market', duration: '2 hours', lat: 41.0107, lng: 28.9680, image: 'https://images.pexels.com/photos/3889855/pexels-photo-3889855.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Galata Tower', type: 'Landmark', duration: '1 hour', lat: 41.0256, lng: 28.9741, image: 'https://images.pexels.com/photos/4916559/pexels-photo-4916559.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Bosphorus Cruise', type: 'Activity', duration: '2 hours', lat: 41.0256, lng: 28.9744, image: 'https://images.pexels.com/photos/3889891/pexels-photo-3889891.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Spice Bazaar', type: 'Market', duration: '1 hour', lat: 41.0166, lng: 28.9706, image: 'https://images.pexels.com/photos/3889855/pexels-photo-3889855.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Basilica Cistern', type: 'History', duration: '45 min', lat: 41.0084, lng: 28.9779, image: 'https://images.pexels.com/photos/3889843/pexels-photo-3889843.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'Tokyo': [
+          { name: 'Senso-ji Temple', type: 'Temple', duration: '1.5 hours', lat: 35.7148, lng: 139.7967, image: 'https://images.pexels.com/photos/5169479/pexels-photo-5169479.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Shibuya Crossing', type: 'Landmark', duration: '30 min', lat: 35.6595, lng: 139.7004, image: 'https://images.pexels.com/photos/2614818/pexels-photo-2614818.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Meiji Shrine', type: 'Temple', duration: '1 hour', lat: 35.6764, lng: 139.6993, image: 'https://images.pexels.com/photos/5169056/pexels-photo-5169056.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Tokyo Tower', type: 'Landmark', duration: '1.5 hours', lat: 35.6586, lng: 139.7454, image: 'https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Shinjuku Gyoen', type: 'Park', duration: '2 hours', lat: 35.6852, lng: 139.7100, image: 'https://images.pexels.com/photos/5169479/pexels-photo-5169479.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Akihabara', type: 'Neighborhood', duration: '2 hours', lat: 35.7023, lng: 139.7745, image: 'https://images.pexels.com/photos/2614818/pexels-photo-2614818.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Harajuku', type: 'Neighborhood', duration: '2 hours', lat: 35.6702, lng: 139.7027, image: 'https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Tokyo Skytree', type: 'Landmark', duration: '1.5 hours', lat: 35.7101, lng: 139.8107, image: 'https://images.pexels.com/photos/2614818/pexels-photo-2614818.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'Barcelona': [
+          { name: 'Sagrada Familia', type: 'Landmark', duration: '2 hours', lat: 41.4036, lng: 2.1744, image: 'https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Park Güell', type: 'Park', duration: '2 hours', lat: 41.4145, lng: 2.1527, image: 'https://images.pexels.com/photos/1655028/pexels-photo-1655028.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Casa Batlló', type: 'Architecture', duration: '1.5 hours', lat: 41.3916, lng: 2.1649, image: 'https://images.pexels.com/photos/1874675/pexels-photo-1874675.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'La Rambla', type: 'Street', duration: '1.5 hours', lat: 41.3809, lng: 2.1734, image: 'https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Gothic Quarter', type: 'Neighborhood', duration: '2 hours', lat: 41.3833, lng: 2.1767, image: 'https://images.pexels.com/photos/1874675/pexels-photo-1874675.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'La Boqueria Market', type: 'Market', duration: '1 hour', lat: 41.3816, lng: 2.1719, image: 'https://images.pexels.com/photos/1655028/pexels-photo-1655028.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Barceloneta Beach', type: 'Beach', duration: '2 hours', lat: 41.3782, lng: 2.1925, image: 'https://images.pexels.com/photos/1388030/pexels-photo-1388030.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Camp Nou', type: 'Stadium', duration: '2 hours', lat: 41.3809, lng: 2.1228, image: 'https://images.pexels.com/photos/1874675/pexels-photo-1874675.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'London': [
+          { name: 'Big Ben', type: 'Landmark', duration: '30 min', lat: 51.5007, lng: -0.1246, image: 'https://images.pexels.com/photos/77171/pexels-photo-77171.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Tower Bridge', type: 'Landmark', duration: '1 hour', lat: 51.5055, lng: -0.0754, image: 'https://images.pexels.com/photos/672532/pexels-photo-672532.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'British Museum', type: 'Museum', duration: '3 hours', lat: 51.5194, lng: -0.1270, image: 'https://images.pexels.com/photos/2570063/pexels-photo-2570063.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Buckingham Palace', type: 'Landmark', duration: '1 hour', lat: 51.5014, lng: -0.1419, image: 'https://images.pexels.com/photos/460672/pexels-photo-460672.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'London Eye', type: 'Attraction', duration: '1 hour', lat: 51.5033, lng: -0.1195, image: 'https://images.pexels.com/photos/460672/pexels-photo-460672.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Tower of London', type: 'History', duration: '2.5 hours', lat: 51.5081, lng: -0.0759, image: 'https://images.pexels.com/photos/77171/pexels-photo-77171.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Westminster Abbey', type: 'Landmark', duration: '1.5 hours', lat: 51.4994, lng: -0.1273, image: 'https://images.pexels.com/photos/672532/pexels-photo-672532.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Covent Garden', type: 'Shopping', duration: '1.5 hours', lat: 51.5117, lng: -0.1240, image: 'https://images.pexels.com/photos/2570063/pexels-photo-2570063.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'New York': [
+          { name: 'Statue of Liberty', type: 'Landmark', duration: '3 hours', lat: 40.6892, lng: -74.0445, image: 'https://images.pexels.com/photos/64271/queen-of-liberty-statue-of-liberty-new-york-liberty-64271.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Empire State Building', type: 'Landmark', duration: '1.5 hours', lat: 40.7484, lng: -73.9857, image: 'https://images.pexels.com/photos/2190283/pexels-photo-2190283.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Central Park', type: 'Park', duration: '3 hours', lat: 40.7829, lng: -73.9654, image: 'https://images.pexels.com/photos/76969/cold-front-warm-front-central-park-background-76969.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Times Square', type: 'Square', duration: '1 hour', lat: 40.7580, lng: -73.9855, image: 'https://images.pexels.com/photos/802024/pexels-photo-802024.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Brooklyn Bridge', type: 'Landmark', duration: '1 hour', lat: 40.7061, lng: -73.9969, image: 'https://images.pexels.com/photos/1239162/pexels-photo-1239162.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Metropolitan Museum', type: 'Museum', duration: '3 hours', lat: 40.7794, lng: -73.9632, image: 'https://images.pexels.com/photos/2190283/pexels-photo-2190283.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: '9/11 Memorial', type: 'Memorial', duration: '1.5 hours', lat: 40.7115, lng: -74.0134, image: 'https://images.pexels.com/photos/802024/pexels-photo-802024.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'High Line', type: 'Park', duration: '1.5 hours', lat: 40.7480, lng: -74.0048, image: 'https://images.pexels.com/photos/1239162/pexels-photo-1239162.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ],
+        'Valencia': [
+          { name: 'City of Arts and Sciences', type: 'Landmark', duration: '3 hours', lat: 39.4541, lng: -0.3507, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'La Lonja de la Seda', type: 'History', duration: '1 hour', lat: 39.4743, lng: -0.3787, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Valencia Cathedral', type: 'Landmark', duration: '1 hour', lat: 39.4753, lng: -0.3754, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Central Market', type: 'Market', duration: '1.5 hours', lat: 39.4737, lng: -0.3791, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Turia Gardens', type: 'Park', duration: '2 hours', lat: 39.4800, lng: -0.3700, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Malvarrosa Beach', type: 'Beach', duration: '2 hours', lat: 39.4789, lng: -0.3225, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'Bioparc Valencia', type: 'Zoo', duration: '3 hours', lat: 39.4784, lng: -0.4074, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' },
+          { name: 'El Carmen Neighborhood', type: 'Neighborhood', duration: '2 hours', lat: 39.4795, lng: -0.3815, image: 'https://images.pexels.com/photos/3757144/pexels-photo-3757144.jpeg?auto=compress&cs=tinysrgb&w=300' }
+        ]
+      };
+      
+      // Get spots for this city or generate generic ones
+      const cityName = cityData.city;
+      let allSpots = REAL_CITY_SPOTS[cityName];
+      
+      if (!allSpots) {
+        // Generate generic spots for unknown cities
+        allSpots = Array.from({ length: 8 }, (_, j) => ({
+          name: `${cityName} Top Attraction ${j + 1}`,
+          type: ['Landmark', 'Museum', 'Restaurant', 'Park', 'Market', 'Neighborhood'][j % 6],
+          duration: `${1 + (j % 3)} hours`,
+          lat: cityData.lat + (Math.random() - 0.5) * 0.03,
+          lng: cityData.lng + (Math.random() - 0.5) * 0.03,
+          image: 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300'
+        }));
+      }
+      
+      // Distribute spots across days
+      const spotsPerDay = Math.ceil(allSpots.length / newTripDays);
+      const itinerary = Array.from({ length: newTripDays }, (_, dayIndex) => {
+        const daySpots = allSpots.slice(dayIndex * spotsPerDay, (dayIndex + 1) * spotsPerDay);
+        return {
+          day: dayIndex + 1,
+          title: ['Historic Center', 'Culture & Art', 'Local Life', 'Hidden Gems', 'Day Trip'][dayIndex % 5],
+          spots: daySpots.map((spot, spotIndex) => ({
+            ...spot,
+            walkTime: spotIndex === 0 ? null : `${8 + (spotIndex * 3)} min walk`
+          }))
+        };
+      });
+      
+      const realTrip = {
+        id: 'ai-' + Date.now(),
+        city: cityData.city,
+        country: cityData.country,
+        flag: cityData.flag,
+        title: `${newTripDays}-Day ${cityData.city} Trip`,
+        days: newTripDays,
+        center: [cityData.lat, cityData.lng],
+        image: allSpots[0]?.image || 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
+        itinerary: itinerary,
+        isAiGenerated: true
+      };
+      
+      setGeneratedTrip(realTrip);
       setAiGenerating(false);
       setScreen('tripResult');
     }
@@ -1071,7 +1412,7 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
               <span style={{ fontSize: '28px' }}>🧭</span>
               <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', fontWeight: '700', color: 'white', margin: 0 }}>TOURISTA</h1>
             </div>
-            <div onClick={handleLogout} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '600', cursor: 'pointer' }}>
+            <div onClick={() => setShowLogoutConfirm(true)} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '600', cursor: 'pointer' }}>
               {currentUser?.email?.charAt(0).toUpperCase()}
             </div>
           </div>
@@ -1134,6 +1475,21 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button onClick={() => setTripToDelete(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '2px solid #e0e0e0', background: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#666' }}>Cancel</button>
                 <button onClick={() => { setMyTrips(prev => prev.filter(t => t.id !== tripToDelete.id)); setTripToDelete(null); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef5350', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Logout Confirmation Modal */}
+        {showLogoutConfirm && (
+          <div onClick={() => setShowLogoutConfirm(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px', padding: '24px', margin: '20px', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
+              <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#f1f8e9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '28px' }}>👋</div>
+              <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: '#1b5e20' }}>Log Out?</h3>
+              <p style={{ margin: '0 0 20px', fontSize: '14px', color: '#666' }}>Are you sure you want to log out?</p>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => setShowLogoutConfirm(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '2px solid #e0e0e0', background: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#666', fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
+                <button onClick={() => { setShowLogoutConfirm(false); handleLogout(); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef5350', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Log Out</button>
               </div>
             </div>
           </div>
@@ -1209,8 +1565,10 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
                   { city: 'Tokyo', country: 'Japan', flag: '🇯🇵', lat: 35.6762, lng: 139.6503 },
                   { city: 'Rome', country: 'Italy', flag: '🇮🇹', lat: 41.9028, lng: 12.4964 },
                   { city: 'Istanbul', country: 'Turkey', flag: '🇹🇷', lat: 41.0082, lng: 28.9784 },
+                  { city: 'Vienna', country: 'Austria', flag: '🇦🇹', lat: 48.2082, lng: 16.3738 },
                   { city: 'Barcelona', country: 'Spain', flag: '🇪🇸', lat: 41.3851, lng: 2.1734 },
-                  { city: 'New York', country: 'USA', flag: '🇺🇸', lat: 40.7128, lng: -74.0060 }
+                  { city: 'London', country: 'UK', flag: '🇬🇧', lat: 51.5074, lng: -0.1278 },
+                  { city: 'Valencia', country: 'Spain', flag: '🇪🇸', lat: 39.4699, lng: -0.3763 }
                 ].map((city) => (
                   <button 
                     key={city.city} 
@@ -1391,10 +1749,393 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
               <button onClick={() => { setShowAiPlanOffer(false); generateAiTrip(); }} style={{ width: '100%', background: '#1b5e20', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontFamily: "'DM Sans', sans-serif" }}>
                 <span>✨</span> Yes, plan for me!
               </button>
-              <button onClick={() => { setShowAiPlanOffer(false); setScreen('home'); }} style={{ width: '100%', background: 'transparent', color: '#666', border: 'none', padding: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+              <button onClick={() => { setShowAiPlanOffer(false); setScreen('manualPlanner'); }} style={{ width: '100%', background: 'transparent', color: '#666', border: 'none', padding: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
                 No thanks, I'll plan myself
               </button>
             </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ============================================
+  // MANUAL PLANNER SCREEN
+  // ============================================
+  if (screen === 'manualPlanner' && newTripCityData) {
+    const categories = [
+      { id: 'all', label: 'All', icon: '🌟', query: 'tourist attractions' },
+      { id: 'restaurants', label: 'Restaurants', icon: '🍽️', query: 'restaurants' },
+      { id: 'cafes', label: 'Cafes', icon: '☕', query: 'cafes coffee shops' },
+      { id: 'bars', label: 'Bars', icon: '🍺', query: 'bars pubs' },
+      { id: 'clubs', label: 'Nightclubs', icon: '🎉', query: 'nightclubs dance clubs' },
+      { id: 'museums', label: 'Museums', icon: '🏛️', query: 'museums' },
+      { id: 'galleries', label: 'Art Galleries', icon: '🎨', query: 'art galleries' },
+      { id: 'landmarks', label: 'Landmarks', icon: '🏰', query: 'historical landmarks monuments' },
+      { id: 'parks', label: 'Parks', icon: '🌳', query: 'parks gardens' },
+      { id: 'beaches', label: 'Beaches', icon: '🏖️', query: 'beaches' },
+      { id: 'malls', label: 'Shopping Malls', icon: '🛍️', query: 'shopping malls' },
+      { id: 'markets', label: 'Markets', icon: '🏪', query: 'local markets bazaars' },
+      { id: 'boutiques', label: 'Boutiques', icon: '👗', query: 'boutique shops fashion' },
+      { id: 'theaters', label: 'Theaters', icon: '🎭', query: 'theaters opera houses' },
+      { id: 'concerts', label: 'Concert Halls', icon: '🎵', query: 'concert halls music venues' },
+      { id: 'cinemas', label: 'Cinemas', icon: '🎬', query: 'cinemas movie theaters' },
+      { id: 'spas', label: 'Spas', icon: '💆', query: 'spas wellness centers' },
+      { id: 'gyms', label: 'Gyms', icon: '🏋️', query: 'gyms fitness centers' },
+      { id: 'hotels', label: 'Hotels', icon: '🏨', query: 'hotels resorts' },
+      { id: 'temples', label: 'Temples', icon: '🛕', query: 'temples shrines mosques churches' },
+      { id: 'viewpoints', label: 'Viewpoints', icon: '🌄', query: 'viewpoints observation decks' },
+      { id: 'zoos', label: 'Zoos', icon: '🦁', query: 'zoos aquariums' },
+      { id: 'amusement', label: 'Theme Parks', icon: '🎢', query: 'amusement parks theme parks' },
+      { id: 'sports', label: 'Sports', icon: '⚽', query: 'stadiums sports venues' },
+      { id: 'libraries', label: 'Libraries', icon: '📚', query: 'libraries bookstores' },
+      { id: 'universities', label: 'Universities', icon: '🎓', query: 'universities campuses' },
+      { id: 'hospitals', label: 'Hospitals', icon: '🏥', query: 'hospitals clinics' },
+      { id: 'pharmacies', label: 'Pharmacies', icon: '💊', query: 'pharmacies' },
+      { id: 'banks', label: 'Banks', icon: '🏦', query: 'banks ATMs' },
+      { id: 'gas', label: 'Gas Stations', icon: '⛽', query: 'gas stations' },
+    ];
+
+    const searchByCategory = async (category) => {
+      setSelectedCategory(category.id);
+      setPlaceSearchQuery('');
+      setPlaceSearchLoading(true);
+      
+      try {
+        const response = await fetch(
+          `https://places.googleapis.com/v1/places:searchText`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+              'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.photos,places.primaryType,places.editorialSummary,places.currentOpeningHours,places.priceLevel'
+            },
+            body: JSON.stringify({
+              textQuery: `best ${category.query} in ${newTripCityData.city}`,
+              maxResultCount: 15,
+              locationBias: {
+                circle: {
+                  center: { latitude: newTripCityData.lat, longitude: newTripCityData.lng },
+                  radius: 20000.0
+                }
+              }
+            })
+          }
+        );
+        
+        const data = await response.json();
+        if (data.places) {
+          setPlaceSearchResults(data.places.map(place => ({
+            id: place.displayName?.text + '-' + Math.random(),
+            name: place.displayName?.text || 'Unknown Place',
+            type: place.primaryType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Place',
+            address: place.formattedAddress || '',
+            lat: place.location?.latitude || newTripCityData.lat,
+            lng: place.location?.longitude || newTripCityData.lng,
+            rating: place.rating || 0,
+            reviews: place.userRatingCount || 0,
+            image: place.photos?.[0]?.name ? getPlacePhotoUrl(place.photos[0].name) : 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
+            description: place.editorialSummary?.text || `Popular ${category.label.toLowerCase()} in ${newTripCityData.city}`,
+            isOpen: place.currentOpeningHours?.openNow,
+            priceLevel: place.priceLevel
+          })));
+        } else {
+          setPlaceSearchResults([]);
+        }
+      } catch (error) {
+        console.error('Category search error:', error);
+        setPlaceSearchResults([]);
+      }
+      setPlaceSearchLoading(false);
+    };
+
+    return (
+      <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif", paddingBottom: '100px' }}>
+        {/* Header */}
+        <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '16px 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <button onClick={() => { setScreen('newTripConfirm'); setManualSpots([]); setPlaceSearchQuery(''); setPlaceSearchResults([]); }} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '10px', padding: '8px 12px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
+            <h1 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: 0 }}>{newTripCityData.flag} {newTripCityData.city}</h1>
+            <div style={{ width: '40px' }} />
+          </div>
+          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', margin: 0, textAlign: 'center' }}>Build your perfect itinerary</p>
+        </div>
+
+        {/* Category Filters */}
+        <div style={{ background: 'white', padding: '12px 0', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '0 16px', scrollbarWidth: 'none' }}>
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => searchByCategory(cat)}
+                style={{
+                  background: selectedCategory === cat.id ? '#1b5e20' : '#f5f5f5',
+                  color: selectedCategory === cat.id ? 'white' : '#333',
+                  border: 'none',
+                  borderRadius: '20px',
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontFamily: "'DM Sans', sans-serif",
+                  flexShrink: 0
+                }}
+              >
+                <span>{cat.icon}</span> {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div style={{ padding: '12px 16px', background: 'white', borderTop: '1px solid #eee' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f5f5f5', borderRadius: '14px', padding: '4px 14px' }}>
+            <span style={{ fontSize: '18px', color: '#999' }}>🔍</span>
+            <input 
+              type="text" 
+              value={placeSearchQuery} 
+              onChange={(e) => {
+                setPlaceSearchQuery(e.target.value);
+                setSelectedCategory('all');
+                if (e.target.value.length >= 2) {
+                  searchPlacesForManual(e.target.value);
+                } else {
+                  setPlaceSearchResults([]);
+                }
+              }} 
+              placeholder={`Search places in ${newTripCityData.city}...`}
+              style={{ flex: 1, padding: '10px 0', border: 'none', background: 'transparent', fontSize: '14px', outline: 'none', fontFamily: "'DM Sans', sans-serif" }} 
+            />
+            {placeSearchQuery && (
+              <span onClick={() => { setPlaceSearchQuery(''); setPlaceSearchResults([]); }} style={{ fontSize: '16px', cursor: 'pointer', color: '#999' }}>✕</span>
+            )}
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+          {/* Loading */}
+          {placeSearchLoading && (
+            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔍</div>
+              <p style={{ color: '#689f38', fontSize: '14px', margin: 0 }}>Finding places...</p>
+            </div>
+          )}
+
+          {/* Results Grid */}
+          {!placeSearchLoading && placeSearchResults.length > 0 && (
+            <div style={{ padding: '16px' }}>
+              <p style={{ fontSize: '12px', color: '#999', margin: '0 0 12px' }}>{placeSearchResults.length} places found</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                {placeSearchResults.map((place, index) => {
+                  const isAdded = manualSpots.find(s => s.name === place.name);
+                  return (
+                    <div 
+                      key={index}
+                      onClick={() => setSelectedPlaceInfo(place)}
+                      style={{ 
+                        background: 'white', 
+                        borderRadius: '16px', 
+                        overflow: 'hidden',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        cursor: 'pointer',
+                        border: selectedPlaceInfo?.name === place.name ? '2px solid #2e7d32' : '2px solid transparent',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ paddingTop: '75%', position: 'relative' }}>
+                        <img src={place.image} alt={place.name} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                        {place.isOpen !== undefined && (
+                          <div style={{ 
+                            position: 'absolute', 
+                            top: '8px', 
+                            left: '8px', 
+                            background: place.isOpen ? '#4caf50' : '#ef5350', 
+                            color: 'white', 
+                            padding: '2px 8px', 
+                            borderRadius: '10px', 
+                            fontSize: '10px', 
+                            fontWeight: '600' 
+                          }}>
+                            {place.isOpen ? 'Open' : 'Closed'}
+                          </div>
+                        )}
+                        {isAdded && (
+                          <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#2e7d32', color: 'white', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>✓</div>
+                        )}
+                      </div>
+                      <div style={{ padding: '10px' }}>
+                        <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.name}</p>
+                        <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#999' }}>{place.type}</p>
+                        {place.rating > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                            <span style={{ color: '#ffc107', fontSize: '12px' }}>★</span>
+                            <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>{place.rating.toFixed(1)}</span>
+                            <span style={{ fontSize: '10px', color: '#999' }}>({place.reviews})</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!placeSearchLoading && placeSearchResults.length === 0 && (
+            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗺️</div>
+              <p style={{ color: '#1b5e20', fontSize: '16px', fontWeight: '600', margin: '0 0 8px' }}>Explore {newTripCityData.city}</p>
+              <p style={{ color: '#999', fontSize: '13px', margin: 0 }}>Select a category above or search for places</p>
+            </div>
+          )}
+        </div>
+
+        {/* Place Info Panel (Bottom Sheet) */}
+        {selectedPlaceInfo && (
+          <div 
+            onClick={() => setSelectedPlaceInfo(null)}
+            style={{ 
+              position: 'fixed', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0, 
+              background: 'rgba(0,0,0,0.5)', 
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'flex-end'
+            }}
+          >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              style={{ 
+                background: 'white', 
+                borderRadius: '24px 24px 0 0', 
+                width: '100%',
+                maxHeight: '70vh',
+                overflow: 'auto'
+              }}
+            >
+              {/* Image Header */}
+              <div style={{ height: '180px', position: 'relative' }}>
+                <img src={selectedPlaceInfo.image} alt={selectedPlaceInfo.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <button 
+                  onClick={() => setSelectedPlaceInfo(null)}
+                  style={{ position: 'absolute', top: '12px', right: '12px', background: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
+                >✕</button>
+                {selectedPlaceInfo.isOpen !== undefined && (
+                  <div style={{ 
+                    position: 'absolute', 
+                    bottom: '12px', 
+                    left: '12px', 
+                    background: selectedPlaceInfo.isOpen ? '#4caf50' : '#ef5350', 
+                    color: 'white', 
+                    padding: '6px 14px', 
+                    borderRadius: '20px', 
+                    fontSize: '12px', 
+                    fontWeight: '600' 
+                  }}>
+                    {selectedPlaceInfo.isOpen ? '🟢 Open Now' : '🔴 Closed'}
+                  </div>
+                )}
+              </div>
+
+              {/* Info Content */}
+              <div style={{ padding: '20px' }}>
+                <h2 style={{ margin: '0 0 8px', fontSize: '22px', fontWeight: '700', color: '#1b5e20' }}>{selectedPlaceInfo.name}</h2>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <span style={{ background: '#f1f8e9', color: '#2e7d32', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '500' }}>{selectedPlaceInfo.type}</span>
+                  {selectedPlaceInfo.priceLevel && (
+                    <span style={{ color: '#666', fontSize: '13px' }}>{'💵'.repeat(selectedPlaceInfo.priceLevel)}</span>
+                  )}
+                </div>
+
+                {selectedPlaceInfo.rating > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <span style={{ color: '#ffc107', fontSize: '18px' }}>★</span>
+                    <span style={{ fontSize: '16px', fontWeight: '700', color: '#333' }}>{selectedPlaceInfo.rating.toFixed(1)}</span>
+                    <span style={{ fontSize: '14px', color: '#999' }}>({selectedPlaceInfo.reviews.toLocaleString()} reviews)</span>
+                  </div>
+                )}
+
+                <p style={{ fontSize: '14px', color: '#666', lineHeight: '1.6', margin: '0 0 16px' }}>
+                  {selectedPlaceInfo.description}
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: '#f5f5f5', borderRadius: '12px', marginBottom: '20px' }}>
+                  <span style={{ fontSize: '16px' }}>📍</span>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#666', flex: 1 }}>{selectedPlaceInfo.address}</p>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button 
+                    onClick={() => openGoogleMaps(selectedPlaceInfo.name, newTripCityData.city)}
+                    style={{ flex: 1, background: 'white', border: '2px solid #e0e0e0', borderRadius: '14px', padding: '14px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    🗺️ Directions
+                  </button>
+                  <button 
+                    onClick={() => {
+                      addSpotToTrip(selectedPlaceInfo);
+                      setSelectedPlaceInfo(null);
+                    }}
+                    disabled={manualSpots.find(s => s.name === selectedPlaceInfo.name)}
+                    style={{ 
+                      flex: 1, 
+                      background: manualSpots.find(s => s.name === selectedPlaceInfo.name) ? '#c8e6c9' : 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', 
+                      border: 'none', 
+                      borderRadius: '14px', 
+                      padding: '14px', 
+                      fontSize: '14px', 
+                      fontWeight: '600', 
+                      color: 'white', 
+                      cursor: manualSpots.find(s => s.name === selectedPlaceInfo.name) ? 'default' : 'pointer', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '8px', 
+                      fontFamily: "'DM Sans', sans-serif" 
+                    }}
+                  >
+                    {manualSpots.find(s => s.name === selectedPlaceInfo.name) ? '✓ Added' : '+ Add to Trip'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* My Itinerary Footer */}
+        {manualSpots.length > 0 && (
+          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'white', boxShadow: '0 -4px 20px rgba(0,0,0,0.1)', padding: '16px 20px', zIndex: 999 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', marginLeft: '-8px' }}>
+                {manualSpots.slice(0, 4).map((spot, i) => (
+                  <div key={i} style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', border: '2px solid white', marginLeft: '-8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                    <img src={spot.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ))}
+                {manualSpots.length > 4 && (
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#e8f5e9', border: '2px solid white', marginLeft: '-8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '600', color: '#2e7d32' }}>+{manualSpots.length - 4}</div>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20' }}>{manualSpots.length} places added</p>
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#999' }}>Tap to review your itinerary</p>
+              </div>
+            </div>
+            <button onClick={saveManualTrip} style={{ width: '100%', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', padding: '14px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+              💾 Save Trip
+            </button>
           </div>
         )}
       </div>
@@ -1435,7 +2176,7 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
         </div>
 
         {/* Map */}
-        <div onClick={() => { setMapExpanded(!mapExpanded); setTimeout(() => window.dispatchEvent(new Event('resize')), 350); }} style={{ height: mapExpanded ? '50vh' : '200px', margin: '14px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', transition: 'height 0.3s ease', cursor: 'pointer' }}>
+        <div style={{ height: mapExpanded ? '50vh' : '200px', margin: '14px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', transition: 'height 0.3s ease', position: 'relative' }}>
           <TripMap 
             guide={generatedTrip} 
             selectedDay={showAllDaysOnMap ? null : selectedDay} 
@@ -1449,6 +2190,33 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
             }} 
             expanded={mapExpanded} 
           />
+          {/* Map expand/shrink button */}
+          <button 
+            onClick={() => { setMapExpanded(!mapExpanded); setTimeout(() => window.dispatchEvent(new Event('resize')), 350); }} 
+            style={{ 
+              position: 'absolute', 
+              bottom: '12px', 
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'white', 
+              border: 'none', 
+              borderRadius: '20px', 
+              padding: '10px 32px', 
+              boxShadow: '0 2px 12px rgba(0,0,0,0.2)', 
+              cursor: 'pointer', 
+              fontSize: '13px', 
+              fontWeight: '600', 
+              color: '#1b5e20',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              minWidth: '140px'
+            }}
+          >
+            {mapExpanded ? '↓ Shrink Map' : '↑ Expand Map'}
+          </button>
         </div>
 
         {/* Trip Info */}
@@ -1593,6 +2361,9 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
   // ============================================
   if (screen === 'guideDetail' && selectedGuide) {
     const currentDay = selectedGuide.itinerary.find(d => d.day === selectedDay) || selectedGuide.itinerary[0];
+    // Paywall for AI generated trips (Day 2+ locked)
+    const isAiTrip = selectedGuide.isAiGenerated === true;
+    const isLockedDay = isAiTrip && !isPremiumUser && selectedGuide.days > 1 && selectedDay > 1;
 
     return (
       <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif" }}>
@@ -1606,13 +2377,36 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
         </div>
 
         {/* Map */}
-        <div onClick={() => { setMapExpanded(!mapExpanded); setTimeout(() => window.dispatchEvent(new Event('resize')), 350); }} style={{ height: mapExpanded ? '50vh' : '250px', margin: '16px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', transition: 'height 0.3s ease', cursor: 'pointer' }}>
+        <div style={{ height: mapExpanded ? '50vh' : '250px', margin: '16px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', transition: 'height 0.3s ease', position: 'relative' }}>
           <TripMap guide={selectedGuide} selectedDay={showAllDaysOnMap ? null : selectedDay} onSpotClick={(day) => { setSelectedDay(day); setShowAllDaysOnMap(false); }} expanded={mapExpanded} />
+          {/* Map expand/shrink button */}
+          <button 
+            onClick={() => { setMapExpanded(!mapExpanded); setTimeout(() => window.dispatchEvent(new Event('resize')), 350); }} 
+            style={{ 
+              position: 'absolute', 
+              bottom: '12px', 
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'white', 
+              border: 'none', 
+              borderRadius: '20px', 
+              padding: '10px 32px', 
+              boxShadow: '0 2px 12px rgba(0,0,0,0.2)', 
+              cursor: 'pointer', 
+              fontSize: '13px', 
+              fontWeight: '600', 
+              color: '#1b5e20',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              minWidth: '140px'
+            }}
+          >
+            {mapExpanded ? '↓ Shrink Map' : '↑ Expand Map'}
+          </button>
         </div>
-
-        <p style={{ textAlign: 'center', fontSize: '11px', color: '#999', margin: '-8px 0 8px' }}>
-          {mapExpanded ? '📍 Click map to shrink' : '📍 Click map to expand'}
-        </p>
 
         {/* Day Legend */}
         <div style={{ padding: '0 16px 8px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1639,11 +2433,37 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
 
         {/* Day Tabs */}
         <div style={{ display: 'flex', gap: '8px', padding: '8px 16px 16px', overflowX: 'auto' }}>
-          {selectedGuide.itinerary.map((day, index) => (
-            <button key={day.day} onClick={() => { setSelectedDay(day.day); setShowAllDaysOnMap(false); }} style={{ background: selectedDay === day.day ? DAY_COLORS[index % DAY_COLORS.length] : 'white', color: selectedDay === day.day ? 'white' : '#333', border: selectedDay === day.day ? 'none' : '2px solid #e0e0e0', padding: '10px 20px', borderRadius: '20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: "'DM Sans', sans-serif" }}>
-              Day {day.day}
-            </button>
-          ))}
+          {selectedGuide.itinerary.map((day, index) => {
+            const dayLocked = isAiTrip && !isPremiumUser && selectedGuide.days > 1 && day.day > 1;
+            return (
+              <button 
+                key={day.day} 
+                onClick={() => { 
+                  if (dayLocked) {
+                    setShowSubscriptionModal(true);
+                  } else {
+                    setSelectedDay(day.day); 
+                    setShowAllDaysOnMap(false); 
+                  }
+                }} 
+                style={{ 
+                  background: selectedDay === day.day ? DAY_COLORS[index % DAY_COLORS.length] : 'white', 
+                  color: selectedDay === day.day ? 'white' : '#333', 
+                  border: selectedDay === day.day ? 'none' : '2px solid #e0e0e0', 
+                  padding: '10px 20px', 
+                  borderRadius: '20px', 
+                  fontSize: '14px', 
+                  fontWeight: '600', 
+                  cursor: 'pointer', 
+                  whiteSpace: 'nowrap', 
+                  fontFamily: "'DM Sans', sans-serif",
+                  opacity: dayLocked ? 0.7 : 1
+                }}
+              >
+                Day {day.day} {dayLocked && '🔒'}
+              </button>
+            );
+          })}
         </div>
 
         {/* Day Title */}
@@ -1655,27 +2475,82 @@ Use REAL places with accurate GPS coordinates. Include 4-5 spots per day.`
         <div style={{ padding: '0 16px 100px' }}>
           {currentDay.spots.map((spot, index) => (
             <div key={index}>
-              <div onClick={() => setSelectedSpot({ ...spot, city: selectedGuide.city })} style={{ background: 'white', borderRadius: '14px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', cursor: 'pointer' }}>
+              <div onClick={() => !isLockedDay && setSelectedSpot({ ...spot, city: selectedGuide.city })} style={{ background: 'white', borderRadius: '14px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', cursor: isLockedDay ? 'default' : 'pointer', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
                 <div style={{ width: '55px', height: '55px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
-                  <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isLockedDay ? 'blur(4px)' : 'none' }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38', background: '#f1f8e9', display: 'inline-block', padding: '2px 8px', borderRadius: '10px' }}>{spot.type}</p>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', filter: isLockedDay ? 'blur(4px)' : 'none' }}>{spot.name}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38', background: '#f1f8e9', display: 'inline-block', padding: '2px 8px', borderRadius: '10px', filter: isLockedDay ? 'blur(4px)' : 'none' }}>{spot.type}</p>
                   <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#9e9e9e' }}>⏱️ {spot.duration}</p>
                 </div>
+                {isLockedDay && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '24px' }}>🔒</span>
+                  </div>
+                )}
               </div>
               {index < currentDay.spots.length - 1 && currentDay.spots[index + 1].walkTime && (
                 <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0 8px 14px', gap: '8px' }}>
                   <div style={{ width: '2px', height: '24px', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length] + '40', marginLeft: '13px' }} />
-                  <span style={{ fontSize: '11px', color: '#9e9e9e' }}>🚶 {currentDay.spots[index + 1].walkTime}</span>
-                  <button onClick={() => openGoogleMaps(currentDay.spots[index + 1].name, selectedGuide.city)} style={{ background: '#e8f5e9', border: 'none', borderRadius: '12px', padding: '4px 10px', fontSize: '10px', color: '#2e7d32', cursor: 'pointer', fontWeight: '600', fontFamily: "'DM Sans', sans-serif" }}>📍 Directions</button>
+                  <span style={{ fontSize: '11px', color: '#9e9e9e', filter: isLockedDay ? 'blur(3px)' : 'none' }}>🚶 {currentDay.spots[index + 1].walkTime}</span>
+                  {!isLockedDay && <button onClick={() => openGoogleMaps(currentDay.spots[index + 1].name, selectedGuide.city)} style={{ background: '#e8f5e9', border: 'none', borderRadius: '12px', padding: '4px 10px', fontSize: '10px', color: '#2e7d32', cursor: 'pointer', fontWeight: '600', fontFamily: "'DM Sans', sans-serif" }}>📍 Directions</button>}
                 </div>
               )}
             </div>
           ))}
+          
+          {/* Paywall Card for AI trips */}
+          {isLockedDay && (
+            <div style={{ background: 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)', borderRadius: '18px', padding: '22px', marginTop: '14px', textAlign: 'center' }}>
+              <span style={{ fontSize: '36px' }}>🔓</span>
+              <h3 style={{ margin: '10px 0 6px', color: '#1b5e20', fontSize: '17px' }}>Unlock Full Plan</h3>
+              <p style={{ margin: '0 0 14px', color: '#689f38', fontSize: '13px' }}>Get access to all {selectedGuide.days} days</p>
+              <div style={{ background: 'white', borderRadius: '10px', padding: '10px', marginBottom: '14px' }}>
+                <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>✓ 7-day free trial</p>
+                <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#666' }}>✓ $4.99/mo or $3.74/mo annual</p>
+              </div>
+              <button onClick={() => setShowSubscriptionModal(true)} style={{ width: '100%', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                Start Free Trial
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Subscription Modal */}
+        {showSubscriptionModal && (
+          <div onClick={() => setShowSubscriptionModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '24px', padding: '28px 22px', margin: '20px', maxWidth: '340px', width: '100%', textAlign: 'center' }}>
+              <span style={{ fontSize: '44px' }}>✨</span>
+              <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#1b5e20', margin: '14px 0 6px' }}>Unlock Premium</h2>
+              <p style={{ fontSize: '13px', color: '#666', margin: '0 0 20px' }}>Start your 7-day free trial</p>
+              <div style={{ border: '2px solid #e0e0e0', borderRadius: '14px', padding: '14px', marginBottom: '10px', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ margin: 0, fontWeight: '600', color: '#333', fontSize: '14px' }}>Monthly</p>
+                    <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#999' }}>Cancel anytime</p>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1b5e20' }}>$4.99<span style={{ fontSize: '12px', fontWeight: '400' }}>/mo</span></p>
+                </div>
+              </div>
+              <div style={{ border: '2px solid #4caf50', borderRadius: '14px', padding: '14px', marginBottom: '20px', cursor: 'pointer', background: '#f1f8e9', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '-10px', right: '14px', background: '#4caf50', color: 'white', padding: '3px 10px', borderRadius: '8px', fontSize: '10px', fontWeight: '600' }}>SAVE 25%</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ margin: 0, fontWeight: '600', color: '#333', fontSize: '14px' }}>Annual</p>
+                    <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#999' }}>Best value</p>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1b5e20' }}>$3.74<span style={{ fontSize: '12px', fontWeight: '400' }}>/mo</span></p>
+                </div>
+              </div>
+              <button style={{ width: '100%', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                Start 7-Day Free Trial
+              </button>
+              <p style={{ margin: '12px 0 0', fontSize: '11px', color: '#999' }}>Cancel anytime. No commitment.</p>
+            </div>
+          </div>
+        )}
 
         {/* Spot Detail Modal */}
         {selectedSpot && (
