@@ -974,13 +974,13 @@ function App() {
     { id: 'first_review', name: 'İlk Adım', icon: '🎯', description: 'İlk yorumunu yap', requirement: 1, type: 'reviews' },
     { id: 'reviewer_10', name: 'Yorumcu', icon: '✍️', description: '10 yorum yap', requirement: 10, type: 'reviews' },
     { id: 'reviewer_50', name: 'Eleştirmen', icon: '📝', description: '50 yorum yap', requirement: 50, type: 'reviews' },
-    { id: 'cities_5', name: 'Gezgin', icon: '🌍', description: '5 farklı şehirde yorum yap', requirement: 5, type: 'cities' },
-    { id: 'cities_10', name: 'Dünya Vatandaşı', icon: '✈️', description: '10 farklı şehirde yorum yap', requirement: 10, type: 'cities' },
-    { id: 'restaurants_10', name: 'Gurme', icon: '🍽️', description: '10 restoran yorumu', requirement: 10, type: 'restaurant' },
-    { id: 'museums_10', name: 'Kültür Sever', icon: '🏛️', description: '10 müze yorumu', requirement: 10, type: 'museum' },
-    { id: 'nightlife_10', name: 'Gece Kuşu', icon: '🦉', description: '10 gece mekanı yorumu', requirement: 10, type: 'nightlife' },
-    { id: 'helpful_10', name: 'Yardımsever', icon: '👍', description: '10 kez beğenilen yorum', requirement: 10, type: 'likes' },
-    { id: 'streak_7', name: 'Kararlı', icon: '🔥', description: '7 gün üst üste yorum', requirement: 7, type: 'streak' }
+    { id: 'first_trip', name: 'Planlayıcı', icon: '🗓️', description: 'İlk seyahatini oluştur', requirement: 1, type: 'trips' },
+    { id: 'trips_5', name: 'Seyahat Tutkunu', icon: '✈️', description: '5 seyahat oluştur', requirement: 5, type: 'trips' },
+    { id: 'trips_10', name: 'Dünya Gezgini', icon: '🌍', description: '10 seyahat oluştur', requirement: 10, type: 'trips' },
+    { id: 'daily_login', name: 'Sadık Gezgin', icon: '📅', description: '7 gün üst üste giriş yap', requirement: 7, type: 'streak' },
+    { id: 'profile_complete', name: 'Tanıtım', icon: '👤', description: 'Profilini tamamla', requirement: 1, type: 'profile' },
+    { id: 'first_save', name: 'Koleksiyoncu', icon: '🔖', description: 'İlk seyahatini kaydet', requirement: 1, type: 'saves' },
+    { id: 'explorer', name: 'Kaşif', icon: '🧭', description: '3 farklı şehirde trip oluştur', requirement: 3, type: 'cities' }
   ];
 
   // Get user's current level
@@ -1124,12 +1124,58 @@ function App() {
         alert('Error saving: ' + error.message);
       } else {
         console.log('Trip saved successfully:', data);
+        
+        // Check for trip-related badges
+        const tripCount = myTrips.length + 1;
+        const currentBadges = [...userBadges];
+        const newBadges = [];
+        
+        // First trip badge
+        if (tripCount === 1 && !currentBadges.includes('first_trip')) {
+          newBadges.push('first_trip');
+        }
+        // First save badge
+        if (!currentBadges.includes('first_save')) {
+          newBadges.push('first_save');
+        }
+        // 5 trips badge
+        if (tripCount >= 5 && !currentBadges.includes('trips_5')) {
+          newBadges.push('trips_5');
+        }
+        // 10 trips badge
+        if (tripCount >= 10 && !currentBadges.includes('trips_10')) {
+          newBadges.push('trips_10');
+        }
+        
+        // Check for explorer badge (3 different cities)
+        const allCities = [...myTrips, trip].map(t => t.city);
+        const uniqueCities = [...new Set(allCities)];
+        if (uniqueCities.length >= 3 && !currentBadges.includes('explorer')) {
+          newBadges.push('explorer');
+        }
+        
+        // Award badges
+        if (newBadges.length > 0) {
+          const allBadges = [...currentBadges, ...newBadges];
+          setUserBadges(allBadges);
+          localStorage.setItem('tourista_badges', JSON.stringify(allBadges));
+          
+          // Award 100 points for each badge
+          for (const badgeId of newBadges) {
+            await addPoints(100, `Badge earned: ${badgeId}`);
+          }
+        }
+        
+        // Award points for first 5 saved trips
+        if (tripCount <= 5) {
+          await addPoints(25, 'Trip saved');
+        }
       }
     } catch (err) {
       console.error('Error saving trip:', err);
       alert('Error: ' + err.message);
     }
-  }, [currentUser]);
+  }, [currentUser, myTrips, userBadges, addPoints]);
 
   // Delete trip from Supabase
   const deleteTripFromSupabase = useCallback(async (tripId) => {
@@ -1279,13 +1325,51 @@ function App() {
     await updateUserProfile({ display_name: name });
   }, [updateUserProfile]);
 
+  // Check and award badges
+  const checkAndAwardBadges = async (reviewCount) => {
+    const newBadges = [];
+    
+    // Check review-based badges
+    if (reviewCount >= 1 && !userBadges.includes('first_review')) {
+      newBadges.push('first_review');
+    }
+    if (reviewCount >= 10 && !userBadges.includes('reviewer_10')) {
+      newBadges.push('reviewer_10');
+    }
+    if (reviewCount >= 50 && !userBadges.includes('reviewer_50')) {
+      newBadges.push('reviewer_50');
+    }
+    
+    // Award new badges
+    if (newBadges.length > 0) {
+      setUserBadges(prev => [...prev, ...newBadges]);
+      // Save badges to localStorage
+      localStorage.setItem('tourista_badges', JSON.stringify([...userBadges, ...newBadges]));
+      // Award points for each badge
+      for (const badgeId of newBadges) {
+        const badge = BADGES.find(b => b.id === badgeId);
+        if (badge) {
+          await addPoints(100, `Badge earned: ${badge.name}`);
+        }
+      }
+    }
+    
+    return newBadges;
+  };
+
   // Submit review for a place
   const submitReview = async (spotName, rating, reviewText) => {
     if (!currentUser || rating === 0) return;
     
     setReviewSubmitting(true);
     try {
-      // Save review to Supabase (you'll need to create reviews table)
+      // Check how many reviews user has made (for points limit)
+      const { count: reviewCount } = await supabase
+        .from('place_reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', currentUser.id);
+      
+      // Save review to Supabase
       const { error } = await supabase
         .from('place_reviews')
         .insert({
@@ -1297,8 +1381,19 @@ function App() {
         });
       
       if (!error) {
-        // Add points for review
-        await addPoints(50, 'Review submitted');
+        const newReviewCount = (reviewCount || 0) + 1;
+        
+        // Only give points for first 10 reviews
+        if (newReviewCount <= 10) {
+          await addPoints(50, 'Review submitted');
+        }
+        
+        // Update local review count
+        setUserReviews(prev => [...prev, { place_name: spotName, rating, review_text: reviewText }]);
+        
+        // Check for badges
+        await checkAndAwardBadges(newReviewCount);
+        
         setReviewSubmitted(true);
         setTimeout(() => {
           setReviewSubmitted(false);
@@ -1343,6 +1438,56 @@ function App() {
     setPlaceReviews([]);
     setShowReviews(false);
   }, [selectedSpot]);
+
+  // Load user reviews and badges on login
+  useEffect(() => {
+    const loadUserReviewsAndBadges = async () => {
+      if (!currentUser) return;
+      
+      try {
+        // Load user's reviews
+        const { data: reviews, error } = await supabase
+          .from('place_reviews')
+          .select('*')
+          .eq('user_id', currentUser.id);
+        
+        if (!error && reviews) {
+          setUserReviews(reviews);
+          
+          // Load badges from localStorage
+          const savedBadges = localStorage.getItem('tourista_badges');
+          if (savedBadges) {
+            setUserBadges(JSON.parse(savedBadges));
+          }
+          
+          // Check if any badges should be awarded based on review count
+          const reviewCount = reviews.length;
+          const currentBadges = savedBadges ? JSON.parse(savedBadges) : [];
+          const newBadges = [];
+          
+          if (reviewCount >= 1 && !currentBadges.includes('first_review')) {
+            newBadges.push('first_review');
+          }
+          if (reviewCount >= 10 && !currentBadges.includes('reviewer_10')) {
+            newBadges.push('reviewer_10');
+          }
+          if (reviewCount >= 50 && !currentBadges.includes('reviewer_50')) {
+            newBadges.push('reviewer_50');
+          }
+          
+          if (newBadges.length > 0) {
+            const allBadges = [...currentBadges, ...newBadges];
+            setUserBadges(allBadges);
+            localStorage.setItem('tourista_badges', JSON.stringify(allBadges));
+          }
+        }
+      } catch (err) {
+        console.error('Error loading user reviews:', err);
+      }
+    };
+    
+    loadUserReviewsAndBadges();
+  }, [currentUser]);
 
   // Load trips when user changes
   useEffect(() => {
@@ -3342,9 +3487,9 @@ function App() {
                   } 
                 }} 
                 style={{ 
-                  background: selectedDay === day.day ? DAY_COLORS[index % DAY_COLORS.length] : 'white', 
-                  color: selectedDay === day.day ? 'white' : dayLocked ? '#ccc' : '#333', 
-                  border: selectedDay === day.day ? 'none' : '2px solid #e0e0e0', 
+                  background: selectedDay === day.day ? DAY_COLORS[index % DAY_COLORS.length] : theme.backgroundCard, 
+                  color: selectedDay === day.day ? 'white' : dayLocked ? theme.textMuted : theme.text, 
+                  border: selectedDay === day.day ? 'none' : `2px solid ${theme.border}`, 
                   padding: '9px 18px', 
                   borderRadius: '18px', 
                   fontSize: '13px', 
@@ -3365,22 +3510,22 @@ function App() {
 
         {/* Spots List */}
         <div style={{ padding: '0 14px' }}>
-          <h3 style={{ margin: '0 0 10px', fontSize: '15px', color: '#1b5e20' }}>{currentDay?.title}</h3>
+          <h3 style={{ margin: '0 0 10px', fontSize: '15px', color: theme.primary }}>{currentDay?.title}</h3>
 
           {currentDay?.spots.map((spot, index) => (
             <div key={index} style={{ marginBottom: '6px' }}>
-              <div style={{ background: 'white', borderRadius: '12px', padding: '11px', display: 'flex', gap: '10px', alignItems: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ background: theme.backgroundCard, borderRadius: '12px', padding: '11px', display: 'flex', gap: '10px', alignItems: 'center', boxShadow: settings.darkMode ? 'none' : '0 2px 6px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
-                <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0, background: '#e8f5e9' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0, background: settings.darkMode ? theme.backgroundHover : '#e8f5e9' }}>
                   <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isLocked ? 'blur(3px)' : 'none' }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', filter: isLocked ? 'blur(4px)' : 'none' }}>{spot.name}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#689f38', filter: isLocked ? 'blur(3px)' : 'none' }}>{spot.type}</p>
-                  <p style={{ margin: '3px 0 0', fontSize: '10px', color: '#9e9e9e' }}>⏱️ {spot.duration}</p>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: theme.primary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', filter: isLocked ? 'blur(4px)' : 'none' }}>{spot.name}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: theme.textMuted, filter: isLocked ? 'blur(3px)' : 'none' }}>{spot.type}</p>
+                  <p style={{ margin: '3px 0 0', fontSize: '10px', color: theme.textMuted }}>⏱️ {spot.duration}</p>
                 </div>
                 {isLocked && (
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: settings.darkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ fontSize: '22px' }}>🔒</span>
                   </div>
                 )}
@@ -3395,14 +3540,14 @@ function App() {
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', filter: isLocked ? 'blur(3px)' : 'none' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          <span style={{ fontSize: '10px', color: '#666' }}>🚶 {walkTime} min</span>
-                          <span style={{ fontSize: '9px', color: '#ccc' }}>•</span>
-                          <span style={{ fontSize: '10px', color: '#666' }}>🚇 ~{Math.max(3, Math.round(walkTime / 3))} min</span>
-                          <span style={{ fontSize: '9px', color: '#ccc' }}>•</span>
-                          <span style={{ fontSize: '10px', color: '#999' }}>{formatDistance(distance)}</span>
+                          <span style={{ fontSize: '10px', color: theme.textSecondary }}>🚶 {walkTime} min</span>
+                          <span style={{ fontSize: '9px', color: theme.textMuted }}>•</span>
+                          <span style={{ fontSize: '10px', color: theme.textSecondary }}>🚇 ~{Math.max(3, Math.round(walkTime / 3))} min</span>
+                          <span style={{ fontSize: '9px', color: theme.textMuted }}>•</span>
+                          <span style={{ fontSize: '10px', color: theme.textMuted }}>{formatDistance(distance)}</span>
                         </div>
                         {!isLocked && (
-                          <button onClick={(e) => { e.stopPropagation(); openDirections(spot, nextSpot); }} style={{ background: '#e8f5e9', border: 'none', borderRadius: '8px', padding: '4px 8px', fontSize: '9px', color: '#2e7d32', cursor: 'pointer', fontWeight: '600', fontFamily: "'DM Sans', sans-serif", alignSelf: 'flex-start' }}>🗺️ Directions</button>
+                          <button onClick={(e) => { e.stopPropagation(); openDirections(spot, nextSpot); }} style={{ background: settings.darkMode ? theme.backgroundHover : '#e8f5e9', border: 'none', borderRadius: '8px', padding: '4px 8px', fontSize: '9px', color: theme.primary, cursor: 'pointer', fontWeight: '600', fontFamily: "'DM Sans', sans-serif", alignSelf: 'flex-start' }}>🗺️ Directions</button>
                         )}
                       </div>
                     );
@@ -3751,8 +3896,17 @@ function App() {
                   <div style={{ textAlign: 'center', padding: '20px' }}>
                     <span style={{ fontSize: '40px' }}>🎉</span>
                     <p style={{ color: theme.primary, fontWeight: '600', margin: '12px 0 0' }}>
-                      {settings.language === 'tr' ? 'Teşekkürler! +50 puan kazandın!' : 'Thanks! You earned +50 points!'}
+                      {userReviews.length <= 10 
+                        ? (settings.language === 'tr' ? 'Teşekkürler! +50 puan kazandın!' : 'Thanks! You earned +50 points!')
+                        : (settings.language === 'tr' ? 'Teşekkürler! Yorumun kaydedildi.' : 'Thanks! Your review was saved.')}
                     </p>
+                    {userReviews.length <= 10 && (
+                      <p style={{ color: theme.textMuted, fontSize: '11px', margin: '6px 0 0' }}>
+                        {settings.language === 'tr' 
+                          ? `${10 - userReviews.length} yorum daha puan kazandırır` 
+                          : `${10 - userReviews.length} more reviews earn points`}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -3821,7 +3975,11 @@ function App() {
                         opacity: userRating === 0 ? 0.5 : 1
                       }}
                     >
-                      {reviewSubmitting ? '...' : (settings.language === 'tr' ? 'Gönder (+50 puan)' : 'Submit (+50 points)')}
+                      {reviewSubmitting ? '...' : (
+                        userReviews.length < 10 
+                          ? (settings.language === 'tr' ? 'Gönder (+50 puan)' : 'Submit (+50 points)')
+                          : (settings.language === 'tr' ? 'Gönder' : 'Submit')
+                      )}
                     </button>
                   </>
                 )}
