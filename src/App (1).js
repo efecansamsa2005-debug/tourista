@@ -839,21 +839,32 @@ function App() {
 
   // Save trip to Supabase
   const saveTripToSupabase = useCallback(async (trip) => {
-    if (!currentUser) return;
+    console.log('Saving trip, currentUser:', currentUser);
+    
+    if (!currentUser) {
+      console.error('No user logged in, cannot save trip');
+      return;
+    }
     
     try {
-      const { error } = await supabase
+      console.log('Inserting trip for user:', currentUser.id);
+      const { data, error } = await supabase
         .from('trips')
         .insert({
           user_id: currentUser.id,
           trip_data: trip
-        });
+        })
+        .select();
       
       if (error) {
-        console.error('Error saving trip:', error);
+        console.error('Supabase error saving trip:', error);
+        alert('Error saving: ' + error.message);
+      } else {
+        console.log('Trip saved successfully:', data);
       }
     } catch (err) {
       console.error('Error saving trip:', err);
+      alert('Error: ' + err.message);
     }
   }, [currentUser]);
 
