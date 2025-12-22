@@ -1036,6 +1036,53 @@ function App() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
   };
 
+  // Open directions between two spots
+  const openDirections = (fromSpot, toSpot) => {
+    const origin = `${fromSpot.lat},${fromSpot.lng}`;
+    const dest = `${toSpot.lat},${toSpot.lng}`;
+    window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=transit`, '_blank');
+  };
+
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1, lng1, lat2, lng2) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in km
+  };
+
+  // Estimate walking time (average 5 km/h)
+  const estimateWalkTime = (distanceKm) => {
+    const minutes = Math.round(distanceKm / 5 * 60);
+    return minutes;
+  };
+
+  // Format distance based on user locale
+  const formatDistance = (km) => {
+    // Could detect locale, for now show both
+    if (km < 1) {
+      return `${Math.round(km * 1000)}m`;
+    }
+    return `${km.toFixed(1)}km`;
+  };
+
+  // Get price level display
+  const getPriceDisplay = (priceLevel) => {
+    if (!priceLevel) return null;
+    const levels = {
+      'PRICE_LEVEL_FREE': { text: 'Free', dollars: 0 },
+      'PRICE_LEVEL_INEXPENSIVE': { text: '$', dollars: 1 },
+      'PRICE_LEVEL_MODERATE': { text: '$$', dollars: 2 },
+      'PRICE_LEVEL_EXPENSIVE': { text: '$$$', dollars: 3 },
+      'PRICE_LEVEL_VERY_EXPENSIVE': { text: '$$$$', dollars: 4 }
+    };
+    return levels[priceLevel] || null;
+  };
+
   const togglePreference = (id) => {
     setNewTripPreferences(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
@@ -2079,9 +2126,9 @@ function App() {
                               <span style={{ fontSize: '10px', fontWeight: '600', color: '#333' }}>{place.rating.toFixed(1)}</span>
                             </>
                           )}
-                          {place.priceLevel && (
+                          {getPriceDisplay(place.priceLevel) && (
                             <span style={{ fontSize: '10px', color: '#4caf50', fontWeight: '600' }}>
-                              {'$'.repeat(place.priceLevel === 'PRICE_LEVEL_FREE' ? 0 : place.priceLevel === 'PRICE_LEVEL_INEXPENSIVE' ? 1 : place.priceLevel === 'PRICE_LEVEL_MODERATE' ? 2 : place.priceLevel === 'PRICE_LEVEL_EXPENSIVE' ? 3 : place.priceLevel === 'PRICE_LEVEL_VERY_EXPENSIVE' ? 4 : 0) || 'Free'}
+                              {getPriceDisplay(place.priceLevel).text}
                             </span>
                           )}
                         </div>
@@ -2396,10 +2443,28 @@ function App() {
                   </div>
                 )}
               </div>
-              {index < currentDay.spots.length - 1 && spot.walkTime && (
+              {index < currentDay.spots.length - 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', padding: '6px 0 6px 12px', gap: '6px' }}>
-                  <div style={{ width: '2px', height: '20px', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length] + '40', marginLeft: '12px' }} />
-                  <span style={{ fontSize: '10px', color: '#9e9e9e', filter: isLocked ? 'blur(3px)' : 'none' }}>🚶 {currentDay.spots[index + 1]?.walkTime}</span>
+                  <div style={{ width: '2px', height: '28px', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length] + '40', marginLeft: '12px' }} />
+                  {(() => {
+                    const nextSpot = currentDay.spots[index + 1];
+                    const distance = calculateDistance(spot.lat, spot.lng, nextSpot.lat, nextSpot.lng);
+                    const walkTime = estimateWalkTime(distance);
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', filter: isLocked ? 'blur(3px)' : 'none' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <span style={{ fontSize: '10px', color: '#666' }}>🚶 {walkTime} min</span>
+                          <span style={{ fontSize: '9px', color: '#ccc' }}>•</span>
+                          <span style={{ fontSize: '10px', color: '#666' }}>🚇 ~{Math.max(3, Math.round(walkTime / 3))} min</span>
+                          <span style={{ fontSize: '9px', color: '#ccc' }}>•</span>
+                          <span style={{ fontSize: '10px', color: '#999' }}>{formatDistance(distance)}</span>
+                        </div>
+                        {!isLocked && (
+                          <button onClick={(e) => { e.stopPropagation(); openDirections(spot, nextSpot); }} style={{ background: '#e8f5e9', border: 'none', borderRadius: '8px', padding: '4px 8px', fontSize: '9px', color: '#2e7d32', cursor: 'pointer', fontWeight: '600', fontFamily: "'DM Sans', sans-serif", alignSelf: 'flex-start' }}>🗺️ Directions</button>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -2597,11 +2662,28 @@ function App() {
                   </div>
                 )}
               </div>
-              {index < currentDay.spots.length - 1 && currentDay.spots[index + 1].walkTime && (
+              {index < currentDay.spots.length - 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0 8px 14px', gap: '8px' }}>
-                  <div style={{ width: '2px', height: '24px', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length] + '40', marginLeft: '13px' }} />
-                  <span style={{ fontSize: '11px', color: '#9e9e9e', filter: isLockedDay ? 'blur(3px)' : 'none' }}>🚶 {currentDay.spots[index + 1].walkTime}</span>
-                  {!isLockedDay && <button onClick={() => openGoogleMaps(currentDay.spots[index + 1].name, selectedGuide.city)} style={{ background: '#e8f5e9', border: 'none', borderRadius: '12px', padding: '4px 10px', fontSize: '10px', color: '#2e7d32', cursor: 'pointer', fontWeight: '600', fontFamily: "'DM Sans', sans-serif" }}>📍 Directions</button>}
+                  <div style={{ width: '2px', height: '32px', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length] + '40', marginLeft: '13px' }} />
+                  {(() => {
+                    const nextSpot = currentDay.spots[index + 1];
+                    const distance = calculateDistance(spot.lat, spot.lng, nextSpot.lat, nextSpot.lng);
+                    const walkTime = estimateWalkTime(distance);
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', filter: isLockedDay ? 'blur(3px)' : 'none' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '11px', color: '#666' }}>🚶 {walkTime} min</span>
+                          <span style={{ fontSize: '10px', color: '#999' }}>•</span>
+                          <span style={{ fontSize: '11px', color: '#666' }}>🚇 ~{Math.max(3, Math.round(walkTime / 3))} min</span>
+                          <span style={{ fontSize: '10px', color: '#999' }}>•</span>
+                          <span style={{ fontSize: '11px', color: '#999' }}>{formatDistance(distance)}</span>
+                        </div>
+                        {!isLockedDay && (
+                          <button onClick={(e) => { e.stopPropagation(); openDirections(spot, nextSpot); }} style={{ background: '#e8f5e9', border: 'none', borderRadius: '10px', padding: '5px 10px', fontSize: '10px', color: '#2e7d32', cursor: 'pointer', fontWeight: '600', fontFamily: "'DM Sans', sans-serif", alignSelf: 'flex-start' }}>🗺️ Get Directions</button>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
