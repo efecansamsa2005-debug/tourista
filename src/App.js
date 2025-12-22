@@ -2645,7 +2645,7 @@ function App() {
                           
                           <button 
                             onClick={() => {
-                              if (confirm('Üyeliğini iptal etmek istediğine emin misin?')) {
+                              if (window.confirm('Üyeliğini iptal etmek istediğine emin misin?')) {
                                 window.open('https://sandbox-buyers-portal.paddle.com/subscriptions', '_blank');
                               }
                             }}
