@@ -786,19 +786,113 @@ function App() {
     }
   }, []);
 
-  // Auth effect - check session but don't auto-redirect
+  // Auth effect - check session on load and handle auth changes
   useEffect(() => {
+    // Check initial session
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setCurrentUser(session.user);
+        setScreen('home');
+      }
+    };
+    checkSession();
+
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
+      if (session?.user) {
+        setCurrentUser(session.user);
+      } else {
         // User logged out - clear everything
         setCurrentUser(null);
         setScreen('auth');
+        setMyTrips([]);
         sessionStorage.clear();
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Load trips from Supabase when user logs in
+  const loadTripsFromSupabase = useCallback(async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('trips')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error loading trips:', error);
+        return;
+      }
+      
+      if (data) {
+        const trips = data.map(row => row.trip_data);
+        setMyTrips(trips);
+      }
+    } catch (err) {
+      console.error('Error loading trips:', err);
+    }
+  }, []);
+
+  // Save trip to Supabase
+  const saveTripToSupabase = useCallback(async (trip) => {
+    console.log('Saving trip, currentUser:', currentUser);
+    
+    if (!currentUser) {
+      console.error('No user logged in, cannot save trip');
+      return;
+    }
+    
+    try {
+      console.log('Inserting trip for user:', currentUser.id);
+      const { data, error } = await supabase
+        .from('trips')
+        .insert({
+          user_id: currentUser.id,
+          trip_data: trip
+        })
+        .select();
+      
+      if (error) {
+        console.error('Supabase error saving trip:', error);
+        alert('Error saving: ' + error.message);
+      } else {
+        console.log('Trip saved successfully:', data);
+      }
+    } catch (err) {
+      console.error('Error saving trip:', err);
+      alert('Error: ' + err.message);
+    }
+  }, [currentUser]);
+
+  // Delete trip from Supabase
+  const deleteTripFromSupabase = useCallback(async (tripId) => {
+    if (!currentUser) return;
+    
+    try {
+      const { error } = await supabase
+        .from('trips')
+        .delete()
+        .eq('user_id', currentUser.id)
+        .filter('trip_data->id', 'eq', tripId);
+      
+      if (error) {
+        console.error('Error deleting trip:', error);
+      }
+    } catch (err) {
+      console.error('Error deleting trip:', err);
+    }
+  }, [currentUser]);
+
+  // Load trips when user changes
+  useEffect(() => {
+    if (currentUser) {
+      loadTripsFromSupabase(currentUser.id);
+    }
+  }, [currentUser, loadTripsFromSupabase]);
 
   // GeoDB Cities API search with user's API key
   const searchCities = useCallback(async (query) => {
@@ -1063,6 +1157,7 @@ function App() {
       isManual: true
     };
     
+    saveTripToSupabase(newTrip);
     setMyTrips(prev => [...prev, newTrip]);
     setScreen('home');
     resetNewTrip();
@@ -1474,7 +1569,7 @@ function App() {
               <p style={{ margin: '0 0 20px', fontSize: '14px', color: '#666' }}>Remove "{tripToDelete.title}" from your trips?</p>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button onClick={() => setTripToDelete(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '2px solid #e0e0e0', background: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#666' }}>Cancel</button>
-                <button onClick={() => { setMyTrips(prev => prev.filter(t => t.id !== tripToDelete.id)); setTripToDelete(null); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef5350', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
+                <button onClick={() => { deleteTripFromSupabase(tripToDelete.id); setMyTrips(prev => prev.filter(t => t.id !== tripToDelete.id)); setTripToDelete(null); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef5350', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
               </div>
             </div>
           </div>
@@ -2172,7 +2267,7 @@ function App() {
         <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button onClick={() => { setScreen('home'); resetNewTrip(); }} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '10px', padding: '8px 12px', color: 'white', cursor: 'pointer', fontSize: '15px' }}>←</button>
           <h1 style={{ color: 'white', fontSize: '16px', fontWeight: '600', margin: 0 }}>{generatedTrip.flag} {generatedTrip.city}</h1>
-          <button onClick={() => { setMyTrips(prev => [...prev, generatedTrip]); setScreen('home'); resetNewTrip(); }} style={{ background: 'white', border: 'none', borderRadius: '10px', padding: '8px 12px', color: '#2e7d32', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>💾 Save</button>
+          <button onClick={() => { saveTripToSupabase(generatedTrip); setMyTrips(prev => [...prev, generatedTrip]); setScreen('home'); resetNewTrip(); }} style={{ background: 'white', border: 'none', borderRadius: '10px', padding: '8px 12px', color: '#2e7d32', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>💾 Save</button>
         </div>
 
         {/* Map */}
@@ -2371,7 +2466,7 @@ function App() {
         <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button onClick={() => setScreen('home')} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '10px', padding: '8px 12px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
           <h1 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: 0 }}>{selectedGuide.flag} {selectedGuide.city}</h1>
-          <button onClick={() => { if (!myTrips.find(t => t.id === selectedGuide.id)) setMyTrips(prev => [...prev, selectedGuide]); }} style={{ background: myTrips.find(t => t.id === selectedGuide.id) ? 'rgba(255,255,255,0.3)' : 'white', border: 'none', borderRadius: '10px', padding: '8px 14px', color: myTrips.find(t => t.id === selectedGuide.id) ? 'white' : '#2e7d32', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+          <button onClick={() => { if (!myTrips.find(t => t.id === selectedGuide.id)) { saveTripToSupabase(selectedGuide); setMyTrips(prev => [...prev, selectedGuide]); } }} style={{ background: myTrips.find(t => t.id === selectedGuide.id) ? 'rgba(255,255,255,0.3)' : 'white', border: 'none', borderRadius: '10px', padding: '8px 14px', color: myTrips.find(t => t.id === selectedGuide.id) ? 'white' : '#2e7d32', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
             {myTrips.find(t => t.id === selectedGuide.id) ? '✓ Saved' : '💾 Save'}
           </button>
         </div>
