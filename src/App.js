@@ -709,12 +709,6 @@ function App() {
   const [generatedTrip, setGeneratedTrip] = useState(null);
   const [aiLoadingMessage, setAiLoadingMessage] = useState('');
   
-  // Manual planner states
-  const [manualSpots, setManualSpots] = useState([]);
-  const [placeSearchQuery, setPlaceSearchQuery] = useState('');
-  const [placeSearchResults, setPlaceSearchResults] = useState([]);
-  const [placeSearchLoading, setPlaceSearchLoading] = useState(false);
-  
   // Premium states
   const [isPremiumUser, setIsPremiumUser] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
@@ -935,116 +929,10 @@ function App() {
     setDurationMode('flexible');
     setSelectedDates({ start: null, end: null });
     setGeneratedTrip(null);
-    setManualSpots([]);
-    setPlaceSearchQuery('');
-    setPlaceSearchResults([]);
   };
 
   // Google Places API key
   const GOOGLE_PLACES_API_KEY = 'AIzaSyBy4tEpe49fgTAUd8P_A2PQ4swlvCDMlFw';
-
-  // Search places for manual planner
-  const searchPlacesForManual = async (query) => {
-    if (!query || query.length < 2 || !newTripCityData) return;
-    
-    setPlaceSearchLoading(true);
-    try {
-      const response = await fetch(
-        `https://places.googleapis.com/v1/places:searchText`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-            'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.photos,places.primaryType'
-          },
-          body: JSON.stringify({
-            textQuery: `${query} in ${newTripCityData.city}`,
-            maxResultCount: 8,
-            locationBias: {
-              circle: {
-                center: { latitude: newTripCityData.lat, longitude: newTripCityData.lng },
-                radius: 20000.0
-              }
-            }
-          })
-        }
-      );
-      
-      const data = await response.json();
-      if (data.places) {
-        setPlaceSearchResults(data.places.map(place => ({
-          id: place.displayName?.text + '-' + Math.random(),
-          name: place.displayName?.text || 'Unknown Place',
-          type: place.primaryType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Place',
-          address: place.formattedAddress || '',
-          lat: place.location?.latitude || newTripCityData.lat,
-          lng: place.location?.longitude || newTripCityData.lng,
-          rating: place.rating || 4.0,
-          reviews: place.userRatingCount || 0,
-          image: place.photos?.[0]?.name ? getPlacePhotoUrl(place.photos[0].name) : 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300'
-        })));
-      } else {
-        setPlaceSearchResults([]);
-      }
-    } catch (error) {
-      console.error('Place search error:', error);
-      setPlaceSearchResults([]);
-    }
-    setPlaceSearchLoading(false);
-  };
-
-  // Add spot to manual trip
-  const addSpotToTrip = (spot) => {
-    if (!manualSpots.find(s => s.name === spot.name)) {
-      setManualSpots(prev => [...prev, { ...spot, duration: '1 hour' }]);
-    }
-    setPlaceSearchQuery('');
-    setPlaceSearchResults([]);
-  };
-
-  // Remove spot from manual trip
-  const removeSpotFromTrip = (spotId) => {
-    setManualSpots(prev => prev.filter(s => s.id !== spotId));
-  };
-
-  // Reorder spots
-  const moveSpot = (index, direction) => {
-    const newSpots = [...manualSpots];
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= newSpots.length) return;
-    [newSpots[index], newSpots[newIndex]] = [newSpots[newIndex], newSpots[index]];
-    setManualSpots(newSpots);
-  };
-
-  // Save manual trip
-  const saveManualTrip = () => {
-    if (manualSpots.length === 0) return;
-    
-    const newTrip = {
-      id: 'manual-' + Date.now(),
-      city: newTripCityData.city,
-      country: newTripCityData.country,
-      flag: newTripCityData.flag,
-      title: `My ${newTripCityData.city} Trip`,
-      days: 1,
-      center: [newTripCityData.lat, newTripCityData.lng],
-      image: manualSpots[0]?.image || 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
-      itinerary: [{
-        day: 1,
-        title: 'My Itinerary',
-        spots: manualSpots.map((spot, index) => ({
-          ...spot,
-          walkTime: index === 0 ? null : '~10 min'
-        }))
-      }],
-      isManual: true
-    };
-    
-    setMyTrips(prev => [...prev, newTrip]);
-    setScreen('home');
-    resetNewTrip();
-  };
 
   // Search places using Google Places API (New)
   const searchPlacesInCity = async (cityData, preferences) => {
@@ -1727,374 +1615,10 @@ function App() {
               <button onClick={() => { setShowAiPlanOffer(false); generateAiTrip(); }} style={{ width: '100%', background: '#1b5e20', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontFamily: "'DM Sans', sans-serif" }}>
                 <span>✨</span> Yes, plan for me!
               </button>
-              <button onClick={() => { setShowAiPlanOffer(false); setScreen('manualPlanner'); }} style={{ width: '100%', background: 'transparent', color: '#666', border: 'none', padding: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+              <button onClick={() => { setShowAiPlanOffer(false); setScreen('home'); }} style={{ width: '100%', background: 'transparent', color: '#666', border: 'none', padding: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
                 No thanks, I'll plan myself
               </button>
             </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // ============================================
-  // MANUAL PLANNER SCREEN
-  // ============================================
-  if (screen === 'manualPlanner' && newTripCityData) {
-    const [selectedCategory, setSelectedCategory] = useState('all');
-    const [selectedPlaceInfo, setSelectedPlaceInfo] = useState(null);
-    
-    const categories = [
-      { id: 'all', label: 'All', icon: '🌟', query: 'tourist attractions' },
-      { id: 'restaurants', label: 'Restaurants', icon: '🍽️', query: 'restaurants' },
-      { id: 'museums', label: 'Museums', icon: '🏛️', query: 'museums' },
-      { id: 'parks', label: 'Parks', icon: '🌳', query: 'parks gardens' },
-      { id: 'malls', label: 'Shopping', icon: '🛍️', query: 'shopping malls' },
-      { id: 'cafes', label: 'Cafes', icon: '☕', query: 'cafes coffee shops' },
-      { id: 'nightlife', label: 'Nightlife', icon: '🍸', query: 'bars nightclubs' },
-      { id: 'landmarks', label: 'Landmarks', icon: '🏰', query: 'historical landmarks monuments' },
-    ];
-
-    const searchByCategory = async (category) => {
-      setSelectedCategory(category.id);
-      setPlaceSearchQuery('');
-      setPlaceSearchLoading(true);
-      
-      try {
-        const response = await fetch(
-          `https://places.googleapis.com/v1/places:searchText`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-              'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.photos,places.primaryType,places.editorialSummary,places.currentOpeningHours,places.priceLevel'
-            },
-            body: JSON.stringify({
-              textQuery: `best ${category.query} in ${newTripCityData.city}`,
-              maxResultCount: 15,
-              locationBias: {
-                circle: {
-                  center: { latitude: newTripCityData.lat, longitude: newTripCityData.lng },
-                  radius: 20000.0
-                }
-              }
-            })
-          }
-        );
-        
-        const data = await response.json();
-        if (data.places) {
-          setPlaceSearchResults(data.places.map(place => ({
-            id: place.displayName?.text + '-' + Math.random(),
-            name: place.displayName?.text || 'Unknown Place',
-            type: place.primaryType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Place',
-            address: place.formattedAddress || '',
-            lat: place.location?.latitude || newTripCityData.lat,
-            lng: place.location?.longitude || newTripCityData.lng,
-            rating: place.rating || 0,
-            reviews: place.userRatingCount || 0,
-            image: place.photos?.[0]?.name ? getPlacePhotoUrl(place.photos[0].name) : 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
-            description: place.editorialSummary?.text || `Popular ${category.label.toLowerCase()} in ${newTripCityData.city}`,
-            isOpen: place.currentOpeningHours?.openNow,
-            priceLevel: place.priceLevel
-          })));
-        } else {
-          setPlaceSearchResults([]);
-        }
-      } catch (error) {
-        console.error('Category search error:', error);
-        setPlaceSearchResults([]);
-      }
-      setPlaceSearchLoading(false);
-    };
-
-    return (
-      <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif", paddingBottom: '100px' }}>
-        {/* Header */}
-        <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '16px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <button onClick={() => { setScreen('newTripConfirm'); setManualSpots([]); setPlaceSearchQuery(''); setPlaceSearchResults([]); }} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '10px', padding: '8px 12px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
-            <h1 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: 0 }}>{newTripCityData.flag} {newTripCityData.city}</h1>
-            <div style={{ width: '40px' }} />
-          </div>
-          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', margin: 0, textAlign: 'center' }}>Build your perfect itinerary</p>
-        </div>
-
-        {/* Category Filters */}
-        <div style={{ background: 'white', padding: '12px 0', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '0 16px', scrollbarWidth: 'none' }}>
-            {categories.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => searchByCategory(cat)}
-                style={{
-                  background: selectedCategory === cat.id ? '#1b5e20' : '#f5f5f5',
-                  color: selectedCategory === cat.id ? 'white' : '#333',
-                  border: 'none',
-                  borderRadius: '20px',
-                  padding: '8px 16px',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontFamily: "'DM Sans', sans-serif",
-                  flexShrink: 0
-                }}
-              >
-                <span>{cat.icon}</span> {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div style={{ padding: '12px 16px', background: 'white', borderTop: '1px solid #eee' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f5f5f5', borderRadius: '14px', padding: '4px 14px' }}>
-            <span style={{ fontSize: '18px', color: '#999' }}>🔍</span>
-            <input 
-              type="text" 
-              value={placeSearchQuery} 
-              onChange={(e) => {
-                setPlaceSearchQuery(e.target.value);
-                setSelectedCategory('all');
-                if (e.target.value.length >= 2) {
-                  searchPlacesForManual(e.target.value);
-                } else {
-                  setPlaceSearchResults([]);
-                }
-              }} 
-              placeholder={`Search places in ${newTripCityData.city}...`}
-              style={{ flex: 1, padding: '10px 0', border: 'none', background: 'transparent', fontSize: '14px', outline: 'none', fontFamily: "'DM Sans', sans-serif" }} 
-            />
-            {placeSearchQuery && (
-              <span onClick={() => { setPlaceSearchQuery(''); setPlaceSearchResults([]); }} style={{ fontSize: '16px', cursor: 'pointer', color: '#999' }}>✕</span>
-            )}
-          </div>
-        </div>
-
-        {/* Content Area */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-          {/* Loading */}
-          {placeSearchLoading && (
-            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔍</div>
-              <p style={{ color: '#689f38', fontSize: '14px', margin: 0 }}>Finding places...</p>
-            </div>
-          )}
-
-          {/* Results Grid */}
-          {!placeSearchLoading && placeSearchResults.length > 0 && (
-            <div style={{ padding: '16px' }}>
-              <p style={{ fontSize: '12px', color: '#999', margin: '0 0 12px' }}>{placeSearchResults.length} places found</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                {placeSearchResults.map((place, index) => {
-                  const isAdded = manualSpots.find(s => s.name === place.name);
-                  return (
-                    <div 
-                      key={index}
-                      onClick={() => setSelectedPlaceInfo(place)}
-                      style={{ 
-                        background: 'white', 
-                        borderRadius: '16px', 
-                        overflow: 'hidden',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                        cursor: 'pointer',
-                        border: selectedPlaceInfo?.name === place.name ? '2px solid #2e7d32' : '2px solid transparent',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <div style={{ height: '100px', position: 'relative' }}>
-                        <img src={place.image} alt={place.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        {place.isOpen !== undefined && (
-                          <div style={{ 
-                            position: 'absolute', 
-                            top: '8px', 
-                            left: '8px', 
-                            background: place.isOpen ? '#4caf50' : '#ef5350', 
-                            color: 'white', 
-                            padding: '2px 8px', 
-                            borderRadius: '10px', 
-                            fontSize: '10px', 
-                            fontWeight: '600' 
-                          }}>
-                            {place.isOpen ? 'Open' : 'Closed'}
-                          </div>
-                        )}
-                        {isAdded && (
-                          <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#2e7d32', color: 'white', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>✓</div>
-                        )}
-                      </div>
-                      <div style={{ padding: '10px' }}>
-                        <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.name}</p>
-                        <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#999' }}>{place.type}</p>
-                        {place.rating > 0 && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                            <span style={{ color: '#ffc107', fontSize: '12px' }}>★</span>
-                            <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>{place.rating.toFixed(1)}</span>
-                            <span style={{ fontSize: '10px', color: '#999' }}>({place.reviews})</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {!placeSearchLoading && placeSearchResults.length === 0 && (
-            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗺️</div>
-              <p style={{ color: '#1b5e20', fontSize: '16px', fontWeight: '600', margin: '0 0 8px' }}>Explore {newTripCityData.city}</p>
-              <p style={{ color: '#999', fontSize: '13px', margin: 0 }}>Select a category above or search for places</p>
-            </div>
-          )}
-        </div>
-
-        {/* Place Info Panel (Bottom Sheet) */}
-        {selectedPlaceInfo && (
-          <div 
-            onClick={() => setSelectedPlaceInfo(null)}
-            style={{ 
-              position: 'fixed', 
-              top: 0, 
-              left: 0, 
-              right: 0, 
-              bottom: 0, 
-              background: 'rgba(0,0,0,0.5)', 
-              zIndex: 1000,
-              display: 'flex',
-              alignItems: 'flex-end'
-            }}
-          >
-            <div 
-              onClick={(e) => e.stopPropagation()}
-              style={{ 
-                background: 'white', 
-                borderRadius: '24px 24px 0 0', 
-                width: '100%',
-                maxHeight: '70vh',
-                overflow: 'auto'
-              }}
-            >
-              {/* Image Header */}
-              <div style={{ height: '180px', position: 'relative' }}>
-                <img src={selectedPlaceInfo.image} alt={selectedPlaceInfo.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <button 
-                  onClick={() => setSelectedPlaceInfo(null)}
-                  style={{ position: 'absolute', top: '12px', right: '12px', background: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
-                >✕</button>
-                {selectedPlaceInfo.isOpen !== undefined && (
-                  <div style={{ 
-                    position: 'absolute', 
-                    bottom: '12px', 
-                    left: '12px', 
-                    background: selectedPlaceInfo.isOpen ? '#4caf50' : '#ef5350', 
-                    color: 'white', 
-                    padding: '6px 14px', 
-                    borderRadius: '20px', 
-                    fontSize: '12px', 
-                    fontWeight: '600' 
-                  }}>
-                    {selectedPlaceInfo.isOpen ? '🟢 Open Now' : '🔴 Closed'}
-                  </div>
-                )}
-              </div>
-
-              {/* Info Content */}
-              <div style={{ padding: '20px' }}>
-                <h2 style={{ margin: '0 0 8px', fontSize: '22px', fontWeight: '700', color: '#1b5e20' }}>{selectedPlaceInfo.name}</h2>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                  <span style={{ background: '#f1f8e9', color: '#2e7d32', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '500' }}>{selectedPlaceInfo.type}</span>
-                  {selectedPlaceInfo.priceLevel && (
-                    <span style={{ color: '#666', fontSize: '13px' }}>{'💵'.repeat(selectedPlaceInfo.priceLevel)}</span>
-                  )}
-                </div>
-
-                {selectedPlaceInfo.rating > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                    <span style={{ color: '#ffc107', fontSize: '18px' }}>★</span>
-                    <span style={{ fontSize: '16px', fontWeight: '700', color: '#333' }}>{selectedPlaceInfo.rating.toFixed(1)}</span>
-                    <span style={{ fontSize: '14px', color: '#999' }}>({selectedPlaceInfo.reviews.toLocaleString()} reviews)</span>
-                  </div>
-                )}
-
-                <p style={{ fontSize: '14px', color: '#666', lineHeight: '1.6', margin: '0 0 16px' }}>
-                  {selectedPlaceInfo.description}
-                </p>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: '#f5f5f5', borderRadius: '12px', marginBottom: '20px' }}>
-                  <span style={{ fontSize: '16px' }}>📍</span>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#666', flex: 1 }}>{selectedPlaceInfo.address}</p>
-                </div>
-
-                {/* Action Buttons */}
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button 
-                    onClick={() => openGoogleMaps(selectedPlaceInfo.name, newTripCityData.city)}
-                    style={{ flex: 1, background: 'white', border: '2px solid #e0e0e0', borderRadius: '14px', padding: '14px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: "'DM Sans', sans-serif" }}
-                  >
-                    🗺️ Directions
-                  </button>
-                  <button 
-                    onClick={() => {
-                      addSpotToTrip(selectedPlaceInfo);
-                      setSelectedPlaceInfo(null);
-                    }}
-                    disabled={manualSpots.find(s => s.name === selectedPlaceInfo.name)}
-                    style={{ 
-                      flex: 1, 
-                      background: manualSpots.find(s => s.name === selectedPlaceInfo.name) ? '#c8e6c9' : 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', 
-                      border: 'none', 
-                      borderRadius: '14px', 
-                      padding: '14px', 
-                      fontSize: '14px', 
-                      fontWeight: '600', 
-                      color: 'white', 
-                      cursor: manualSpots.find(s => s.name === selectedPlaceInfo.name) ? 'default' : 'pointer', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      gap: '8px', 
-                      fontFamily: "'DM Sans', sans-serif" 
-                    }}
-                  >
-                    {manualSpots.find(s => s.name === selectedPlaceInfo.name) ? '✓ Added' : '+ Add to Trip'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* My Itinerary Footer */}
-        {manualSpots.length > 0 && (
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'white', boxShadow: '0 -4px 20px rgba(0,0,0,0.1)', padding: '16px 20px', zIndex: 999 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', marginLeft: '-8px' }}>
-                {manualSpots.slice(0, 4).map((spot, i) => (
-                  <div key={i} style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', border: '2px solid white', marginLeft: '-8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                    <img src={spot.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                ))}
-                {manualSpots.length > 4 && (
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#e8f5e9', border: '2px solid white', marginLeft: '-8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '600', color: '#2e7d32' }}>+{manualSpots.length - 4}</div>
-                )}
-              </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20' }}>{manualSpots.length} places added</p>
-                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#999' }}>Tap to review your itinerary</p>
-              </div>
-            </div>
-            <button onClick={saveManualTrip} style={{ width: '100%', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', padding: '14px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-              💾 Save Trip
-            </button>
           </div>
         )}
       </div>
@@ -2320,9 +1844,6 @@ function App() {
   // ============================================
   if (screen === 'guideDetail' && selectedGuide) {
     const currentDay = selectedGuide.itinerary.find(d => d.day === selectedDay) || selectedGuide.itinerary[0];
-    // Paywall for AI generated trips (Day 2+ locked)
-    const isAiTrip = selectedGuide.isAiGenerated === true;
-    const isLockedDay = isAiTrip && !isPremiumUser && selectedGuide.days > 1 && selectedDay > 1;
 
     return (
       <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif" }}>
@@ -2392,37 +1913,11 @@ function App() {
 
         {/* Day Tabs */}
         <div style={{ display: 'flex', gap: '8px', padding: '8px 16px 16px', overflowX: 'auto' }}>
-          {selectedGuide.itinerary.map((day, index) => {
-            const dayLocked = isAiTrip && !isPremiumUser && selectedGuide.days > 1 && day.day > 1;
-            return (
-              <button 
-                key={day.day} 
-                onClick={() => { 
-                  if (dayLocked) {
-                    setShowSubscriptionModal(true);
-                  } else {
-                    setSelectedDay(day.day); 
-                    setShowAllDaysOnMap(false); 
-                  }
-                }} 
-                style={{ 
-                  background: selectedDay === day.day ? DAY_COLORS[index % DAY_COLORS.length] : 'white', 
-                  color: selectedDay === day.day ? 'white' : '#333', 
-                  border: selectedDay === day.day ? 'none' : '2px solid #e0e0e0', 
-                  padding: '10px 20px', 
-                  borderRadius: '20px', 
-                  fontSize: '14px', 
-                  fontWeight: '600', 
-                  cursor: 'pointer', 
-                  whiteSpace: 'nowrap', 
-                  fontFamily: "'DM Sans', sans-serif",
-                  opacity: dayLocked ? 0.7 : 1
-                }}
-              >
-                Day {day.day} {dayLocked && '🔒'}
-              </button>
-            );
-          })}
+          {selectedGuide.itinerary.map((day, index) => (
+            <button key={day.day} onClick={() => { setSelectedDay(day.day); setShowAllDaysOnMap(false); }} style={{ background: selectedDay === day.day ? DAY_COLORS[index % DAY_COLORS.length] : 'white', color: selectedDay === day.day ? 'white' : '#333', border: selectedDay === day.day ? 'none' : '2px solid #e0e0e0', padding: '10px 20px', borderRadius: '20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: "'DM Sans', sans-serif" }}>
+              Day {day.day}
+            </button>
+          ))}
         </div>
 
         {/* Day Title */}
@@ -2434,82 +1929,27 @@ function App() {
         <div style={{ padding: '0 16px 100px' }}>
           {currentDay.spots.map((spot, index) => (
             <div key={index}>
-              <div onClick={() => !isLockedDay && setSelectedSpot({ ...spot, city: selectedGuide.city })} style={{ background: 'white', borderRadius: '14px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', cursor: isLockedDay ? 'default' : 'pointer', position: 'relative', overflow: 'hidden' }}>
+              <div onClick={() => setSelectedSpot({ ...spot, city: selectedGuide.city })} style={{ background: 'white', borderRadius: '14px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', cursor: 'pointer' }}>
                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
                 <div style={{ width: '55px', height: '55px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
-                  <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isLockedDay ? 'blur(4px)' : 'none' }} />
+                  <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', filter: isLockedDay ? 'blur(4px)' : 'none' }}>{spot.name}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38', background: '#f1f8e9', display: 'inline-block', padding: '2px 8px', borderRadius: '10px', filter: isLockedDay ? 'blur(4px)' : 'none' }}>{spot.type}</p>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spot.name}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38', background: '#f1f8e9', display: 'inline-block', padding: '2px 8px', borderRadius: '10px' }}>{spot.type}</p>
                   <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#9e9e9e' }}>⏱️ {spot.duration}</p>
                 </div>
-                {isLockedDay && (
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '24px' }}>🔒</span>
-                  </div>
-                )}
               </div>
               {index < currentDay.spots.length - 1 && currentDay.spots[index + 1].walkTime && (
                 <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0 8px 14px', gap: '8px' }}>
                   <div style={{ width: '2px', height: '24px', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length] + '40', marginLeft: '13px' }} />
-                  <span style={{ fontSize: '11px', color: '#9e9e9e', filter: isLockedDay ? 'blur(3px)' : 'none' }}>🚶 {currentDay.spots[index + 1].walkTime}</span>
-                  {!isLockedDay && <button onClick={() => openGoogleMaps(currentDay.spots[index + 1].name, selectedGuide.city)} style={{ background: '#e8f5e9', border: 'none', borderRadius: '12px', padding: '4px 10px', fontSize: '10px', color: '#2e7d32', cursor: 'pointer', fontWeight: '600', fontFamily: "'DM Sans', sans-serif" }}>📍 Directions</button>}
+                  <span style={{ fontSize: '11px', color: '#9e9e9e' }}>🚶 {currentDay.spots[index + 1].walkTime}</span>
+                  <button onClick={() => openGoogleMaps(currentDay.spots[index + 1].name, selectedGuide.city)} style={{ background: '#e8f5e9', border: 'none', borderRadius: '12px', padding: '4px 10px', fontSize: '10px', color: '#2e7d32', cursor: 'pointer', fontWeight: '600', fontFamily: "'DM Sans', sans-serif" }}>📍 Directions</button>
                 </div>
               )}
             </div>
           ))}
-          
-          {/* Paywall Card for AI trips */}
-          {isLockedDay && (
-            <div style={{ background: 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)', borderRadius: '18px', padding: '22px', marginTop: '14px', textAlign: 'center' }}>
-              <span style={{ fontSize: '36px' }}>🔓</span>
-              <h3 style={{ margin: '10px 0 6px', color: '#1b5e20', fontSize: '17px' }}>Unlock Full Plan</h3>
-              <p style={{ margin: '0 0 14px', color: '#689f38', fontSize: '13px' }}>Get access to all {selectedGuide.days} days</p>
-              <div style={{ background: 'white', borderRadius: '10px', padding: '10px', marginBottom: '14px' }}>
-                <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>✓ 7-day free trial</p>
-                <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#666' }}>✓ $4.99/mo or $3.74/mo annual</p>
-              </div>
-              <button onClick={() => setShowSubscriptionModal(true)} style={{ width: '100%', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-                Start Free Trial
-              </button>
-            </div>
-          )}
         </div>
-
-        {/* Subscription Modal */}
-        {showSubscriptionModal && (
-          <div onClick={() => setShowSubscriptionModal(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '24px', padding: '28px 22px', margin: '20px', maxWidth: '340px', width: '100%', textAlign: 'center' }}>
-              <span style={{ fontSize: '44px' }}>✨</span>
-              <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#1b5e20', margin: '14px 0 6px' }}>Unlock Premium</h2>
-              <p style={{ fontSize: '13px', color: '#666', margin: '0 0 20px' }}>Start your 7-day free trial</p>
-              <div style={{ border: '2px solid #e0e0e0', borderRadius: '14px', padding: '14px', marginBottom: '10px', cursor: 'pointer' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ textAlign: 'left' }}>
-                    <p style={{ margin: 0, fontWeight: '600', color: '#333', fontSize: '14px' }}>Monthly</p>
-                    <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#999' }}>Cancel anytime</p>
-                  </div>
-                  <p style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1b5e20' }}>$4.99<span style={{ fontSize: '12px', fontWeight: '400' }}>/mo</span></p>
-                </div>
-              </div>
-              <div style={{ border: '2px solid #4caf50', borderRadius: '14px', padding: '14px', marginBottom: '20px', cursor: 'pointer', background: '#f1f8e9', position: 'relative' }}>
-                <div style={{ position: 'absolute', top: '-10px', right: '14px', background: '#4caf50', color: 'white', padding: '3px 10px', borderRadius: '8px', fontSize: '10px', fontWeight: '600' }}>SAVE 25%</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ textAlign: 'left' }}>
-                    <p style={{ margin: 0, fontWeight: '600', color: '#333', fontSize: '14px' }}>Annual</p>
-                    <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#999' }}>Best value</p>
-                  </div>
-                  <p style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1b5e20' }}>$3.74<span style={{ fontSize: '12px', fontWeight: '400' }}>/mo</span></p>
-                </div>
-              </div>
-              <button style={{ width: '100%', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-                Start 7-Day Free Trial
-              </button>
-              <p style={{ margin: '12px 0 0', fontSize: '11px', color: '#999' }}>Cancel anytime. No commitment.</p>
-            </div>
-          </div>
-        )}
 
         {/* Spot Detail Modal */}
         {selectedSpot && (
