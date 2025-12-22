@@ -782,6 +782,43 @@ function App() {
     }
   }, [settings]);
 
+  // Theme colors based on dark mode
+  const theme = settings.darkMode ? {
+    // Dark mode - Orange theme
+    primary: '#ff9800',
+    primaryDark: '#f57c00',
+    primaryLight: '#ffb74d',
+    primaryGradient: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+    background: '#241E1E',
+    backgroundSecondary: '#2d2424',
+    backgroundCard: '#352b2b',
+    backgroundHover: '#3d3232',
+    text: '#ffffff',
+    textSecondary: '#cccccc',
+    textMuted: '#999999',
+    border: '#4a3f3f',
+    success: '#4caf50',
+    error: '#ef5350',
+    warning: '#ff9800'
+  } : {
+    // Light mode - Green theme
+    primary: '#2e7d32',
+    primaryDark: '#1b5e20',
+    primaryLight: '#4caf50',
+    primaryGradient: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)',
+    background: '#ffffff',
+    backgroundSecondary: '#f5f5f5',
+    backgroundCard: '#ffffff',
+    backgroundHover: '#f8f8f8',
+    text: '#333333',
+    textSecondary: '#666666',
+    textMuted: '#999999',
+    border: '#e0e0e0',
+    success: '#4caf50',
+    error: '#ef5350',
+    warning: '#ff9800'
+  };
+
   // Update a single setting
   const updateSetting = (key, value) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -1241,6 +1278,17 @@ function App() {
 
   // Helper functions
   const getTotalSpots = (guide) => guide.itinerary.reduce((sum, day) => sum + day.spots.length, 0);
+
+  // Get display name (from settings or email)
+  const getDisplayName = () => {
+    return settings.displayName || currentUser?.email?.split('@')[0] || 'User';
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    const name = settings.displayName || currentUser?.email || 'U';
+    return name.charAt(0).toUpperCase();
+  };
 
   const openGoogleMaps = (placeName, city) => {
     const query = encodeURIComponent(`${placeName}, ${city}`);
@@ -1768,49 +1816,49 @@ function App() {
   // ============================================
   if (screen === 'home') {
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #f1f8e9 0%, #ffffff 100%)', fontFamily: "'DM Sans', sans-serif", paddingBottom: '100px' }}>
+      <div style={{ minHeight: '100vh', background: settings.darkMode ? theme.background : 'linear-gradient(180deg, #f1f8e9 0%, #ffffff 100%)', fontFamily: "'DM Sans', sans-serif", paddingBottom: '100px' }}>
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
 
         {/* Header */}
-        <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '20px', borderRadius: '0 0 30px 30px' }}>
+        <div style={{ background: theme.primaryGradient, padding: '20px', borderRadius: '0 0 30px 30px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '28px' }}>🧭</span>
               <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', fontWeight: '700', color: 'white', margin: 0 }}>TOURISTA</h1>
             </div>
             <div onClick={() => setShowProfilePanel(true)} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '600', cursor: 'pointer', position: 'relative' }}>
-              {currentUser?.email?.charAt(0).toUpperCase()}
+              {getUserInitials()}
               {/* Level indicator */}
-              <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '18px', height: '18px', borderRadius: '50%', background: getUserLevel(userPoints).color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', border: '2px solid #2e7d32' }}>
+              <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '18px', height: '18px', borderRadius: '50%', background: getUserLevel(userPoints).color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', border: `2px solid ${theme.primary}` }}>
                 {getUserLevel(userPoints).icon}
               </div>
             </div>
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', margin: 0 }}>Welcome, <strong>{currentUser?.email?.split('@')[0]}</strong>! 👋</p>
+          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', margin: 0 }}>{t('welcome')}, <strong>{getDisplayName()}</strong>! 👋</p>
           {/* Points display */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
             <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '20px', padding: '4px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '14px' }}>{getUserLevel(userPoints).icon}</span>
               <span style={{ color: 'white', fontSize: '12px', fontWeight: '600' }}>{getUserLevel(userPoints).name}</span>
               <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>•</span>
-              <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '12px' }}>{userPoints} puan</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '12px' }}>{userPoints} {t('points')}</span>
             </div>
           </div>
         </div>
 
         {/* Explore Destinations */}
         <div style={{ padding: '24px 20px 16px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1b5e20', margin: '0 0 16px 0' }}>🌍 Explore Destinations</h2>
+          <h2 style={{ fontSize: '18px', fontWeight: '700', color: theme.primary, margin: '0 0 16px 0' }}>🌍 {t('explore')}</h2>
           <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '10px', marginRight: '-20px', paddingRight: '20px' }}>
             {TRAVEL_GUIDES.map((guide) => (
-              <div key={guide.id} onClick={() => { setSelectedGuide(guide); setSelectedDay(1); setShowAllDaysOnMap(false); setMapExpanded(false); setScreen('guideDetail'); }} style={{ minWidth: '140px', background: 'white', borderRadius: '16px', overflow: 'hidden', cursor: 'pointer', flexShrink: 0, boxShadow: '0 4px 12px rgba(46,125,50,0.1)' }}>
+              <div key={guide.id} onClick={() => { setSelectedGuide(guide); setSelectedDay(1); setShowAllDaysOnMap(false); setMapExpanded(false); setScreen('guideDetail'); }} style={{ minWidth: '140px', background: theme.backgroundCard, borderRadius: '16px', overflow: 'hidden', cursor: 'pointer', flexShrink: 0, boxShadow: settings.darkMode ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(46,125,50,0.1)' }}>
                 <div style={{ height: '90px', position: 'relative' }}>
                   <img src={guide.image} alt={guide.city} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'white', padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600', color: '#2e7d32' }}>{guide.flag} {guide.city}</div>
+                  <div style={{ position: 'absolute', top: '8px', left: '8px', background: theme.backgroundCard, padding: '3px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '600', color: theme.primary }}>{guide.flag} {guide.city}</div>
                 </div>
                 <div style={{ padding: '10px' }}>
-                  <p style={{ margin: 0, fontSize: '12px', fontWeight: '600', color: '#1b5e20' }}>{guide.title}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#689f38' }}>{getTotalSpots(guide)} spots</p>
+                  <p style={{ margin: 0, fontSize: '12px', fontWeight: '600', color: theme.primary }}>{guide.title}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: theme.textMuted }}>{getTotalSpots(guide)} spots</p>
                 </div>
               </div>
             ))}
@@ -1819,25 +1867,25 @@ function App() {
 
         {/* My Trips */}
         <div style={{ padding: '0 20px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1b5e20', margin: '0 0 16px 0' }}>🗂️ My Trips</h2>
+          <h2 style={{ fontSize: '18px', fontWeight: '700', color: theme.primary, margin: '0 0 16px 0' }}>🗂️ {t('myTrips')}</h2>
           {myTrips.length === 0 ? (
-            <div style={{ background: 'white', borderRadius: '20px', padding: '32px 20px', textAlign: 'center', border: '2px dashed #c8e6c9' }}>
+            <div style={{ background: theme.backgroundCard, borderRadius: '20px', padding: '32px 20px', textAlign: 'center', border: `2px dashed ${theme.border}` }}>
               <div style={{ fontSize: '48px', marginBottom: '12px' }}>✈️</div>
-              <h3 style={{ color: '#1b5e20', fontSize: '16px', margin: '0 0 8px' }}>No trips yet</h3>
-              <p style={{ color: '#689f38', fontSize: '13px', margin: '0 0 16px' }}>Create your first AI-powered trip!</p>
+              <h3 style={{ color: theme.primary, fontSize: '16px', margin: '0 0 8px' }}>{t('noTrips')}</h3>
+              <p style={{ color: theme.textMuted, fontSize: '13px', margin: '0 0 16px' }}>{t('createFirst')}</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {myTrips.map((trip, index) => (
-                <div key={index} style={{ background: 'white', borderRadius: '14px', padding: '14px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <div key={index} style={{ background: theme.backgroundCard, borderRadius: '14px', padding: '14px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: settings.darkMode ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.05)' }}>
                   <div onClick={() => { setSelectedGuide(trip); setSelectedDay(1); setShowAllDaysOnMap(false); setMapExpanded(false); setScreen('guideDetail'); }} style={{ width: '60px', height: '60px', borderRadius: '12px', overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}>
                     <img src={trip.image} alt={trip.city} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                   <div onClick={() => { setSelectedGuide(trip); setSelectedDay(1); setShowAllDaysOnMap(false); setMapExpanded(false); setScreen('guideDetail'); }} style={{ flex: 1, cursor: 'pointer' }}>
-                    <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20' }}>{trip.flag} {trip.title}</p>
-                    <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38' }}>{trip.days} days • {getTotalSpots(trip)} spots</p>
+                    <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: theme.primary }}>{trip.flag} {trip.title}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: '11px', color: theme.textMuted }}>{trip.days} {t('days')} • {getTotalSpots(trip)} {t('spots')}</p>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); setTripToDelete(trip); }} style={{ background: '#ffebee', border: 'none', borderRadius: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '14px' }}>🗑️</button>
+                  <button onClick={(e) => { e.stopPropagation(); setTripToDelete(trip); }} style={{ background: settings.darkMode ? '#5c2a2a' : '#ffebee', border: 'none', borderRadius: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '14px' }}>🗑️</button>
                 </div>
               ))}
             </div>
@@ -1847,12 +1895,12 @@ function App() {
         {/* Delete Confirmation Modal */}
         {tripToDelete && (
           <div onClick={() => setTripToDelete(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px', padding: '24px', margin: '20px', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: theme.backgroundCard, borderRadius: '20px', padding: '24px', margin: '20px', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
               <div style={{ fontSize: '48px', marginBottom: '12px' }}>🗑️</div>
-              <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: '#1b5e20' }}>Delete Trip?</h3>
-              <p style={{ margin: '0 0 20px', fontSize: '14px', color: '#666' }}>Remove "{tripToDelete.title}" from your trips?</p>
+              <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: theme.primary }}>Delete Trip?</h3>
+              <p style={{ margin: '0 0 20px', fontSize: '14px', color: theme.textSecondary }}>Remove "{tripToDelete.title}" from your trips?</p>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => setTripToDelete(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '2px solid #e0e0e0', background: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#666' }}>Cancel</button>
+                <button onClick={() => setTripToDelete(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `2px solid ${theme.border}`, background: theme.backgroundCard, fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: theme.textSecondary }}>{t('cancel')}</button>
                 <button onClick={() => { deleteTripFromSupabase(tripToDelete.id); setMyTrips(prev => prev.filter(t => t.id !== tripToDelete.id)); setTripToDelete(null); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef5350', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Delete</button>
               </div>
             </div>
@@ -1862,13 +1910,13 @@ function App() {
         {/* Logout Confirmation Modal */}
         {showLogoutConfirm && (
           <div onClick={() => setShowLogoutConfirm(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '20px', padding: '24px', margin: '20px', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
-              <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#f1f8e9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '28px' }}>👋</div>
-              <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: '#1b5e20' }}>Log Out?</h3>
-              <p style={{ margin: '0 0 20px', fontSize: '14px', color: '#666' }}>Are you sure you want to log out?</p>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: theme.backgroundCard, borderRadius: '20px', padding: '24px', margin: '20px', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
+              <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: settings.darkMode ? theme.backgroundSecondary : '#f1f8e9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '28px' }}>👋</div>
+              <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: theme.primary }}>{t('logout')}?</h3>
+              <p style={{ margin: '0 0 20px', fontSize: '14px', color: theme.textSecondary }}>Are you sure you want to log out?</p>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => setShowLogoutConfirm(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '2px solid #e0e0e0', background: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#666', fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
-                <button onClick={() => { setShowLogoutConfirm(false); handleLogout(); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef5350', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Log Out</button>
+                <button onClick={() => setShowLogoutConfirm(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `2px solid ${theme.border}`, background: theme.backgroundCard, fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: theme.textSecondary, fontFamily: "'DM Sans', sans-serif" }}>{t('cancel')}</button>
+                <button onClick={() => { setShowLogoutConfirm(false); handleLogout(); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef5350', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>{t('logout')}</button>
               </div>
             </div>
           </div>
@@ -1877,21 +1925,21 @@ function App() {
         {/* Profile Panel (Slide from right) */}
         {showProfilePanel && (
           <div onClick={() => setShowProfilePanel(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1002 }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '85%', maxWidth: '360px', background: 'white', boxShadow: '-4px 0 20px rgba(0,0,0,0.15)', overflowY: 'auto' }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '85%', maxWidth: '360px', background: theme.backgroundCard, boxShadow: '-4px 0 20px rgba(0,0,0,0.15)', overflowY: 'auto' }}>
               {/* Panel Header */}
-              <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '24px 20px', paddingTop: '40px' }}>
+              <div style={{ background: theme.primaryGradient, padding: '24px 20px', paddingTop: '40px' }}>
                 <button onClick={() => setShowProfilePanel(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>✕</button>
                 
                 {/* Profile Info */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
                   <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', color: 'white', fontWeight: '700', position: 'relative' }}>
-                    {currentUser?.email?.charAt(0).toUpperCase()}
-                    <div style={{ position: 'absolute', bottom: '0', right: '0', width: '24px', height: '24px', borderRadius: '50%', background: getUserLevel(userPoints).color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', border: '3px solid #2e7d32' }}>
+                    {getUserInitials()}
+                    <div style={{ position: 'absolute', bottom: '0', right: '0', width: '24px', height: '24px', borderRadius: '50%', background: getUserLevel(userPoints).color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', border: `3px solid ${theme.primary}` }}>
                       {getUserLevel(userPoints).icon}
                     </div>
                   </div>
                   <div>
-                    <h2 style={{ color: 'white', fontSize: '18px', margin: '0 0 4px', fontWeight: '700' }}>{currentUser?.email?.split('@')[0]}</h2>
+                    <h2 style={{ color: 'white', fontSize: '18px', margin: '0 0 4px', fontWeight: '700' }}>{getDisplayName()}</h2>
                     <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', margin: 0 }}>{currentUser?.email}</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
                       <span style={{ background: getUserLevel(userPoints).color, color: 'white', padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>{getUserLevel(userPoints).name}</span>
@@ -1903,7 +1951,7 @@ function App() {
                 <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '16px', padding: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ color: 'white', fontSize: '24px', fontWeight: '700' }}>{userPoints}</span>
-                    <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px' }}>puan</span>
+                    <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px' }}>{t('points')}</span>
                   </div>
                   {getNextLevelProgress(userPoints).nextLevel && (
                     <>
@@ -1919,11 +1967,11 @@ function App() {
               </div>
 
               {/* Tabs */}
-              <div style={{ display: 'flex', borderBottom: '2px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', borderBottom: `2px solid ${theme.border}`, background: theme.backgroundCard }}>
                 {[
-                  { id: 'profile', label: 'Profil', icon: '👤' },
-                  { id: 'badges', label: 'Rozetler', icon: '🏆' },
-                  { id: 'leaderboard', label: 'Sıralama', icon: '📊' }
+                  { id: 'profile', label: t('profile'), icon: '👤' },
+                  { id: 'badges', label: t('badges'), icon: '🏆' },
+                  { id: 'leaderboard', label: t('leaderboard'), icon: '📊' }
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -1933,11 +1981,11 @@ function App() {
                       padding: '14px 8px',
                       border: 'none',
                       background: 'transparent',
-                      color: profileTab === tab.id ? '#2e7d32' : '#999',
+                      color: profileTab === tab.id ? theme.primary : theme.textMuted,
                       fontWeight: '600',
                       fontSize: '12px',
                       cursor: 'pointer',
-                      borderBottom: profileTab === tab.id ? '2px solid #2e7d32' : '2px solid transparent',
+                      borderBottom: profileTab === tab.id ? `2px solid ${theme.primary}` : '2px solid transparent',
                       marginBottom: '-2px',
                       fontFamily: "'DM Sans', sans-serif"
                     }}
@@ -1949,49 +1997,49 @@ function App() {
               </div>
 
               {/* Tab Content */}
-              <div style={{ padding: '20px' }}>
+              <div style={{ padding: '20px', background: theme.backgroundCard }}>
                 {/* Profile Tab */}
                 {profileTab === 'profile' && (
                   <div>
                     {/* Stats */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
-                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-                        <p style={{ fontSize: '24px', fontWeight: '700', color: '#2e7d32', margin: '0 0 4px' }}>{userReviews.length}</p>
-                        <p style={{ fontSize: '11px', color: '#666', margin: 0 }}>Yorum</p>
+                      <div style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '24px', fontWeight: '700', color: theme.primary, margin: '0 0 4px' }}>{userReviews.length}</p>
+                        <p style={{ fontSize: '11px', color: theme.textSecondary, margin: 0 }}>{t('reviews')}</p>
                       </div>
-                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-                        <p style={{ fontSize: '24px', fontWeight: '700', color: '#2e7d32', margin: '0 0 4px' }}>{myTrips.length}</p>
-                        <p style={{ fontSize: '11px', color: '#666', margin: 0 }}>Trip</p>
+                      <div style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '24px', fontWeight: '700', color: theme.primary, margin: '0 0 4px' }}>{myTrips.length}</p>
+                        <p style={{ fontSize: '11px', color: theme.textSecondary, margin: 0 }}>{t('trips')}</p>
                       </div>
-                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-                        <p style={{ fontSize: '24px', fontWeight: '700', color: '#2e7d32', margin: '0 0 4px' }}>{userBadges.length}</p>
-                        <p style={{ fontSize: '11px', color: '#666', margin: 0 }}>Rozet</p>
+                      <div style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '24px', fontWeight: '700', color: theme.primary, margin: '0 0 4px' }}>{userBadges.length}</p>
+                        <p style={{ fontSize: '11px', color: theme.textSecondary, margin: 0 }}>{t('badges')}</p>
                       </div>
                     </div>
 
                     {/* Menu Items */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div onClick={() => setShowSettingsScreen(true)} style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                      <div onClick={() => setShowSettingsScreen(true)} style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <span style={{ fontSize: '20px' }}>⚙️</span>
-                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('settings')}</span>
-                        <span style={{ color: '#ccc' }}>›</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('settings')}</span>
+                        <span style={{ color: theme.textMuted }}>›</span>
                       </div>
-                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                      <div style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <span style={{ fontSize: '20px' }}>🔔</span>
-                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('notifications')}</span>
-                        <span style={{ color: '#ccc' }}>›</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('notifications')}</span>
+                        <span style={{ color: theme.textMuted }}>›</span>
                       </div>
-                      <div onClick={() => setShowSubscriptionModal(true)} style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                      <div onClick={() => setShowSubscriptionModal(true)} style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <span style={{ fontSize: '20px' }}>💎</span>
-                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('premium')}</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('premium')}</span>
                         <span style={{ background: isPremiumUser ? '#4caf50' : '#ff9800', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '10px' }}>{isPremiumUser ? 'Aktif' : 'Yükselt'}</span>
                       </div>
-                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                      <div style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <span style={{ fontSize: '20px' }}>❓</span>
-                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('help')}</span>
-                        <span style={{ color: '#ccc' }}>›</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('help')}</span>
+                        <span style={{ color: theme.textMuted }}>›</span>
                       </div>
-                      <div onClick={() => { setShowProfilePanel(false); setShowLogoutConfirm(true); }} style={{ background: '#ffebee', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                      <div onClick={() => { setShowProfilePanel(false); setShowLogoutConfirm(true); }} style={{ background: settings.darkMode ? '#5c2a2a' : '#ffebee', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <span style={{ fontSize: '20px' }}>🚪</span>
                         <span style={{ flex: 1, fontSize: '14px', color: '#ef5350' }}>{t('logout')}</span>
                       </div>
@@ -2001,9 +2049,9 @@ function App() {
 
                 {/* Settings Screen */}
                 {showSettingsScreen && (
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'white', zIndex: 10, overflowY: 'auto' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: theme.backgroundCard, zIndex: 10, overflowY: 'auto' }}>
                     {/* Settings Header */}
-                    <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '20px', paddingTop: '40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ background: theme.primaryGradient, padding: '20px', paddingTop: '40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
                       <button onClick={() => setShowSettingsScreen(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
                       <h2 style={{ color: 'white', fontSize: '20px', margin: 0, fontWeight: '600' }}>⚙️ {t('settings')}</h2>
                     </div>
@@ -2011,9 +2059,9 @@ function App() {
                     <div style={{ padding: '20px' }}>
                       {/* Account Section */}
                       <div style={{ marginBottom: '24px' }}>
-                        <h3 style={{ fontSize: '12px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>👤 {t('account')}</h3>
-                        <div style={{ background: '#f8f8f8', borderRadius: '16px', overflow: 'hidden' }}>
-                          <div onClick={() => { setEditDisplayName(settings.displayName || currentUser?.email?.split('@')[0]); setShowEditProfile(true); }} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
+                        <h3 style={{ fontSize: '12px', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>👤 {t('account')}</h3>
+                        <div style={{ background: theme.backgroundHover, borderRadius: '16px', overflow: 'hidden' }}>
+                          <div onClick={() => { setEditDisplayName(settings.displayName || currentUser?.email?.split('@')[0]); setShowEditProfile(true); }} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderBottom: `1px solid ${theme.border}` }}>
                             <span style={{ fontSize: '20px' }}>✏️</span>
                             <div style={{ flex: 1 }}>
                               <p style={{ margin: 0, fontSize: '14px', color: '#333' }}>{t('editProfile')}</p>
@@ -2207,7 +2255,7 @@ function App() {
                         { rank: 4, name: 'Elif', points: 1650 },
                         { rank: 5, name: 'Can', points: 1420 },
                         { rank: 6, name: 'Selin', points: 1180 },
-                        { rank: 7, name: currentUser?.email?.split('@')[0] || 'Sen', points: userPoints, isYou: true }
+                        { rank: 7, name: getDisplayName(), points: userPoints, isYou: true }
                       ].sort((a, b) => b.points - a.points).map((user, idx) => (
                         <div key={idx} style={{ background: user.isYou ? '#e8f5e9' : '#f8f8f8', borderRadius: '12px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px', border: user.isYou ? '2px solid #4caf50' : 'none' }}>
                           <span style={{ width: '24px', fontSize: '14px', fontWeight: '700', color: '#666' }}>#{user.rank}</span>
@@ -2227,7 +2275,7 @@ function App() {
         )}
 
         {/* Floating Action Button */}
-        <button onClick={() => { resetNewTrip(); setScreen('newTripSearch'); }} style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', color: 'white', border: 'none', borderRadius: '28px', padding: '16px 28px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 8px 24px rgba(46,125,50,0.4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button onClick={() => { resetNewTrip(); setScreen('newTripSearch'); }} style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', background: theme.primaryGradient, color: 'white', border: 'none', borderRadius: '28px', padding: '16px 28px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', boxShadow: settings.darkMode ? '0 8px 24px rgba(255,152,0,0.4)' : '0 8px 24px rgba(46,125,50,0.4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '18px' }}>✨</span> Create AI Trip
         </button>
       </div>
