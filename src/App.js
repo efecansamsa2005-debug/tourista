@@ -745,6 +745,163 @@ function App() {
   // Profile panel state
   const [showProfilePanel, setShowProfilePanel] = useState(false);
   const [profileTab, setProfileTab] = useState('profile'); // profile, badges, leaderboard
+  const [showSettingsScreen, setShowSettingsScreen] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+
+  // Settings states (persisted to localStorage)
+  const [settings, setSettings] = useState(() => {
+    const saved = localStorage.getItem('tourista_settings');
+    return saved ? JSON.parse(saved) : {
+      language: 'tr',
+      distanceUnit: 'km',
+      darkMode: false,
+      showOnLeaderboard: true,
+      displayName: ''
+    };
+  });
+
+  // Password change states
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+
+  // Edit profile states
+  const [editDisplayName, setEditDisplayName] = useState('');
+
+  // Save settings to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('tourista_settings', JSON.stringify(settings));
+    // Apply dark mode
+    if (settings.darkMode) {
+      document.body.style.background = '#1a1a1a';
+    } else {
+      document.body.style.background = '#ffffff';
+    }
+  }, [settings]);
+
+  // Update a single setting
+  const updateSetting = (key, value) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Change password function
+  const handleChangePassword = async () => {
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (newPassword.length < 6) {
+      setPasswordError('Şifre en az 6 karakter olmalı');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError('Şifreler eşleşmiyor');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        setPasswordError(error.message);
+      } else {
+        setPasswordSuccess('Şifre başarıyla değiştirildi!');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setTimeout(() => {
+          setShowChangePassword(false);
+          setPasswordSuccess('');
+        }, 2000);
+      }
+    } catch (err) {
+      setPasswordError('Bir hata oluştu');
+    }
+  };
+
+  // Save display name
+  const saveDisplayName = () => {
+    updateSetting('displayName', editDisplayName);
+    setShowEditProfile(false);
+  };
+
+  // Translations
+  const t = (key) => {
+    const translations = {
+      tr: {
+        welcome: 'Hoş geldin',
+        myTrips: 'Gezilerim',
+        explore: 'Keşfet',
+        settings: 'Ayarlar',
+        profile: 'Profil',
+        badges: 'Rozetler',
+        leaderboard: 'Sıralama',
+        language: 'Dil',
+        distanceUnit: 'Mesafe Birimi',
+        darkMode: 'Karanlık Mod',
+        showOnLeaderboard: 'Liderlik Tablosunda Görün',
+        editProfile: 'Profili Düzenle',
+        changePassword: 'Şifre Değiştir',
+        displayName: 'Görünen İsim',
+        save: 'Kaydet',
+        cancel: 'İptal',
+        logout: 'Çıkış Yap',
+        points: 'puan',
+        reviews: 'Yorum',
+        trips: 'Gezi',
+        noTrips: 'Henüz gezi yok',
+        createFirst: 'İlk AI gezini oluştur!',
+        days: 'gün',
+        spots: 'nokta',
+        account: 'Hesap',
+        preferences: 'Tercihler',
+        privacy: 'Gizlilik',
+        clearCache: 'Önbelleği Temizle',
+        version: 'Versiyon',
+        help: 'Yardım',
+        premium: 'Premium',
+        notifications: 'Bildirimler',
+        back: 'Geri'
+      },
+      en: {
+        welcome: 'Welcome',
+        myTrips: 'My Trips',
+        explore: 'Explore',
+        settings: 'Settings',
+        profile: 'Profile',
+        badges: 'Badges',
+        leaderboard: 'Leaderboard',
+        language: 'Language',
+        distanceUnit: 'Distance Unit',
+        darkMode: 'Dark Mode',
+        showOnLeaderboard: 'Show on Leaderboard',
+        editProfile: 'Edit Profile',
+        changePassword: 'Change Password',
+        displayName: 'Display Name',
+        save: 'Save',
+        cancel: 'Cancel',
+        logout: 'Log Out',
+        points: 'points',
+        reviews: 'Reviews',
+        trips: 'Trips',
+        noTrips: 'No trips yet',
+        createFirst: 'Create your first AI trip!',
+        days: 'days',
+        spots: 'spots',
+        account: 'Account',
+        preferences: 'Preferences',
+        privacy: 'Privacy',
+        clearCache: 'Clear Cache',
+        version: 'Version',
+        help: 'Help',
+        premium: 'Premium',
+        notifications: 'Notifications',
+        back: 'Back'
+      }
+    };
+    return translations[settings.language]?.[key] || translations['en'][key] || key;
+  };
 
   // Gamification states
   const [userPoints, setUserPoints] = useState(0);
@@ -1115,9 +1272,16 @@ function App() {
     return minutes;
   };
 
-  // Format distance based on user locale
+  // Format distance based on user settings
   const formatDistance = (km) => {
-    // Could detect locale, for now show both
+    if (settings.distanceUnit === 'mi') {
+      const miles = km * 0.621371;
+      if (miles < 0.1) {
+        return `${Math.round(miles * 5280)}ft`;
+      }
+      return `${miles.toFixed(1)}mi`;
+    }
+    // km
     if (km < 1) {
       return `${Math.round(km * 1000)}m`;
     }
@@ -1807,29 +1971,183 @@ function App() {
 
                     {/* Menu Items */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                      <div onClick={() => setShowSettingsScreen(true)} style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <span style={{ fontSize: '20px' }}>⚙️</span>
-                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>Ayarlar</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('settings')}</span>
                         <span style={{ color: '#ccc' }}>›</span>
                       </div>
                       <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <span style={{ fontSize: '20px' }}>🔔</span>
-                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>Bildirimler</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('notifications')}</span>
                         <span style={{ color: '#ccc' }}>›</span>
                       </div>
-                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                      <div onClick={() => setShowSubscriptionModal(true)} style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <span style={{ fontSize: '20px' }}>💎</span>
-                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>Premium</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('premium')}</span>
                         <span style={{ background: isPremiumUser ? '#4caf50' : '#ff9800', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '10px' }}>{isPremiumUser ? 'Aktif' : 'Yükselt'}</span>
                       </div>
                       <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <span style={{ fontSize: '20px' }}>❓</span>
-                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>Yardım</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('help')}</span>
                         <span style={{ color: '#ccc' }}>›</span>
                       </div>
                       <div onClick={() => { setShowProfilePanel(false); setShowLogoutConfirm(true); }} style={{ background: '#ffebee', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <span style={{ fontSize: '20px' }}>🚪</span>
-                        <span style={{ flex: 1, fontSize: '14px', color: '#ef5350' }}>Çıkış Yap</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: '#ef5350' }}>{t('logout')}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Settings Screen */}
+                {showSettingsScreen && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'white', zIndex: 10, overflowY: 'auto' }}>
+                    {/* Settings Header */}
+                    <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '20px', paddingTop: '40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <button onClick={() => setShowSettingsScreen(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
+                      <h2 style={{ color: 'white', fontSize: '20px', margin: 0, fontWeight: '600' }}>⚙️ {t('settings')}</h2>
+                    </div>
+
+                    <div style={{ padding: '20px' }}>
+                      {/* Account Section */}
+                      <div style={{ marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '12px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>👤 {t('account')}</h3>
+                        <div style={{ background: '#f8f8f8', borderRadius: '16px', overflow: 'hidden' }}>
+                          <div onClick={() => { setEditDisplayName(settings.displayName || currentUser?.email?.split('@')[0]); setShowEditProfile(true); }} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
+                            <span style={{ fontSize: '20px' }}>✏️</span>
+                            <div style={{ flex: 1 }}>
+                              <p style={{ margin: 0, fontSize: '14px', color: '#333' }}>{t('editProfile')}</p>
+                              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#999' }}>{settings.displayName || currentUser?.email?.split('@')[0]}</p>
+                            </div>
+                            <span style={{ color: '#ccc' }}>›</span>
+                          </div>
+                          <div onClick={() => setShowChangePassword(true)} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                            <span style={{ fontSize: '20px' }}>🔑</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('changePassword')}</span>
+                            <span style={{ color: '#ccc' }}>›</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Preferences Section */}
+                      <div style={{ marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '12px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>🎨 {t('preferences')}</h3>
+                        <div style={{ background: '#f8f8f8', borderRadius: '16px', overflow: 'hidden' }}>
+                          {/* Language */}
+                          <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #eee' }}>
+                            <span style={{ fontSize: '20px' }}>🌍</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('language')}</span>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                              <button onClick={() => updateSetting('language', 'tr')} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: settings.language === 'tr' ? '#2e7d32' : '#e0e0e0', color: settings.language === 'tr' ? 'white' : '#666', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>TR</button>
+                              <button onClick={() => updateSetting('language', 'en')} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: settings.language === 'en' ? '#2e7d32' : '#e0e0e0', color: settings.language === 'en' ? 'white' : '#666', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>EN</button>
+                            </div>
+                          </div>
+                          {/* Distance Unit */}
+                          <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #eee' }}>
+                            <span style={{ fontSize: '20px' }}>📏</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('distanceUnit')}</span>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                              <button onClick={() => updateSetting('distanceUnit', 'km')} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: settings.distanceUnit === 'km' ? '#2e7d32' : '#e0e0e0', color: settings.distanceUnit === 'km' ? 'white' : '#666', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>km</button>
+                              <button onClick={() => updateSetting('distanceUnit', 'mi')} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: settings.distanceUnit === 'mi' ? '#2e7d32' : '#e0e0e0', color: settings.distanceUnit === 'mi' ? 'white' : '#666', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>mi</button>
+                            </div>
+                          </div>
+                          {/* Dark Mode */}
+                          <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span style={{ fontSize: '20px' }}>🌙</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('darkMode')}</span>
+                            <div onClick={() => updateSetting('darkMode', !settings.darkMode)} style={{ width: '50px', height: '28px', borderRadius: '14px', background: settings.darkMode ? '#2e7d32' : '#e0e0e0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
+                              <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'white', position: 'absolute', top: '2px', left: settings.darkMode ? '24px' : '2px', transition: 'left 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Privacy Section */}
+                      <div style={{ marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '12px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>🔒 {t('privacy')}</h3>
+                        <div style={{ background: '#f8f8f8', borderRadius: '16px', overflow: 'hidden' }}>
+                          <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span style={{ fontSize: '20px' }}>📊</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('showOnLeaderboard')}</span>
+                            <div onClick={() => updateSetting('showOnLeaderboard', !settings.showOnLeaderboard)} style={{ width: '50px', height: '28px', borderRadius: '14px', background: settings.showOnLeaderboard ? '#2e7d32' : '#e0e0e0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
+                              <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'white', position: 'absolute', top: '2px', left: settings.showOnLeaderboard ? '24px' : '2px', transition: 'left 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* App Section */}
+                      <div style={{ marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '12px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>📱 Uygulama</h3>
+                        <div style={{ background: '#f8f8f8', borderRadius: '16px', overflow: 'hidden' }}>
+                          <div onClick={() => { sessionStorage.clear(); localStorage.removeItem('tourista_settings'); alert('Önbellek temizlendi!'); }} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
+                            <span style={{ fontSize: '20px' }}>🗑️</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('clearCache')}</span>
+                          </div>
+                          <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span style={{ fontSize: '20px' }}>ℹ️</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('version')}</span>
+                            <span style={{ fontSize: '14px', color: '#999' }}>1.0.0</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Edit Profile Modal */}
+                {showEditProfile && (
+                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
+                    <div style={{ background: 'white', borderRadius: '20px', padding: '24px', margin: '20px', maxWidth: '320px', width: '100%' }}>
+                      <h3 style={{ margin: '0 0 20px', fontSize: '18px', color: '#1b5e20', textAlign: 'center' }}>✏️ {t('editProfile')}</h3>
+                      <div style={{ marginBottom: '16px' }}>
+                        <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '6px' }}>{t('displayName')}</label>
+                        <input
+                          type="text"
+                          value={editDisplayName}
+                          onChange={(e) => setEditDisplayName(e.target.value)}
+                          placeholder="İsminizi girin"
+                          style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '2px solid #e0e0e0', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={() => setShowEditProfile(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '2px solid #e0e0e0', background: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#666' }}>{t('cancel')}</button>
+                        <button onClick={saveDisplayName} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#2e7d32', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{t('save')}</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Change Password Modal */}
+                {showChangePassword && (
+                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
+                    <div style={{ background: 'white', borderRadius: '20px', padding: '24px', margin: '20px', maxWidth: '320px', width: '100%' }}>
+                      <h3 style={{ margin: '0 0 20px', fontSize: '18px', color: '#1b5e20', textAlign: 'center' }}>🔑 {t('changePassword')}</h3>
+                      
+                      {passwordError && <p style={{ color: '#ef5350', fontSize: '13px', textAlign: 'center', margin: '0 0 16px' }}>{passwordError}</p>}
+                      {passwordSuccess && <p style={{ color: '#4caf50', fontSize: '13px', textAlign: 'center', margin: '0 0 16px' }}>{passwordSuccess}</p>}
+                      
+                      <div style={{ marginBottom: '12px' }}>
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Yeni şifre"
+                          style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '2px solid #e0e0e0', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div style={{ marginBottom: '16px' }}>
+                        <input
+                          type="password"
+                          value={confirmNewPassword}
+                          onChange={(e) => setConfirmNewPassword(e.target.value)}
+                          placeholder="Yeni şifre tekrar"
+                          style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '2px solid #e0e0e0', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={() => { setShowChangePassword(false); setPasswordError(''); setNewPassword(''); setConfirmNewPassword(''); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '2px solid #e0e0e0', background: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#666' }}>{t('cancel')}</button>
+                        <button onClick={handleChangePassword} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#2e7d32', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{t('save')}</button>
                       </div>
                     </div>
                   </div>
