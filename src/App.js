@@ -870,17 +870,23 @@ function App() {
 
   // Delete trip from Supabase
   const deleteTripFromSupabase = useCallback(async (tripId) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.error('No user logged in, cannot delete trip');
+      return;
+    }
     
     try {
+      console.log('Deleting trip:', tripId);
       const { error } = await supabase
         .from('trips')
         .delete()
         .eq('user_id', currentUser.id)
-        .filter('trip_data->id', 'eq', tripId);
+        .filter('trip_data->>id', 'eq', tripId);
       
       if (error) {
         console.error('Error deleting trip:', error);
+      } else {
+        console.log('Trip deleted successfully');
       }
     } catch (err) {
       console.error('Error deleting trip:', err);
