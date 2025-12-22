@@ -2072,12 +2072,19 @@ function App() {
                       </div>
                       <div style={{ padding: '6px' }}>
                         <p style={{ margin: 0, fontSize: '11px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.name}</p>
-                        {place.rating > 0 && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
-                            <span style={{ color: '#ffc107', fontSize: '10px' }}>★</span>
-                            <span style={{ fontSize: '10px', fontWeight: '600', color: '#333' }}>{place.rating.toFixed(1)}</span>
-                          </div>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                          {place.rating > 0 && (
+                            <>
+                              <span style={{ color: '#ffc107', fontSize: '10px' }}>★</span>
+                              <span style={{ fontSize: '10px', fontWeight: '600', color: '#333' }}>{place.rating.toFixed(1)}</span>
+                            </>
+                          )}
+                          {place.priceLevel && (
+                            <span style={{ fontSize: '10px', color: '#4caf50', fontWeight: '600' }}>
+                              {'$'.repeat(place.priceLevel === 'PRICE_LEVEL_FREE' ? 0 : place.priceLevel === 'PRICE_LEVEL_INEXPENSIVE' ? 1 : place.priceLevel === 'PRICE_LEVEL_MODERATE' ? 2 : place.priceLevel === 'PRICE_LEVEL_EXPENSIVE' ? 3 : place.priceLevel === 'PRICE_LEVEL_VERY_EXPENSIVE' ? 4 : 0) || 'Free'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
