@@ -1535,8 +1535,6 @@ function App() {
       fetchSpotDetails(selectedSpot.name, selectedSpot.city || selectedGuide?.city);
     }
   }, [selectedSpot]);
-    return levels[priceLevel] || null;
-  };
 
   const togglePreference = (id) => {
     setNewTripPreferences(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
