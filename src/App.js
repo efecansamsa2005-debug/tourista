@@ -858,8 +858,12 @@ function App() {
   };
 
   // Save display name
-  const saveDisplayName = () => {
+  const saveDisplayName = async () => {
     updateSetting('displayName', editDisplayName);
+    // Also save to Supabase if function exists
+    if (typeof saveDisplayNameToSupabase === 'function') {
+      await saveDisplayNameToSupabase(editDisplayName);
+    }
     setShowEditProfile(false);
   };
 
@@ -1141,12 +1145,143 @@ function App() {
     }
   }, [currentUser]);
 
+  // ============ USER PROFILE & LEADERBOARD FUNCTIONS ============
+  
+  // Load or create user profile
+  const loadUserProfile = useCallback(async (userId) => {
+    try {
+      // First try to get existing profile
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (error && error.code === 'PGRST116') {
+        // Profile doesn't exist, create one
+        const newProfile = {
+          user_id: userId,
+          display_name: currentUser?.email?.split('@')[0] || 'User',
+          points: 0,
+          review_count: 0,
+          show_on_leaderboard: true,
+          current_level: 'Gezgin'
+        };
+        
+        const { data: createdProfile, error: createError } = await supabase
+          .from('user_profiles')
+          .insert(newProfile)
+          .select()
+          .single();
+        
+        if (createError) {
+          console.error('Error creating profile:', createError);
+        } else {
+          setUserPoints(createdProfile.points);
+          updateSetting('showOnLeaderboard', createdProfile.show_on_leaderboard);
+          if (createdProfile.display_name) {
+            updateSetting('displayName', createdProfile.display_name);
+          }
+        }
+      } else if (data) {
+        // Profile exists, load it
+        setUserPoints(data.points);
+        updateSetting('showOnLeaderboard', data.show_on_leaderboard);
+        if (data.display_name) {
+          updateSetting('displayName', data.display_name);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading profile:', err);
+    }
+  }, [currentUser]);
+
+  // Update user profile in Supabase
+  const updateUserProfile = useCallback(async (updates) => {
+    if (!currentUser) return;
+    
+    try {
+      // Calculate level based on points
+      const points = updates.points ?? userPoints;
+      let level = 'Gezgin';
+      if (points >= 10000) level = 'Efsane';
+      else if (points >= 5000) level = 'Uzman';
+      else if (points >= 2000) level = 'Rehber';
+      else if (points >= 500) level = 'Kaşif';
+      
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ ...updates, current_level: level, updated_at: new Date().toISOString() })
+        .eq('user_id', currentUser.id);
+      
+      if (error) {
+        console.error('Error updating profile:', error);
+      }
+    } catch (err) {
+      console.error('Error updating profile:', err);
+    }
+  }, [currentUser, userPoints]);
+
+  // Load leaderboard for user's level
+  const loadLeaderboard = useCallback(async () => {
+    if (!currentUser) return;
+    
+    try {
+      // Get current user's level
+      const currentLevel = getUserLevel(userPoints).name;
+      
+      // Fetch users in same level, ordered by points
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('current_level', currentLevel)
+        .eq('show_on_leaderboard', true)
+        .order('points', { ascending: false })
+        .limit(30);
+      
+      if (error) {
+        console.error('Error loading leaderboard:', error);
+      } else {
+        setLeaderboard(data || []);
+      }
+    } catch (err) {
+      console.error('Error loading leaderboard:', err);
+    }
+  }, [currentUser, userPoints]);
+
+  // Add points to user
+  const addPoints = useCallback(async (pointsToAdd, reason) => {
+    const newPoints = userPoints + pointsToAdd;
+    setUserPoints(newPoints);
+    await updateUserProfile({ points: newPoints });
+    console.log(`+${pointsToAdd} points for: ${reason}`);
+  }, [userPoints, updateUserProfile]);
+
+  // Toggle leaderboard visibility
+  const toggleLeaderboardVisibility = useCallback(async (show) => {
+    updateSetting('showOnLeaderboard', show);
+    await updateUserProfile({ show_on_leaderboard: show });
+  }, [updateUserProfile]);
+
+  // Save display name to Supabase
+  const saveDisplayNameToSupabase = useCallback(async (name) => {
+    await updateUserProfile({ display_name: name });
+  }, [updateUserProfile]);
+
   // Load trips when user changes
   useEffect(() => {
     if (currentUser) {
       loadTripsFromSupabase(currentUser.id);
+      loadUserProfile(currentUser.id);
     }
-  }, [currentUser, loadTripsFromSupabase]);
+  }, [currentUser, loadTripsFromSupabase, loadUserProfile]);
+
+  // Load leaderboard when profile tab is selected
+  useEffect(() => {
+    if (profileTab === 'leaderboard' && currentUser) {
+      loadLeaderboard();
+    }
+  }, [profileTab, currentUser, loadLeaderboard]);
 
   // GeoDB Cities API search with user's API key
   const searchCities = useCallback(async (query) => {
@@ -2112,12 +2247,12 @@ function App() {
 
                       {/* Privacy Section */}
                       <div style={{ marginBottom: '24px' }}>
-                        <h3 style={{ fontSize: '12px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>🔒 {t('privacy')}</h3>
-                        <div style={{ background: '#f8f8f8', borderRadius: '16px', overflow: 'hidden' }}>
+                        <h3 style={{ fontSize: '12px', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>🔒 {t('privacy')}</h3>
+                        <div style={{ background: theme.backgroundHover, borderRadius: '16px', overflow: 'hidden' }}>
                           <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span style={{ fontSize: '20px' }}>📊</span>
-                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('showOnLeaderboard')}</span>
-                            <div onClick={() => updateSetting('showOnLeaderboard', !settings.showOnLeaderboard)} style={{ width: '50px', height: '28px', borderRadius: '14px', background: settings.showOnLeaderboard ? '#2e7d32' : '#e0e0e0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
+                            <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('showOnLeaderboard')}</span>
+                            <div onClick={() => toggleLeaderboardVisibility(!settings.showOnLeaderboard)} style={{ width: '50px', height: '28px', borderRadius: '14px', background: settings.showOnLeaderboard ? theme.primary : theme.border, cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
                               <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'white', position: 'absolute', top: '2px', left: settings.showOnLeaderboard ? '24px' : '2px', transition: 'left 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
                             </div>
                           </div>
@@ -2126,16 +2261,16 @@ function App() {
 
                       {/* App Section */}
                       <div style={{ marginBottom: '24px' }}>
-                        <h3 style={{ fontSize: '12px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>📱 Uygulama</h3>
-                        <div style={{ background: '#f8f8f8', borderRadius: '16px', overflow: 'hidden' }}>
-                          <div onClick={() => { sessionStorage.clear(); localStorage.removeItem('tourista_settings'); alert('Önbellek temizlendi!'); }} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
+                        <h3 style={{ fontSize: '12px', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>📱 Uygulama</h3>
+                        <div style={{ background: theme.backgroundHover, borderRadius: '16px', overflow: 'hidden' }}>
+                          <div onClick={() => { sessionStorage.clear(); localStorage.removeItem('tourista_settings'); alert('Önbellek temizlendi!'); }} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderBottom: `1px solid ${theme.border}` }}>
                             <span style={{ fontSize: '20px' }}>🗑️</span>
-                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('clearCache')}</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('clearCache')}</span>
                           </div>
                           <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span style={{ fontSize: '20px' }}>ℹ️</span>
-                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('version')}</span>
-                            <span style={{ fontSize: '14px', color: '#999' }}>1.0.0</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('version')}</span>
+                            <span style={{ fontSize: '14px', color: theme.textMuted }}>1.0.0</span>
                           </div>
                         </div>
                       </div>
@@ -2224,49 +2359,99 @@ function App() {
                 {/* Leaderboard Tab */}
                 {profileTab === 'leaderboard' && (
                   <div>
-                    <p style={{ fontSize: '13px', color: '#666', margin: '0 0 16px' }}>Bu haftanın en aktif gezginleri</p>
-                    
-                    {/* Top 3 */}
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '12px', marginBottom: '24px' }}>
-                      {/* 2nd Place */}
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', fontSize: '18px', fontWeight: '700', color: '#666' }}>2</div>
-                        <p style={{ margin: 0, fontSize: '11px', color: '#666' }}>Ahmet</p>
-                        <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#999' }}>2,450 p</p>
-                      </div>
-                      {/* 1st Place */}
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '24px', marginBottom: '4px' }}>👑</div>
-                        <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #ffd700 0%, #ffb300 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', fontSize: '20px', fontWeight: '700', color: 'white', boxShadow: '0 4px 12px rgba(255,193,7,0.4)' }}>1</div>
-                        <p style={{ margin: 0, fontSize: '12px', fontWeight: '600', color: '#333' }}>Zeynep</p>
-                        <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#ff9800' }}>3,120 p</p>
-                      </div>
-                      {/* 3rd Place */}
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#cd7f32', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', fontSize: '18px', fontWeight: '700', color: 'white' }}>3</div>
-                        <p style={{ margin: 0, fontSize: '11px', color: '#666' }}>Mehmet</p>
-                        <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#999' }}>1,890 p</p>
+                    {/* Level indicator */}
+                    <div style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '20px' }}>{getUserLevel(userPoints).icon}</span>
+                      <div>
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: theme.text }}>{getUserLevel(userPoints).name} Ligi</p>
+                        <p style={{ margin: '2px 0 0', fontSize: '11px', color: theme.textMuted }}>Aynı seviyedeki gezginlerle yarış!</p>
                       </div>
                     </div>
 
-                    {/* Rest of leaderboard */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {[
-                        { rank: 4, name: 'Elif', points: 1650 },
-                        { rank: 5, name: 'Can', points: 1420 },
-                        { rank: 6, name: 'Selin', points: 1180 },
-                        { rank: 7, name: getDisplayName(), points: userPoints, isYou: true }
-                      ].sort((a, b) => b.points - a.points).map((user, idx) => (
-                        <div key={idx} style={{ background: user.isYou ? '#e8f5e9' : '#f8f8f8', borderRadius: '12px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px', border: user.isYou ? '2px solid #4caf50' : 'none' }}>
-                          <span style={{ width: '24px', fontSize: '14px', fontWeight: '700', color: '#666' }}>#{user.rank}</span>
-                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: user.isYou ? '#2e7d32' : '#ddd', display: 'flex', alignItems: 'center', justifyContent: 'center', color: user.isYou ? 'white' : '#666', fontWeight: '600', fontSize: '14px' }}>
-                            {user.name.charAt(0).toUpperCase()}
+                    {!settings.showOnLeaderboard ? (
+                      <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                        <span style={{ fontSize: '48px' }}>🙈</span>
+                        <p style={{ color: theme.text, fontSize: '14px', margin: '16px 0 8px' }}>Liderlik tablosunda görünmüyorsun</p>
+                        <p style={{ color: theme.textMuted, fontSize: '12px', margin: '0 0 16px' }}>Ayarlardan "Liderlik Tablosunda Görün" seçeneğini aç</p>
+                      </div>
+                    ) : leaderboard.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                        <span style={{ fontSize: '48px' }}>🏆</span>
+                        <p style={{ color: theme.text, fontSize: '14px', margin: '16px 0' }}>Henüz kimse yok!</p>
+                        <p style={{ color: theme.textMuted, fontSize: '12px' }}>İlk sen ol ve liderlik tablosunda yer al</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Top 3 */}
+                        {leaderboard.length >= 3 && (
+                          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '12px', marginBottom: '24px' }}>
+                            {/* 2nd Place */}
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#C0C0C0', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', fontSize: '18px', fontWeight: '700', color: 'white' }}>
+                                {leaderboard[1]?.display_name?.charAt(0).toUpperCase() || '?'}
+                              </div>
+                              <p style={{ margin: 0, fontSize: '11px', color: theme.text, fontWeight: leaderboard[1]?.user_id === currentUser?.id ? '700' : '400' }}>
+                                {leaderboard[1]?.display_name || 'Anonim'} {leaderboard[1]?.user_id === currentUser?.id && '(Sen)'}
+                              </p>
+                              <p style={{ margin: '2px 0 0', fontSize: '10px', color: theme.textMuted }}>{leaderboard[1]?.points?.toLocaleString()} p</p>
+                            </div>
+                            {/* 1st Place */}
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: '24px', marginBottom: '4px' }}>👑</div>
+                              <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #ffd700 0%, #ffb300 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', fontSize: '20px', fontWeight: '700', color: 'white', boxShadow: '0 4px 12px rgba(255,193,7,0.4)' }}>
+                                {leaderboard[0]?.display_name?.charAt(0).toUpperCase() || '?'}
+                              </div>
+                              <p style={{ margin: 0, fontSize: '12px', fontWeight: '600', color: theme.text }}>
+                                {leaderboard[0]?.display_name || 'Anonim'} {leaderboard[0]?.user_id === currentUser?.id && '(Sen)'}
+                              </p>
+                              <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#ff9800' }}>{leaderboard[0]?.points?.toLocaleString()} p</p>
+                            </div>
+                            {/* 3rd Place */}
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#cd7f32', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', fontSize: '18px', fontWeight: '700', color: 'white' }}>
+                                {leaderboard[2]?.display_name?.charAt(0).toUpperCase() || '?'}
+                              </div>
+                              <p style={{ margin: 0, fontSize: '11px', color: theme.text, fontWeight: leaderboard[2]?.user_id === currentUser?.id ? '700' : '400' }}>
+                                {leaderboard[2]?.display_name || 'Anonim'} {leaderboard[2]?.user_id === currentUser?.id && '(Sen)'}
+                              </p>
+                              <p style={{ margin: '2px 0 0', fontSize: '10px', color: theme.textMuted }}>{leaderboard[2]?.points?.toLocaleString()} p</p>
+                            </div>
                           </div>
-                          <span style={{ flex: 1, fontSize: '14px', fontWeight: user.isYou ? '600' : '400', color: user.isYou ? '#2e7d32' : '#333' }}>{user.name} {user.isYou && '(Sen)'}</span>
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#666' }}>{user.points} p</span>
+                        )}
+
+                        {/* Rest of leaderboard */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {leaderboard.slice(leaderboard.length >= 3 ? 3 : 0).map((user, idx) => {
+                            const rank = leaderboard.length >= 3 ? idx + 4 : idx + 1;
+                            const isYou = user.user_id === currentUser?.id;
+                            return (
+                              <div key={user.id} style={{ background: isYou ? (settings.darkMode ? '#3d4a2a' : '#e8f5e9') : theme.backgroundHover, borderRadius: '12px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px', border: isYou ? `2px solid ${theme.primary}` : 'none' }}>
+                                <span style={{ width: '24px', fontSize: '14px', fontWeight: '700', color: theme.textMuted }}>#{rank}</span>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: isYou ? theme.primary : theme.border, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isYou ? 'white' : theme.textSecondary, fontWeight: '600', fontSize: '14px' }}>
+                                  {user.display_name?.charAt(0).toUpperCase() || '?'}
+                                </div>
+                                <span style={{ flex: 1, fontSize: '14px', fontWeight: isYou ? '600' : '400', color: isYou ? theme.primary : theme.text }}>{user.display_name || 'Anonim'} {isYou && '(Sen)'}</span>
+                                <span style={{ fontSize: '13px', fontWeight: '600', color: theme.textMuted }}>{user.points?.toLocaleString()} p</span>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
+
+                        {/* Your rank if not in top 30 */}
+                        {!leaderboard.find(u => u.user_id === currentUser?.id) && (
+                          <div style={{ marginTop: '16px', padding: '12px 16px', background: settings.darkMode ? '#3d4a2a' : '#e8f5e9', borderRadius: '12px', border: `2px solid ${theme.primary}` }}>
+                            <p style={{ margin: 0, fontSize: '12px', color: theme.textMuted, textAlign: 'center' }}>Sen henüz ilk 30'da değilsin</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+                              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: theme.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '600', fontSize: '14px' }}>
+                                {getDisplayName().charAt(0).toUpperCase()}
+                              </div>
+                              <span style={{ flex: 1, fontSize: '14px', fontWeight: '600', color: theme.primary }}>{getDisplayName()} (Sen)</span>
+                              <span style={{ fontSize: '13px', fontWeight: '600', color: theme.textMuted }}>{userPoints.toLocaleString()} p</span>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
