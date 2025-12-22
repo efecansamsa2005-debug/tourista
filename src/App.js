@@ -778,6 +778,9 @@ function App() {
   const [userReviewText, setUserReviewText] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [placeReviews, setPlaceReviews] = useState([]);
+  const [showReviews, setShowReviews] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // Save settings to localStorage whenever they change
   useEffect(() => {
@@ -1309,11 +1312,36 @@ function App() {
     setReviewSubmitting(false);
   };
 
+  // Load reviews for a place
+  const loadPlaceReviews = async (placeName) => {
+    setReviewsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('place_reviews')
+        .select(`
+          *,
+          user_profiles (display_name)
+        `)
+        .eq('place_name', placeName)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      
+      if (!error) {
+        setPlaceReviews(data || []);
+      }
+    } catch (err) {
+      console.error('Error loading reviews:', err);
+    }
+    setReviewsLoading(false);
+  };
+
   // Reset review state when spot changes
   useEffect(() => {
     setUserRating(0);
     setUserReviewText('');
     setReviewSubmitted(false);
+    setPlaceReviews([]);
+    setShowReviews(false);
   }, [selectedSpot]);
 
   // Load trips when user changes
@@ -2653,23 +2681,23 @@ function App() {
   // ============================================
   if (screen === 'newTripConfirm') {
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #ffffff 0%, #e8f5e9 60%, #c8e6c9 100%)', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100vh', background: settings.darkMode ? theme.background : 'linear-gradient(180deg, #ffffff 0%, #e8f5e9 60%, #c8e6c9 100%)', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px' }}>
-          <button onClick={() => setScreen('newTripSearch')} style={{ background: 'white', border: 'none', borderRadius: '50%', width: '40px', height: '40px', fontSize: '18px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>←</button>
+          <button onClick={() => setScreen('newTripSearch')} style={{ background: theme.backgroundCard, border: 'none', borderRadius: '50%', width: '40px', height: '40px', fontSize: '18px', cursor: 'pointer', boxShadow: settings.darkMode ? 'none' : '0 2px 8px rgba(0,0,0,0.1)', color: theme.text }}>←</button>
         </div>
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
           <span style={{ fontSize: '80px', marginBottom: '16px' }}>{newTripCityData?.flag || '📍'}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h1 style={{ fontSize: '32px', fontWeight: '700', color: '#1b5e20', margin: 0 }}>{newTripCityData?.city || newTripCity}</h1>
-            <span onClick={() => setScreen('newTripSearch')} style={{ background: '#f0f0f0', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '12px', color: '#666' }}>✎</span>
+            <h1 style={{ fontSize: '32px', fontWeight: '700', color: theme.primary, margin: 0 }}>{newTripCityData?.city || newTripCity}</h1>
+            <span onClick={() => setScreen('newTripSearch')} style={{ background: theme.backgroundHover, borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '12px', color: theme.textMuted }}>✎</span>
           </div>
-          <p style={{ fontSize: '14px', color: '#689f38', marginTop: '8px' }}>{newTripCityData?.country}</p>
+          <p style={{ fontSize: '14px', color: theme.textMuted, marginTop: '8px' }}>{newTripCityData?.country}</p>
         </div>
 
         <div style={{ padding: '20px 20px 36px' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1b5e20', margin: '0 0 16px', textAlign: 'center' }}>Let's go to {newTripCityData?.city || newTripCity}!</h2>
-          <button onClick={() => setScreen('newTripPreferences')} style={{ width: '100%', background: 'white', color: '#1b5e20', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontFamily: "'DM Sans', sans-serif" }}>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: theme.primary, margin: '0 0 16px', textAlign: 'center' }}>Let's go to {newTripCityData?.city || newTripCity}!</h2>
+          <button onClick={() => setScreen('newTripPreferences')} style={{ width: '100%', background: theme.backgroundCard, color: theme.primary, border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: settings.darkMode ? 'none' : '0 4px 12px rgba(0,0,0,0.1)', fontFamily: "'DM Sans', sans-serif" }}>
             Continue <span>→</span>
           </button>
         </div>
@@ -2682,14 +2710,14 @@ function App() {
   // ============================================
   if (screen === 'newTripPreferences') {
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #e8f5e9 0%, #ffffff 100%)', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column' }}>
-        <div style={{ height: '25vh', background: 'linear-gradient(180deg, #e8f5e9 0%, #f5f5f5 100%)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '20px' }}>
+      <div style={{ minHeight: '100vh', background: settings.darkMode ? theme.background : 'linear-gradient(180deg, #e8f5e9 0%, #ffffff 100%)', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column' }}>
+        <div style={{ height: '25vh', background: settings.darkMode ? theme.backgroundSecondary : 'linear-gradient(180deg, #e8f5e9 0%, #f5f5f5 100%)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '20px' }}>
           <span style={{ fontSize: '60px' }}>👍</span>
         </div>
 
-        <div style={{ flex: 1, background: 'white', borderRadius: '28px 28px 0 0', marginTop: '-20px', padding: '28px 20px 100px' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#1b5e20', margin: '0 0 6px' }}>Trip Preferences</h1>
-          <p style={{ fontSize: '13px', color: '#689f38', margin: '0 0 20px' }}>What should your trip focus on?</p>
+        <div style={{ flex: 1, background: theme.backgroundCard, borderRadius: '28px 28px 0 0', marginTop: '-20px', padding: '28px 20px 100px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: '700', color: theme.primary, margin: '0 0 6px' }}>Trip Preferences</h1>
+          <p style={{ fontSize: '13px', color: theme.textMuted, margin: '0 0 20px' }}>What should your trip focus on?</p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '28px' }}>
             {TRIP_CATEGORIES.map((cat) => (
@@ -2697,8 +2725,8 @@ function App() {
                 key={cat.id} 
                 onClick={() => togglePreference(cat.id)} 
                 style={{ 
-                  background: newTripPreferences.includes(cat.id) ? '#e8f5e9' : 'white', 
-                  border: newTripPreferences.includes(cat.id) ? '2px solid #4caf50' : '2px solid #e0e0e0', 
+                  background: newTripPreferences.includes(cat.id) ? (settings.darkMode ? theme.backgroundHover : '#e8f5e9') : theme.backgroundCard, 
+                  border: newTripPreferences.includes(cat.id) ? `2px solid ${theme.primary}` : `2px solid ${theme.border}`, 
                   padding: '12px 16px', 
                   borderRadius: '22px', 
                   fontSize: '13px', 
@@ -2707,7 +2735,7 @@ function App() {
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '6px', 
-                  color: '#333',
+                  color: theme.text,
                   fontFamily: "'DM Sans', sans-serif"
                 }}
               >
@@ -2717,8 +2745,8 @@ function App() {
           </div>
         </div>
 
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '14px 20px 28px', background: 'white', boxShadow: '0 -4px 20px rgba(0,0,0,0.05)' }}>
-          <button onClick={() => setScreen('newTripDuration')} style={{ width: '100%', background: '#1b5e20', color: 'white', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '14px 20px 28px', background: theme.backgroundCard, boxShadow: settings.darkMode ? 'none' : '0 -4px 20px rgba(0,0,0,0.05)' }}>
+          <button onClick={() => setScreen('newTripDuration')} style={{ width: '100%', background: theme.primaryGradient, color: 'white', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
             Continue →
           </button>
         </div>
@@ -2731,37 +2759,37 @@ function App() {
   // ============================================
   if (screen === 'newTripDuration') {
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%)', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100vh', background: settings.darkMode ? theme.background : 'linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%)', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px' }}>
-          <button onClick={() => setScreen('newTripPreferences')} style={{ background: 'white', border: 'none', borderRadius: '50%', width: '40px', height: '40px', fontSize: '18px', cursor: 'pointer' }}>←</button>
+          <button onClick={() => setScreen('newTripPreferences')} style={{ background: theme.backgroundCard, border: 'none', borderRadius: '50%', width: '40px', height: '40px', fontSize: '18px', cursor: 'pointer', color: theme.text }}>←</button>
         </div>
 
         <div style={{ flex: 1, padding: '0 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-            <span style={{ fontSize: '22px', background: '#e8f5e9', padding: '6px', borderRadius: '10px' }}>📅</span>
-            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#1b5e20', margin: 0 }}>Trip Duration</h1>
+            <span style={{ fontSize: '22px', background: settings.darkMode ? theme.backgroundHover : '#e8f5e9', padding: '6px', borderRadius: '10px' }}>📅</span>
+            <h1 style={{ fontSize: '24px', fontWeight: '700', color: theme.primary, margin: 0 }}>Trip Duration</h1>
           </div>
 
-          <div style={{ display: 'flex', background: 'white', borderRadius: '22px', padding: '4px', marginBottom: '20px' }}>
-            <button onClick={() => setDurationMode('flexible')} style={{ flex: 1, background: durationMode === 'flexible' ? '#1b5e20' : 'transparent', color: durationMode === 'flexible' ? 'white' : '#666', border: 'none', padding: '10px', borderRadius: '18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Flexible</button>
-            <button onClick={() => setDurationMode('calendar')} style={{ flex: 1, background: durationMode === 'calendar' ? '#1b5e20' : 'transparent', color: durationMode === 'calendar' ? 'white' : '#666', border: 'none', padding: '10px', borderRadius: '18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Calendar</button>
+          <div style={{ display: 'flex', background: theme.backgroundCard, borderRadius: '22px', padding: '4px', marginBottom: '20px' }}>
+            <button onClick={() => setDurationMode('flexible')} style={{ flex: 1, background: durationMode === 'flexible' ? theme.primary : 'transparent', color: durationMode === 'flexible' ? 'white' : theme.textMuted, border: 'none', padding: '10px', borderRadius: '18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Flexible</button>
+            <button onClick={() => setDurationMode('calendar')} style={{ flex: 1, background: durationMode === 'calendar' ? theme.primary : 'transparent', color: durationMode === 'calendar' ? 'white' : theme.textMuted, border: 'none', padding: '10px', borderRadius: '18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Calendar</button>
           </div>
 
           {durationMode === 'flexible' ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', paddingTop: '20px' }}>
-              <p style={{ fontSize: '14px', color: '#689f38', marginBottom: '10px' }}>How many days?</p>
+              <p style={{ fontSize: '14px', color: theme.textMuted, marginBottom: '10px' }}>How many days?</p>
               {[1, 2, 3, 4, 5, 6, 7].map((day) => (
                 <button 
                   key={day} 
                   onClick={() => setNewTripDays(day)} 
                   style={{ 
-                    background: newTripDays === day ? '#e8f5e9' : 'transparent', 
+                    background: newTripDays === day ? (settings.darkMode ? theme.backgroundHover : '#e8f5e9') : 'transparent', 
                     border: 'none', 
                     padding: newTripDays === day ? '14px 45px' : '6px 25px', 
                     borderRadius: '14px', 
                     fontSize: newTripDays === day ? '42px' : '26px', 
                     fontWeight: '700', 
-                    color: newTripDays === day ? '#1b5e20' : '#c8e6c9', 
+                    color: newTripDays === day ? theme.primary : theme.border, 
                     cursor: 'pointer', 
                     transition: 'all 0.2s ease' 
                   }}
@@ -2784,7 +2812,7 @@ function App() {
               }
               setShowAiPlanOffer(true);
             }} 
-            style={{ width: '100%', background: '#1b5e20', color: 'white', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}
+            style={{ width: '100%', background: theme.primaryGradient, color: 'white', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}
           >
             Continue →
           </button>
@@ -2793,25 +2821,25 @@ function App() {
         {/* AI Plan Offer Modal */}
         {showAiPlanOffer && (
           <div onClick={() => setShowAiPlanOffer(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '24px', padding: '24px', margin: '20px', maxWidth: '340px', width: '100%' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1b5e20', margin: '0 0 14px', textAlign: 'center' }}>Want us to plan your trip?</h2>
-              <p style={{ fontSize: '13px', color: '#666', textAlign: 'center', margin: '0 0 20px' }}>Our AI will find the best places based on your preferences</p>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: theme.backgroundCard, borderRadius: '24px', padding: '24px', margin: '20px', maxWidth: '340px', width: '100%' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: '700', color: theme.primary, margin: '0 0 14px', textAlign: 'center' }}>Want us to plan your trip?</h2>
+              <p style={{ fontSize: '13px', color: theme.textSecondary, textAlign: 'center', margin: '0 0 20px' }}>Our AI will find the best places based on your preferences</p>
 
-              <div style={{ background: '#f8f8f8', borderRadius: '14px', padding: '14px', marginBottom: '18px' }}>
-                <p style={{ margin: '0 0 8px', fontSize: '11px', color: '#999' }}>✨ Preview</p>
-                <div style={{ background: 'white', borderRadius: '10px', padding: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '8px', background: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>{newTripCityData?.flag || '📍'}</div>
+              <div style={{ background: theme.backgroundHover, borderRadius: '14px', padding: '14px', marginBottom: '18px' }}>
+                <p style={{ margin: '0 0 8px', fontSize: '11px', color: theme.textMuted }}>✨ Preview</p>
+                <div style={{ background: theme.backgroundCard, borderRadius: '10px', padding: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '44px', height: '44px', borderRadius: '8px', background: settings.darkMode ? theme.backgroundHover : '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>{newTripCityData?.flag || '📍'}</div>
                   <div>
-                    <p style={{ margin: 0, fontSize: '13px', fontWeight: '600' }}>Day 1 - {newTripCityData?.city} Highlights</p>
-                    <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#999' }}>4-5 curated spots</p>
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: theme.text }}>Day 1 - {newTripCityData?.city} Highlights</p>
+                    <p style={{ margin: '2px 0 0', fontSize: '11px', color: theme.textMuted }}>4-5 curated spots</p>
                   </div>
                 </div>
               </div>
 
-              <button onClick={() => { setShowAiPlanOffer(false); generateAiTrip(); }} style={{ width: '100%', background: '#1b5e20', color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontFamily: "'DM Sans', sans-serif" }}>
+              <button onClick={() => { setShowAiPlanOffer(false); generateAiTrip(); }} style={{ width: '100%', background: theme.primaryGradient, color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontFamily: "'DM Sans', sans-serif" }}>
                 <span>✨</span> Yes, plan for me!
               </button>
-              <button onClick={() => { setShowAiPlanOffer(false); setScreen('manualPlanner'); }} style={{ width: '100%', background: 'transparent', color: '#666', border: 'none', padding: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+              <button onClick={() => { setShowAiPlanOffer(false); setScreen('manualPlanner'); }} style={{ width: '100%', background: 'transparent', color: theme.textMuted, border: 'none', padding: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
                 No thanks, I'll plan myself
               </button>
             </div>
@@ -2913,9 +2941,9 @@ function App() {
     };
 
     return (
-      <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif", paddingBottom: '100px' }}>
+      <div style={{ minHeight: '100vh', background: theme.background, fontFamily: "'DM Sans', sans-serif", paddingBottom: '100px' }}>
         {/* Header */}
-        <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '16px 20px' }}>
+        <div style={{ background: theme.primaryGradient, padding: '16px 20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <button onClick={() => { setScreen('newTripConfirm'); setManualSpots([]); setPlaceSearchQuery(''); setPlaceSearchResults([]); }} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '10px', padding: '8px 12px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
             <h1 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: 0 }}>{newTripCityData.flag} {newTripCityData.city}</h1>
@@ -2925,15 +2953,15 @@ function App() {
         </div>
 
         {/* Category Filters */}
-        <div style={{ background: 'white', padding: '12px 0', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+        <div style={{ background: theme.backgroundCard, padding: '12px 0', boxShadow: settings.darkMode ? 'none' : '0 2px 8px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '0 16px', scrollbarWidth: 'none' }}>
             {categories.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => searchByCategory(cat)}
                 style={{
-                  background: selectedCategory === cat.id ? '#1b5e20' : '#f5f5f5',
-                  color: selectedCategory === cat.id ? 'white' : '#333',
+                  background: selectedCategory === cat.id ? theme.primary : theme.backgroundHover,
+                  color: selectedCategory === cat.id ? 'white' : theme.text,
                   border: 'none',
                   borderRadius: '20px',
                   padding: '8px 16px',
@@ -2955,9 +2983,9 @@ function App() {
         </div>
 
         {/* Search Bar */}
-        <div style={{ padding: '12px 16px', background: 'white', borderTop: '1px solid #eee' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f5f5f5', borderRadius: '14px', padding: '4px 14px' }}>
-            <span style={{ fontSize: '18px', color: '#999' }}>🔍</span>
+        <div style={{ padding: '12px 16px', background: theme.backgroundCard, borderTop: `1px solid ${theme.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: theme.backgroundHover, borderRadius: '14px', padding: '4px 14px' }}>
+            <span style={{ fontSize: '18px', color: theme.textMuted }}>🔍</span>
             <input 
               type="text" 
               value={placeSearchQuery} 
@@ -2971,10 +2999,10 @@ function App() {
                 }
               }} 
               placeholder={`Search places in ${newTripCityData.city}...`}
-              style={{ flex: 1, padding: '10px 0', border: 'none', background: 'transparent', fontSize: '14px', outline: 'none', fontFamily: "'DM Sans', sans-serif" }} 
+              style={{ flex: 1, padding: '10px 0', border: 'none', background: 'transparent', fontSize: '14px', outline: 'none', fontFamily: "'DM Sans', sans-serif", color: theme.text }} 
             />
             {placeSearchQuery && (
-              <span onClick={() => { setPlaceSearchQuery(''); setPlaceSearchResults([]); }} style={{ fontSize: '16px', cursor: 'pointer', color: '#999' }}>✕</span>
+              <span onClick={() => { setPlaceSearchQuery(''); setPlaceSearchResults([]); }} style={{ fontSize: '16px', cursor: 'pointer', color: theme.textMuted }}>✕</span>
             )}
           </div>
         </div>
@@ -3214,13 +3242,13 @@ function App() {
   // ============================================
   if (screen === 'aiGenerating') {
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%)', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <div style={{ minHeight: '100vh', background: settings.darkMode ? theme.background : 'linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%)', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
         <style>{`@keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15); opacity: 0.7; } }`}</style>
-        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', animation: 'pulse 1.5s infinite', boxShadow: '0 8px 30px rgba(46,125,50,0.2)' }}>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: theme.backgroundCard, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', animation: 'pulse 1.5s infinite', boxShadow: settings.darkMode ? 'none' : '0 8px 30px rgba(46,125,50,0.2)' }}>
           <span style={{ fontSize: '40px' }}>✨</span>
         </div>
-        <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#1b5e20', margin: '0 0 10px', textAlign: 'center' }}>Creating your perfect trip</h1>
-        <p style={{ fontSize: '15px', color: '#689f38', margin: 0, textAlign: 'center' }}>{aiLoadingMessage}</p>
+        <h1 style={{ fontSize: '22px', fontWeight: '700', color: theme.primary, margin: '0 0 10px', textAlign: 'center' }}>Creating your perfect trip</h1>
+        <p style={{ fontSize: '15px', color: theme.textMuted, margin: 0, textAlign: 'center' }}>{aiLoadingMessage}</p>
       </div>
     );
   }
@@ -3234,12 +3262,12 @@ function App() {
     const showOneDayPaywall = !isPremiumUser && generatedTrip.days === 1;
 
     return (
-      <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif", paddingBottom: '20px' }}>
+      <div style={{ minHeight: '100vh', background: theme.background, fontFamily: "'DM Sans', sans-serif", paddingBottom: '20px' }}>
         {/* Header */}
-        <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: theme.primaryGradient, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button onClick={() => { setScreen('home'); resetNewTrip(); }} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '10px', padding: '8px 12px', color: 'white', cursor: 'pointer', fontSize: '15px' }}>←</button>
           <h1 style={{ color: 'white', fontSize: '16px', fontWeight: '600', margin: 0 }}>{generatedTrip.flag} {generatedTrip.city}</h1>
-          <button onClick={() => { saveTripToSupabase(generatedTrip); setMyTrips(prev => [...prev, generatedTrip]); setScreen('home'); resetNewTrip(); }} style={{ background: 'white', border: 'none', borderRadius: '10px', padding: '8px 12px', color: '#2e7d32', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>💾 Save</button>
+          <button onClick={() => { saveTripToSupabase(generatedTrip); setMyTrips(prev => [...prev, generatedTrip]); setScreen('home'); resetNewTrip(); }} style={{ background: 'white', border: 'none', borderRadius: '10px', padding: '8px 12px', color: theme.primary, cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>💾 Save</button>
         </div>
 
         {/* Map */}
@@ -3265,7 +3293,7 @@ function App() {
               bottom: '12px', 
               left: '50%',
               transform: 'translateX(-50%)',
-              background: 'white', 
+              background: theme.backgroundCard, 
               border: 'none', 
               borderRadius: '20px', 
               padding: '10px 32px', 
@@ -3273,7 +3301,7 @@ function App() {
               cursor: 'pointer', 
               fontSize: '13px', 
               fontWeight: '600', 
-              color: '#1b5e20',
+              color: theme.primary,
               zIndex: 1000,
               display: 'flex',
               alignItems: 'center',
@@ -3287,12 +3315,12 @@ function App() {
         </div>
 
         {/* Trip Info */}
-        <div style={{ background: 'white', margin: '0 14px 14px', borderRadius: '14px', padding: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+        <div style={{ background: theme.backgroundCard, margin: '0 14px 14px', borderRadius: '14px', padding: '14px', boxShadow: settings.darkMode ? 'none' : '0 2px 8px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '11px', background: '#e8f5e9', color: '#2e7d32', padding: '3px 8px', borderRadius: '10px' }}>✨ AI Generated</span>
+            <span style={{ fontSize: '11px', background: settings.darkMode ? theme.backgroundHover : '#e8f5e9', color: theme.primary, padding: '3px 8px', borderRadius: '10px' }}>✨ AI Generated</span>
           </div>
-          <h2 style={{ margin: '0 0 6px', fontSize: '18px', color: '#1b5e20', fontWeight: '700' }}>{generatedTrip.title}</h2>
-          <div style={{ display: 'flex', gap: '14px', fontSize: '12px', color: '#689f38' }}>
+          <h2 style={{ margin: '0 0 6px', fontSize: '18px', color: theme.primary, fontWeight: '700' }}>{generatedTrip.title}</h2>
+          <div style={{ display: 'flex', gap: '14px', fontSize: '12px', color: theme.textMuted }}>
             <span>📅 {generatedTrip.days} days</span>
             <span>📍 {getTotalSpots(generatedTrip)} spots</span>
           </div>
@@ -3796,6 +3824,71 @@ function App() {
                       {reviewSubmitting ? '...' : (settings.language === 'tr' ? 'Gönder (+50 puan)' : 'Submit (+50 points)')}
                     </button>
                   </>
+                )}
+                
+                {/* Show Reviews Button */}
+                <button
+                  onClick={() => {
+                    if (!showReviews) {
+                      loadPlaceReviews(selectedSpot.name);
+                    }
+                    setShowReviews(!showReviews);
+                  }}
+                  style={{
+                    width: '100%',
+                    marginTop: '12px',
+                    padding: '10px',
+                    borderRadius: '10px',
+                    border: `1px solid ${theme.border}`,
+                    background: 'transparent',
+                    color: theme.primary,
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    fontFamily: "'DM Sans', sans-serif"
+                  }}
+                >
+                  {showReviews ? (settings.language === 'tr' ? '▲ Yorumları Gizle' : '▲ Hide Reviews') : (settings.language === 'tr' ? '▼ Yorumları Gör' : '▼ Show Reviews')}
+                </button>
+                
+                {/* Reviews List */}
+                {showReviews && (
+                  <div style={{ marginTop: '12px' }}>
+                    {reviewsLoading ? (
+                      <p style={{ textAlign: 'center', color: theme.textMuted, fontSize: '13px', padding: '16px' }}>
+                        {settings.language === 'tr' ? 'Yükleniyor...' : 'Loading...'}
+                      </p>
+                    ) : placeReviews.length === 0 ? (
+                      <p style={{ textAlign: 'center', color: theme.textMuted, fontSize: '13px', padding: '16px' }}>
+                        {settings.language === 'tr' ? 'Henüz yorum yok. İlk yorumu sen yap!' : 'No reviews yet. Be the first!'}
+                      </p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto' }}>
+                        {placeReviews.map((review, idx) => (
+                          <div key={idx} style={{ background: theme.backgroundCard, borderRadius: '12px', padding: '12px', border: `1px solid ${theme.border}` }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                              <span style={{ fontWeight: '600', fontSize: '13px', color: theme.text }}>
+                                {review.user_profiles?.display_name || 'Anonymous'}
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                {[1,2,3,4,5].map(s => (
+                                  <span key={s} style={{ color: s <= review.rating ? '#ffc107' : theme.border, fontSize: '12px' }}>★</span>
+                                ))}
+                              </div>
+                            </div>
+                            {review.review_text && (
+                              <p style={{ margin: 0, fontSize: '13px', color: theme.textSecondary, lineHeight: '1.4' }}>
+                                {review.review_text}
+                              </p>
+                            )}
+                            <p style={{ margin: '6px 0 0', fontSize: '11px', color: theme.textMuted }}>
+                              {new Date(review.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
