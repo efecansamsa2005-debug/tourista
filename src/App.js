@@ -742,6 +742,60 @@ function App() {
   // Logout confirmation
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  // Profile panel state
+  const [showProfilePanel, setShowProfilePanel] = useState(false);
+  const [profileTab, setProfileTab] = useState('profile'); // profile, badges, leaderboard
+
+  // Gamification states
+  const [userPoints, setUserPoints] = useState(0);
+  const [userReviews, setUserReviews] = useState([]);
+  const [userBadges, setUserBadges] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
+
+  // Badge & Level definitions
+  const LEVELS = [
+    { name: 'Gezgin', minPoints: 0, icon: '🚶', color: '#9e9e9e' },
+    { name: 'Kaşif', minPoints: 500, icon: '🧭', color: '#8d6e63' },
+    { name: 'Rehber', minPoints: 2000, icon: '🗺️', color: '#42a5f5' },
+    { name: 'Uzman', minPoints: 5000, icon: '⭐', color: '#ab47bc' },
+    { name: 'Efsane', minPoints: 10000, icon: '👑', color: '#ffd700' }
+  ];
+
+  const BADGES = [
+    { id: 'first_review', name: 'İlk Adım', icon: '🎯', description: 'İlk yorumunu yap', requirement: 1, type: 'reviews' },
+    { id: 'reviewer_10', name: 'Yorumcu', icon: '✍️', description: '10 yorum yap', requirement: 10, type: 'reviews' },
+    { id: 'reviewer_50', name: 'Eleştirmen', icon: '📝', description: '50 yorum yap', requirement: 50, type: 'reviews' },
+    { id: 'cities_5', name: 'Gezgin', icon: '🌍', description: '5 farklı şehirde yorum yap', requirement: 5, type: 'cities' },
+    { id: 'cities_10', name: 'Dünya Vatandaşı', icon: '✈️', description: '10 farklı şehirde yorum yap', requirement: 10, type: 'cities' },
+    { id: 'restaurants_10', name: 'Gurme', icon: '🍽️', description: '10 restoran yorumu', requirement: 10, type: 'restaurant' },
+    { id: 'museums_10', name: 'Kültür Sever', icon: '🏛️', description: '10 müze yorumu', requirement: 10, type: 'museum' },
+    { id: 'nightlife_10', name: 'Gece Kuşu', icon: '🦉', description: '10 gece mekanı yorumu', requirement: 10, type: 'nightlife' },
+    { id: 'helpful_10', name: 'Yardımsever', icon: '👍', description: '10 kez beğenilen yorum', requirement: 10, type: 'likes' },
+    { id: 'streak_7', name: 'Kararlı', icon: '🔥', description: '7 gün üst üste yorum', requirement: 7, type: 'streak' }
+  ];
+
+  // Get user's current level
+  const getUserLevel = (points) => {
+    for (let i = LEVELS.length - 1; i >= 0; i--) {
+      if (points >= LEVELS[i].minPoints) return LEVELS[i];
+    }
+    return LEVELS[0];
+  };
+
+  // Get progress to next level
+  const getNextLevelProgress = (points) => {
+    const currentLevel = getUserLevel(points);
+    const currentIndex = LEVELS.findIndex(l => l.name === currentLevel.name);
+    if (currentIndex >= LEVELS.length - 1) return { progress: 100, nextLevel: null, pointsNeeded: 0 };
+    
+    const nextLevel = LEVELS[currentIndex + 1];
+    const pointsInLevel = points - currentLevel.minPoints;
+    const pointsForLevel = nextLevel.minPoints - currentLevel.minPoints;
+    const progress = Math.round((pointsInLevel / pointsForLevel) * 100);
+    
+    return { progress, nextLevel, pointsNeeded: nextLevel.minPoints - points };
+  };
+
   // Country code to flag emoji
   const getCountryFlag = useCallback((countryCode) => {
     if (!countryCode) return '📍';
@@ -1560,11 +1614,24 @@ function App() {
               <span style={{ fontSize: '28px' }}>🧭</span>
               <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', fontWeight: '700', color: 'white', margin: 0 }}>TOURISTA</h1>
             </div>
-            <div onClick={() => setShowLogoutConfirm(true)} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '600', cursor: 'pointer' }}>
+            <div onClick={() => setShowProfilePanel(true)} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '600', cursor: 'pointer', position: 'relative' }}>
               {currentUser?.email?.charAt(0).toUpperCase()}
+              {/* Level indicator */}
+              <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '18px', height: '18px', borderRadius: '50%', background: getUserLevel(userPoints).color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', border: '2px solid #2e7d32' }}>
+                {getUserLevel(userPoints).icon}
+              </div>
             </div>
           </div>
           <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px', margin: 0 }}>Welcome, <strong>{currentUser?.email?.split('@')[0]}</strong>! 👋</p>
+          {/* Points display */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '20px', padding: '4px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '14px' }}>{getUserLevel(userPoints).icon}</span>
+              <span style={{ color: 'white', fontSize: '12px', fontWeight: '600' }}>{getUserLevel(userPoints).name}</span>
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>•</span>
+              <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '12px' }}>{userPoints} puan</span>
+            </div>
+          </div>
         </div>
 
         {/* Explore Destinations */}
@@ -1638,6 +1705,204 @@ function App() {
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button onClick={() => setShowLogoutConfirm(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '2px solid #e0e0e0', background: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#666', fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
                 <button onClick={() => { setShowLogoutConfirm(false); handleLogout(); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#ef5350', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Log Out</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Profile Panel (Slide from right) */}
+        {showProfilePanel && (
+          <div onClick={() => setShowProfilePanel(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1002 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: '85%', maxWidth: '360px', background: 'white', boxShadow: '-4px 0 20px rgba(0,0,0,0.15)', overflowY: 'auto' }}>
+              {/* Panel Header */}
+              <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '24px 20px', paddingTop: '40px' }}>
+                <button onClick={() => setShowProfilePanel(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+                
+                {/* Profile Info */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+                  <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', color: 'white', fontWeight: '700', position: 'relative' }}>
+                    {currentUser?.email?.charAt(0).toUpperCase()}
+                    <div style={{ position: 'absolute', bottom: '0', right: '0', width: '24px', height: '24px', borderRadius: '50%', background: getUserLevel(userPoints).color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', border: '3px solid #2e7d32' }}>
+                      {getUserLevel(userPoints).icon}
+                    </div>
+                  </div>
+                  <div>
+                    <h2 style={{ color: 'white', fontSize: '18px', margin: '0 0 4px', fontWeight: '700' }}>{currentUser?.email?.split('@')[0]}</h2>
+                    <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', margin: 0 }}>{currentUser?.email}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                      <span style={{ background: getUserLevel(userPoints).color, color: 'white', padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>{getUserLevel(userPoints).name}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Points & Progress */}
+                <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '16px', padding: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ color: 'white', fontSize: '24px', fontWeight: '700' }}>{userPoints}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px' }}>puan</span>
+                  </div>
+                  {getNextLevelProgress(userPoints).nextLevel && (
+                    <>
+                      <div style={{ background: 'rgba(255,255,255,0.3)', borderRadius: '10px', height: '8px', overflow: 'hidden', marginBottom: '8px' }}>
+                        <div style={{ background: 'white', height: '100%', width: `${getNextLevelProgress(userPoints).progress}%`, borderRadius: '10px', transition: 'width 0.3s' }} />
+                      </div>
+                      <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '11px', margin: 0 }}>
+                        {getNextLevelProgress(userPoints).pointsNeeded} puan ile <strong>{getNextLevelProgress(userPoints).nextLevel.icon} {getNextLevelProgress(userPoints).nextLevel.name}</strong> seviyesine ulaş!
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div style={{ display: 'flex', borderBottom: '2px solid #f0f0f0' }}>
+                {[
+                  { id: 'profile', label: 'Profil', icon: '👤' },
+                  { id: 'badges', label: 'Rozetler', icon: '🏆' },
+                  { id: 'leaderboard', label: 'Sıralama', icon: '📊' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setProfileTab(tab.id)}
+                    style={{
+                      flex: 1,
+                      padding: '14px 8px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: profileTab === tab.id ? '#2e7d32' : '#999',
+                      fontWeight: '600',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      borderBottom: profileTab === tab.id ? '2px solid #2e7d32' : '2px solid transparent',
+                      marginBottom: '-2px',
+                      fontFamily: "'DM Sans', sans-serif"
+                    }}
+                  >
+                    <span style={{ fontSize: '16px', display: 'block', marginBottom: '4px' }}>{tab.icon}</span>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab Content */}
+              <div style={{ padding: '20px' }}>
+                {/* Profile Tab */}
+                {profileTab === 'profile' && (
+                  <div>
+                    {/* Stats */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
+                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '24px', fontWeight: '700', color: '#2e7d32', margin: '0 0 4px' }}>{userReviews.length}</p>
+                        <p style={{ fontSize: '11px', color: '#666', margin: 0 }}>Yorum</p>
+                      </div>
+                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '24px', fontWeight: '700', color: '#2e7d32', margin: '0 0 4px' }}>{myTrips.length}</p>
+                        <p style={{ fontSize: '11px', color: '#666', margin: 0 }}>Trip</p>
+                      </div>
+                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '24px', fontWeight: '700', color: '#2e7d32', margin: '0 0 4px' }}>{userBadges.length}</p>
+                        <p style={{ fontSize: '11px', color: '#666', margin: 0 }}>Rozet</p>
+                      </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                        <span style={{ fontSize: '20px' }}>⚙️</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>Ayarlar</span>
+                        <span style={{ color: '#ccc' }}>›</span>
+                      </div>
+                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                        <span style={{ fontSize: '20px' }}>🔔</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>Bildirimler</span>
+                        <span style={{ color: '#ccc' }}>›</span>
+                      </div>
+                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                        <span style={{ fontSize: '20px' }}>💎</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>Premium</span>
+                        <span style={{ background: isPremiumUser ? '#4caf50' : '#ff9800', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '10px' }}>{isPremiumUser ? 'Aktif' : 'Yükselt'}</span>
+                      </div>
+                      <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                        <span style={{ fontSize: '20px' }}>❓</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>Yardım</span>
+                        <span style={{ color: '#ccc' }}>›</span>
+                      </div>
+                      <div onClick={() => { setShowProfilePanel(false); setShowLogoutConfirm(true); }} style={{ background: '#ffebee', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                        <span style={{ fontSize: '20px' }}>🚪</span>
+                        <span style={{ flex: 1, fontSize: '14px', color: '#ef5350' }}>Çıkış Yap</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Badges Tab */}
+                {profileTab === 'badges' && (
+                  <div>
+                    <p style={{ fontSize: '13px', color: '#666', margin: '0 0 16px' }}>Rozetleri kazan ve puanlarını artır!</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                      {BADGES.map(badge => {
+                        const isEarned = userBadges.includes(badge.id);
+                        return (
+                          <div key={badge.id} style={{ background: isEarned ? '#e8f5e9' : '#f8f8f8', borderRadius: '16px', padding: '16px', textAlign: 'center', opacity: isEarned ? 1 : 0.6, border: isEarned ? '2px solid #4caf50' : '2px solid transparent' }}>
+                            <div style={{ fontSize: '32px', marginBottom: '8px', filter: isEarned ? 'none' : 'grayscale(100%)' }}>{badge.icon}</div>
+                            <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: '600', color: isEarned ? '#2e7d32' : '#666' }}>{badge.name}</p>
+                            <p style={{ margin: 0, fontSize: '10px', color: '#999' }}>{badge.description}</p>
+                            {isEarned && <p style={{ margin: '8px 0 0', fontSize: '10px', color: '#4caf50', fontWeight: '600' }}>✓ Kazanıldı!</p>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Leaderboard Tab */}
+                {profileTab === 'leaderboard' && (
+                  <div>
+                    <p style={{ fontSize: '13px', color: '#666', margin: '0 0 16px' }}>Bu haftanın en aktif gezginleri</p>
+                    
+                    {/* Top 3 */}
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '12px', marginBottom: '24px' }}>
+                      {/* 2nd Place */}
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', fontSize: '18px', fontWeight: '700', color: '#666' }}>2</div>
+                        <p style={{ margin: 0, fontSize: '11px', color: '#666' }}>Ahmet</p>
+                        <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#999' }}>2,450 p</p>
+                      </div>
+                      {/* 1st Place */}
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '24px', marginBottom: '4px' }}>👑</div>
+                        <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #ffd700 0%, #ffb300 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', fontSize: '20px', fontWeight: '700', color: 'white', boxShadow: '0 4px 12px rgba(255,193,7,0.4)' }}>1</div>
+                        <p style={{ margin: 0, fontSize: '12px', fontWeight: '600', color: '#333' }}>Zeynep</p>
+                        <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#ff9800' }}>3,120 p</p>
+                      </div>
+                      {/* 3rd Place */}
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#cd7f32', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', fontSize: '18px', fontWeight: '700', color: 'white' }}>3</div>
+                        <p style={{ margin: 0, fontSize: '11px', color: '#666' }}>Mehmet</p>
+                        <p style={{ margin: '2px 0 0', fontSize: '10px', color: '#999' }}>1,890 p</p>
+                      </div>
+                    </div>
+
+                    {/* Rest of leaderboard */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {[
+                        { rank: 4, name: 'Elif', points: 1650 },
+                        { rank: 5, name: 'Can', points: 1420 },
+                        { rank: 6, name: 'Selin', points: 1180 },
+                        { rank: 7, name: currentUser?.email?.split('@')[0] || 'Sen', points: userPoints, isYou: true }
+                      ].sort((a, b) => b.points - a.points).map((user, idx) => (
+                        <div key={idx} style={{ background: user.isYou ? '#e8f5e9' : '#f8f8f8', borderRadius: '12px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px', border: user.isYou ? '2px solid #4caf50' : 'none' }}>
+                          <span style={{ width: '24px', fontSize: '14px', fontWeight: '700', color: '#666' }}>#{user.rank}</span>
+                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: user.isYou ? '#2e7d32' : '#ddd', display: 'flex', alignItems: 'center', justifyContent: 'center', color: user.isYou ? 'white' : '#666', fontWeight: '600', fontSize: '14px' }}>
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span style={{ flex: 1, fontSize: '14px', fontWeight: user.isYou ? '600' : '400', color: user.isYou ? '#2e7d32' : '#333' }}>{user.name} {user.isYou && '(Sen)'}</span>
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#666' }}>{user.points} p</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
