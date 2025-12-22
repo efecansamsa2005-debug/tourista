@@ -786,13 +786,27 @@ function App() {
     }
   }, []);
 
-  // Auth effect - check session but don't auto-redirect
+  // Auth effect - check session on load and handle auth changes
   useEffect(() => {
+    // Check initial session
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setCurrentUser(session.user);
+        setScreen('home');
+      }
+    };
+    checkSession();
+
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
+      if (session?.user) {
+        setCurrentUser(session.user);
+      } else {
         // User logged out - clear everything
         setCurrentUser(null);
         setScreen('auth');
+        setMyTrips([]);
         sessionStorage.clear();
       }
     });
