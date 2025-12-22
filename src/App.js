@@ -1748,12 +1748,34 @@ function App() {
     const categories = [
       { id: 'all', label: 'All', icon: '🌟', query: 'tourist attractions' },
       { id: 'restaurants', label: 'Restaurants', icon: '🍽️', query: 'restaurants' },
-      { id: 'museums', label: 'Museums', icon: '🏛️', query: 'museums' },
-      { id: 'parks', label: 'Parks', icon: '🌳', query: 'parks gardens' },
-      { id: 'malls', label: 'Shopping', icon: '🛍️', query: 'shopping malls' },
       { id: 'cafes', label: 'Cafes', icon: '☕', query: 'cafes coffee shops' },
-      { id: 'nightlife', label: 'Nightlife', icon: '🍸', query: 'bars nightclubs' },
+      { id: 'bars', label: 'Bars', icon: '🍺', query: 'bars pubs' },
+      { id: 'clubs', label: 'Nightclubs', icon: '🎉', query: 'nightclubs dance clubs' },
+      { id: 'museums', label: 'Museums', icon: '🏛️', query: 'museums' },
+      { id: 'galleries', label: 'Art Galleries', icon: '🎨', query: 'art galleries' },
       { id: 'landmarks', label: 'Landmarks', icon: '🏰', query: 'historical landmarks monuments' },
+      { id: 'parks', label: 'Parks', icon: '🌳', query: 'parks gardens' },
+      { id: 'beaches', label: 'Beaches', icon: '🏖️', query: 'beaches' },
+      { id: 'malls', label: 'Shopping Malls', icon: '🛍️', query: 'shopping malls' },
+      { id: 'markets', label: 'Markets', icon: '🏪', query: 'local markets bazaars' },
+      { id: 'boutiques', label: 'Boutiques', icon: '👗', query: 'boutique shops fashion' },
+      { id: 'theaters', label: 'Theaters', icon: '🎭', query: 'theaters opera houses' },
+      { id: 'concerts', label: 'Concert Halls', icon: '🎵', query: 'concert halls music venues' },
+      { id: 'cinemas', label: 'Cinemas', icon: '🎬', query: 'cinemas movie theaters' },
+      { id: 'spas', label: 'Spas', icon: '💆', query: 'spas wellness centers' },
+      { id: 'gyms', label: 'Gyms', icon: '🏋️', query: 'gyms fitness centers' },
+      { id: 'hotels', label: 'Hotels', icon: '🏨', query: 'hotels resorts' },
+      { id: 'temples', label: 'Temples', icon: '🛕', query: 'temples shrines mosques churches' },
+      { id: 'viewpoints', label: 'Viewpoints', icon: '🌄', query: 'viewpoints observation decks' },
+      { id: 'zoos', label: 'Zoos', icon: '🦁', query: 'zoos aquariums' },
+      { id: 'amusement', label: 'Theme Parks', icon: '🎢', query: 'amusement parks theme parks' },
+      { id: 'sports', label: 'Sports', icon: '⚽', query: 'stadiums sports venues' },
+      { id: 'libraries', label: 'Libraries', icon: '📚', query: 'libraries bookstores' },
+      { id: 'universities', label: 'Universities', icon: '🎓', query: 'universities campuses' },
+      { id: 'hospitals', label: 'Hospitals', icon: '🏥', query: 'hospitals clinics' },
+      { id: 'pharmacies', label: 'Pharmacies', icon: '💊', query: 'pharmacies' },
+      { id: 'banks', label: 'Banks', icon: '🏦', query: 'banks ATMs' },
+      { id: 'gas', label: 'Gas Stations', icon: '⛽', query: 'gas stations' },
     ];
 
     const searchByCategory = async (category) => {
@@ -1908,8 +1930,8 @@ function App() {
                         transition: 'all 0.2s'
                       }}
                     >
-                      <div style={{ height: '100px', position: 'relative' }}>
-                        <img src={place.image} alt={place.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <div style={{ paddingTop: '75%', position: 'relative' }}>
+                        <img src={place.image} alt={place.name} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                         {place.isOpen !== undefined && (
                           <div style={{ 
                             position: 'absolute', 
