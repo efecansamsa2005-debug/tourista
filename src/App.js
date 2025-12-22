@@ -740,6 +740,7 @@ function App() {
   // Premium states
   const [isPremiumUser, setIsPremiumUser] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showPremiumScreen, setShowPremiumScreen] = useState(false);
   
   // Logout confirmation
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -913,7 +914,6 @@ function App() {
         version: 'Versiyon',
         help: 'Yardım',
         premium: 'Premium',
-        notifications: 'Bildirimler',
         back: 'Geri'
       },
       en: {
@@ -948,7 +948,6 @@ function App() {
         version: 'Version',
         help: 'Help',
         premium: 'Premium',
-        notifications: 'Notifications',
         back: 'Back'
       }
     };
@@ -2430,12 +2429,7 @@ function App() {
                         <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('settings')}</span>
                         <span style={{ color: theme.textMuted }}>›</span>
                       </div>
-                      <div style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                        <span style={{ fontSize: '20px' }}>🔔</span>
-                        <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('notifications')}</span>
-                        <span style={{ color: theme.textMuted }}>›</span>
-                      </div>
-                      <div onClick={() => setShowSubscriptionModal(true)} style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                      <div onClick={() => setShowPremiumScreen(true)} style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <span style={{ fontSize: '20px' }}>💎</span>
                         <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('premium')}</span>
                         <span style={{ background: isPremiumUser ? '#4caf50' : '#ff9800', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '10px' }}>{isPremiumUser ? 'Aktif' : 'Yükselt'}</span>
@@ -2603,6 +2597,107 @@ function App() {
                         <button onClick={() => { setShowChangePassword(false); setPasswordError(''); setNewPassword(''); setConfirmNewPassword(''); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `2px solid ${theme.border}`, background: theme.backgroundCard, fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: theme.textSecondary }}>{t('cancel')}</button>
                         <button onClick={handleChangePassword} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: theme.primary, color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{t('save')}</button>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Premium Screen */}
+                {showPremiumScreen && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: theme.backgroundCard, zIndex: 10, overflowY: 'auto' }}>
+                    {/* Premium Header */}
+                    <div style={{ background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', padding: '20px', paddingTop: '40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <button onClick={() => setShowPremiumScreen(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '10px', padding: '8px 12px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
+                      <h2 style={{ color: 'white', fontSize: '20px', fontWeight: '700', margin: 0 }}>💎 Premium</h2>
+                    </div>
+                    
+                    <div style={{ padding: '20px' }}>
+                      {isPremiumUser ? (
+                        /* Premium User View */
+                        <div>
+                          <div style={{ background: 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)', borderRadius: '20px', padding: '24px', textAlign: 'center', marginBottom: '20px' }}>
+                            <span style={{ fontSize: '48px' }}>👑</span>
+                            <h3 style={{ color: 'white', fontSize: '22px', margin: '12px 0 8px' }}>Premium Üyesin!</h3>
+                            <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', margin: 0 }}>Tüm özelliklere sınırsız erişimin var</p>
+                          </div>
+                          
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h4 style={{ margin: '0 0 16px', color: theme.text, fontSize: '16px', fontWeight: '600' }}>Üyelik Detayları</h4>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                              <span style={{ color: theme.textSecondary, fontSize: '14px' }}>Plan</span>
+                              <span style={{ color: theme.text, fontSize: '14px', fontWeight: '600' }}>Premium Aylık</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                              <span style={{ color: theme.textSecondary, fontSize: '14px' }}>Durum</span>
+                              <span style={{ color: '#4caf50', fontSize: '14px', fontWeight: '600' }}>Aktif</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: theme.textSecondary, fontSize: '14px' }}>Sonraki ödeme</span>
+                              <span style={{ color: theme.text, fontSize: '14px', fontWeight: '600' }}>-</span>
+                            </div>
+                          </div>
+                          
+                          <button 
+                            onClick={() => window.open('https://sandbox-buyers-portal.paddle.com/subscriptions', '_blank')}
+                            style={{ width: '100%', padding: '16px', borderRadius: '14px', border: `2px solid ${theme.border}`, background: theme.backgroundCard, color: theme.text, fontSize: '15px', fontWeight: '600', cursor: 'pointer', marginBottom: '12px', fontFamily: "'DM Sans', sans-serif" }}
+                          >
+                            📋 Üyeliği Yönet
+                          </button>
+                          
+                          <button 
+                            onClick={() => {
+                              if (confirm('Üyeliğini iptal etmek istediğine emin misin?')) {
+                                window.open('https://sandbox-buyers-portal.paddle.com/subscriptions', '_blank');
+                              }
+                            }}
+                            style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', background: settings.darkMode ? '#5c2a2a' : '#ffebee', color: '#ef5350', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}
+                          >
+                            ❌ Üyeliği İptal Et
+                          </button>
+                        </div>
+                      ) : (
+                        /* Non-Premium User View */
+                        <div>
+                          <div style={{ background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', borderRadius: '20px', padding: '24px', textAlign: 'center', marginBottom: '20px' }}>
+                            <span style={{ fontSize: '48px' }}>💎</span>
+                            <h3 style={{ color: 'white', fontSize: '22px', margin: '12px 0 8px' }}>Premium'a Yükselt</h3>
+                            <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', margin: 0 }}>Sınırsız seyahat deneyimi</p>
+                          </div>
+                          
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
+                            <h4 style={{ margin: '0 0 16px', color: theme.text, fontSize: '16px', fontWeight: '600' }}>Premium Avantajları</h4>
+                            {[
+                              { icon: '🗓️', text: 'Sınırsız gün planlama (7+ gün)' },
+                              { icon: '🔓', text: 'Tüm günlere tam erişim' },
+                              { icon: '✨', text: 'Gelişmiş AI önerileri' },
+                              { icon: '📍', text: 'Sınırsız mekan kaydetme' },
+                              { icon: '🎯', text: 'Öncelikli destek' },
+                              { icon: '🚫', text: 'Reklamsız deneyim' }
+                            ].map((item, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: i < 5 ? '12px' : 0 }}>
+                                <span style={{ fontSize: '20px' }}>{item.icon}</span>
+                                <span style={{ color: theme.text, fontSize: '14px' }}>{item.text}</span>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '20px', textAlign: 'center' }}>
+                            <p style={{ color: theme.textMuted, fontSize: '12px', margin: '0 0 4px' }}>Aylık sadece</p>
+                            <p style={{ color: theme.primary, fontSize: '32px', fontWeight: '700', margin: '0 0 4px' }}>₺29.99</p>
+                            <p style={{ color: theme.textMuted, fontSize: '12px', margin: 0 }}>İstediğin zaman iptal et</p>
+                          </div>
+                          
+                          <button 
+                            onClick={() => { setShowPremiumScreen(false); setShowSubscriptionModal(true); }}
+                            style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', color: 'white', fontSize: '16px', fontWeight: '700', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", boxShadow: '0 4px 15px rgba(255,152,0,0.4)' }}
+                          >
+                            🚀 Premium'a Geç
+                          </button>
+                          
+                          <p style={{ textAlign: 'center', color: theme.textMuted, fontSize: '11px', marginTop: '12px' }}>
+                            7 gün ücretsiz deneme • Dilediğin zaman iptal
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
