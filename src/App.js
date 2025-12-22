@@ -8,12 +8,12 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const DAY_COLORS = ['#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa', '#00acc1', '#d81b60'];
 
 const SPOT_DETAILS = {
-  'Eiffel Tower': { rating: 4.7, reviews: 245890, description: 'Iconic iron lattice tower on the Champ de Mars, symbol of Paris since 1889.', tips: ['Book tickets online to skip the queue', 'Visit at sunset for stunning views', 'The summit offers 360° panoramic views', 'Cheaper to take stairs to 2nd floor', 'Light show every hour after dark'] },
-  'Louvre Museum': { rating: 4.8, reviews: 312456, description: 'World\'s largest art museum and historic monument, home to the Mona Lisa.', tips: ['Enter through Carrousel entrance to avoid crowds', 'Wednesday and Friday open until 9:45 PM', 'Download museum app for self-guided tours', 'Mona Lisa is smaller than expected', 'Don\'t miss Winged Victory of Samothrace'] },
-  'Colosseum': { rating: 4.7, reviews: 198234, description: 'Ancient amphitheater in Rome, largest ever built, iconic symbol of Imperial Rome.', tips: ['Book skip-the-line tickets in advance', 'Combined ticket includes Roman Forum', 'Best photos from upper levels', 'Underground tours available', 'Arrive early morning or late afternoon'] },
-  'Sagrada Familia': { rating: 4.8, reviews: 167543, description: 'Gaudí\'s unfinished masterpiece, a basilica blending Gothic and Art Nouveau.', tips: ['Book tickets weeks in advance', 'Morning light through east facade is magical', 'Tower visit offers great city views', 'Audio guide highly recommended', 'Construction expected to complete by 2026'] },
-  'Big Ben': { rating: 4.6, reviews: 89234, description: 'Iconic clock tower at the Palace of Westminster, symbol of London since 1859.', tips: ['Best photos from Westminster Bridge', 'UK residents can tour the interior', 'Listen for the famous chimes', 'Beautiful when lit at night', 'Combine with Houses of Parliament visit'] },
-  'default': { rating: 4.5, reviews: 10000, description: 'A must-visit attraction with unique history and cultural significance.', tips: ['Check opening hours before visiting', 'Book tickets online when possible', 'Best to visit early morning', 'Wear comfortable walking shoes', 'Check for guided tour options'] }
+  'Eiffel Tower': { description: 'Iconic iron lattice tower on the Champ de Mars, symbol of Paris since 1889.', tips: ['Book tickets online to skip the queue', 'Visit at sunset for stunning views', 'The summit offers 360° panoramic views', 'Cheaper to take stairs to 2nd floor', 'Light show every hour after dark'] },
+  'Louvre Museum': { description: 'World\'s largest art museum and historic monument, home to the Mona Lisa.', tips: ['Enter through Carrousel entrance to avoid crowds', 'Wednesday and Friday open until 9:45 PM', 'Download museum app for self-guided tours', 'Mona Lisa is smaller than expected', 'Don\'t miss Winged Victory of Samothrace'] },
+  'Colosseum': { description: 'Ancient amphitheater in Rome, largest ever built, iconic symbol of Imperial Rome.', tips: ['Book skip-the-line tickets in advance', 'Combined ticket includes Roman Forum', 'Best photos from upper levels', 'Underground tours available', 'Arrive early morning or late afternoon'] },
+  'Sagrada Familia': { description: 'Gaudí\'s unfinished masterpiece, a basilica blending Gothic and Art Nouveau.', tips: ['Book tickets weeks in advance', 'Morning light through east facade is magical', 'Tower visit offers great city views', 'Audio guide highly recommended', 'Construction expected to complete by 2026'] },
+  'Big Ben': { description: 'Iconic clock tower at the Palace of Westminster, symbol of London since 1859.', tips: ['Best photos from Westminster Bridge', 'UK residents can tour the interior', 'Listen for the famous chimes', 'Beautiful when lit at night', 'Combine with Houses of Parliament visit'] },
+  'default': { description: 'A must-visit attraction with unique history and cultural significance.', tips: ['Check opening hours before visiting', 'Book tickets online when possible', 'Best to visit early morning', 'Wear comfortable walking shoes', 'Check for guided tour options'] }
 };
 
 const TRIP_CATEGORIES = [
@@ -709,6 +709,8 @@ function App() {
   const [showAllDaysOnMap, setShowAllDaysOnMap] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState(null);
+  const [spotDetails, setSpotDetails] = useState(null);
+  const [spotDetailsLoading, setSpotDetailsLoading] = useState(false);
   const [tripToDelete, setTripToDelete] = useState(null);
   
   // New trip creation states
@@ -1484,6 +1486,58 @@ function App() {
     return levels[priceLevel] || null;
   };
 
+  // Fetch spot details from Google Places API
+  const fetchSpotDetails = async (spotName, city) => {
+    setSpotDetailsLoading(true);
+    try {
+      const response = await fetch(
+        `https://places.googleapis.com/v1/places:searchText`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+            'X-Goog-FieldMask': 'places.displayName,places.rating,places.userRatingCount,places.editorialSummary,places.currentOpeningHours,places.priceLevel,places.photos'
+          },
+          body: JSON.stringify({
+            textQuery: `${spotName}, ${city}`,
+            maxResultCount: 1
+          })
+        }
+      );
+      
+      const data = await response.json();
+      if (data.places && data.places.length > 0) {
+        const place = data.places[0];
+        setSpotDetails({
+          rating: place.rating || 4.5,
+          reviews: place.userRatingCount || 0,
+          description: place.editorialSummary?.text || SPOT_DETAILS[spotName]?.description || SPOT_DETAILS['default'].description,
+          isOpen: place.currentOpeningHours?.openNow,
+          priceLevel: place.priceLevel,
+          image: place.photos?.[0]?.name ? getPlacePhotoUrl(place.photos[0].name) : null
+        });
+      } else {
+        // Fallback to SPOT_DETAILS
+        setSpotDetails(SPOT_DETAILS[spotName] || SPOT_DETAILS['default']);
+      }
+    } catch (error) {
+      console.error('Error fetching spot details:', error);
+      setSpotDetails(SPOT_DETAILS[spotName] || SPOT_DETAILS['default']);
+    }
+    setSpotDetailsLoading(false);
+  };
+
+  // Effect to fetch spot details when selectedSpot changes
+  useEffect(() => {
+    if (selectedSpot) {
+      setSpotDetails(null);
+      fetchSpotDetails(selectedSpot.name, selectedSpot.city || selectedGuide?.city);
+    }
+  }, [selectedSpot]);
+    return levels[priceLevel] || null;
+  };
+
   const togglePreference = (id) => {
     setNewTripPreferences(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
@@ -1718,8 +1772,8 @@ function App() {
         lat: place.location?.latitude || cityData.lat,
         lng: place.location?.longitude || cityData.lng,
         image: place.photos?.[0]?.name ? getPlacePhotoUrl(place.photos[0].name) : 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
-        rating: place.rating || 4.5,
-        reviews: place.userRatingCount || 1000,
+        rating: place.rating || 0,
+        reviews: place.userRatingCount || 0,
         description: place.editorialSummary?.text || `Popular ${place.primaryType?.replace(/_/g, ' ') || 'attraction'} in ${cityData.city}`
       }));
       
@@ -2199,46 +2253,46 @@ function App() {
                           <div onClick={() => { setEditDisplayName(settings.displayName || currentUser?.email?.split('@')[0]); setShowEditProfile(true); }} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderBottom: `1px solid ${theme.border}` }}>
                             <span style={{ fontSize: '20px' }}>✏️</span>
                             <div style={{ flex: 1 }}>
-                              <p style={{ margin: 0, fontSize: '14px', color: '#333' }}>{t('editProfile')}</p>
-                              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#999' }}>{settings.displayName || currentUser?.email?.split('@')[0]}</p>
+                              <p style={{ margin: 0, fontSize: '14px', color: theme.text }}>{t('editProfile')}</p>
+                              <p style={{ margin: '2px 0 0', fontSize: '12px', color: theme.textMuted }}>{settings.displayName || currentUser?.email?.split('@')[0]}</p>
                             </div>
-                            <span style={{ color: '#ccc' }}>›</span>
+                            <span style={{ color: theme.textMuted }}>›</span>
                           </div>
                           <div onClick={() => setShowChangePassword(true)} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                             <span style={{ fontSize: '20px' }}>🔑</span>
-                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('changePassword')}</span>
-                            <span style={{ color: '#ccc' }}>›</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('changePassword')}</span>
+                            <span style={{ color: theme.textMuted }}>›</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Preferences Section */}
                       <div style={{ marginBottom: '24px' }}>
-                        <h3 style={{ fontSize: '12px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>🎨 {t('preferences')}</h3>
-                        <div style={{ background: '#f8f8f8', borderRadius: '16px', overflow: 'hidden' }}>
+                        <h3 style={{ fontSize: '12px', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>🎨 {t('preferences')}</h3>
+                        <div style={{ background: theme.backgroundHover, borderRadius: '16px', overflow: 'hidden' }}>
                           {/* Language */}
-                          <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #eee' }}>
+                          <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: `1px solid ${theme.border}` }}>
                             <span style={{ fontSize: '20px' }}>🌍</span>
-                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('language')}</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('language')}</span>
                             <div style={{ display: 'flex', gap: '4px' }}>
-                              <button onClick={() => updateSetting('language', 'tr')} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: settings.language === 'tr' ? '#2e7d32' : '#e0e0e0', color: settings.language === 'tr' ? 'white' : '#666', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>TR</button>
-                              <button onClick={() => updateSetting('language', 'en')} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: settings.language === 'en' ? '#2e7d32' : '#e0e0e0', color: settings.language === 'en' ? 'white' : '#666', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>EN</button>
+                              <button onClick={() => updateSetting('language', 'tr')} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: settings.language === 'tr' ? theme.primary : theme.border, color: settings.language === 'tr' ? 'white' : theme.textSecondary, fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>TR</button>
+                              <button onClick={() => updateSetting('language', 'en')} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: settings.language === 'en' ? theme.primary : theme.border, color: settings.language === 'en' ? 'white' : theme.textSecondary, fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>EN</button>
                             </div>
                           </div>
                           {/* Distance Unit */}
-                          <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #eee' }}>
+                          <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: `1px solid ${theme.border}` }}>
                             <span style={{ fontSize: '20px' }}>📏</span>
-                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('distanceUnit')}</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('distanceUnit')}</span>
                             <div style={{ display: 'flex', gap: '4px' }}>
-                              <button onClick={() => updateSetting('distanceUnit', 'km')} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: settings.distanceUnit === 'km' ? '#2e7d32' : '#e0e0e0', color: settings.distanceUnit === 'km' ? 'white' : '#666', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>km</button>
-                              <button onClick={() => updateSetting('distanceUnit', 'mi')} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: settings.distanceUnit === 'mi' ? '#2e7d32' : '#e0e0e0', color: settings.distanceUnit === 'mi' ? 'white' : '#666', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>mi</button>
+                              <button onClick={() => updateSetting('distanceUnit', 'km')} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: settings.distanceUnit === 'km' ? theme.primary : theme.border, color: settings.distanceUnit === 'km' ? 'white' : theme.textSecondary, fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>km</button>
+                              <button onClick={() => updateSetting('distanceUnit', 'mi')} style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: settings.distanceUnit === 'mi' ? theme.primary : theme.border, color: settings.distanceUnit === 'mi' ? 'white' : theme.textSecondary, fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>mi</button>
                             </div>
                           </div>
                           {/* Dark Mode */}
                           <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span style={{ fontSize: '20px' }}>🌙</span>
-                            <span style={{ flex: 1, fontSize: '14px', color: '#333' }}>{t('darkMode')}</span>
-                            <div onClick={() => updateSetting('darkMode', !settings.darkMode)} style={{ width: '50px', height: '28px', borderRadius: '14px', background: settings.darkMode ? '#2e7d32' : '#e0e0e0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
+                            <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('darkMode')}</span>
+                            <div onClick={() => updateSetting('darkMode', !settings.darkMode)} style={{ width: '50px', height: '28px', borderRadius: '14px', background: settings.darkMode ? theme.primary : theme.border, cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
                               <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'white', position: 'absolute', top: '2px', left: settings.darkMode ? '24px' : '2px', transition: 'left 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
                             </div>
                           </div>
@@ -2281,21 +2335,21 @@ function App() {
                 {/* Edit Profile Modal */}
                 {showEditProfile && (
                   <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
-                    <div style={{ background: 'white', borderRadius: '20px', padding: '24px', margin: '20px', maxWidth: '320px', width: '100%' }}>
-                      <h3 style={{ margin: '0 0 20px', fontSize: '18px', color: '#1b5e20', textAlign: 'center' }}>✏️ {t('editProfile')}</h3>
+                    <div style={{ background: theme.backgroundCard, borderRadius: '20px', padding: '24px', margin: '20px', maxWidth: '320px', width: '100%' }}>
+                      <h3 style={{ margin: '0 0 20px', fontSize: '18px', color: theme.primary, textAlign: 'center' }}>✏️ {t('editProfile')}</h3>
                       <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '6px' }}>{t('displayName')}</label>
+                        <label style={{ display: 'block', fontSize: '12px', color: theme.textSecondary, marginBottom: '6px' }}>{t('displayName')}</label>
                         <input
                           type="text"
                           value={editDisplayName}
                           onChange={(e) => setEditDisplayName(e.target.value)}
                           placeholder="İsminizi girin"
-                          style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '2px solid #e0e0e0', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: `2px solid ${theme.border}`, fontSize: '14px', outline: 'none', boxSizing: 'border-box', background: theme.backgroundHover, color: theme.text }}
                         />
                       </div>
                       <div style={{ display: 'flex', gap: '10px' }}>
-                        <button onClick={() => setShowEditProfile(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '2px solid #e0e0e0', background: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#666' }}>{t('cancel')}</button>
-                        <button onClick={saveDisplayName} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#2e7d32', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{t('save')}</button>
+                        <button onClick={() => setShowEditProfile(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `2px solid ${theme.border}`, background: theme.backgroundCard, fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: theme.textSecondary }}>{t('cancel')}</button>
+                        <button onClick={saveDisplayName} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: theme.primary, color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{t('save')}</button>
                       </div>
                     </div>
                   </div>
@@ -2304,8 +2358,8 @@ function App() {
                 {/* Change Password Modal */}
                 {showChangePassword && (
                   <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}>
-                    <div style={{ background: 'white', borderRadius: '20px', padding: '24px', margin: '20px', maxWidth: '320px', width: '100%' }}>
-                      <h3 style={{ margin: '0 0 20px', fontSize: '18px', color: '#1b5e20', textAlign: 'center' }}>🔑 {t('changePassword')}</h3>
+                    <div style={{ background: theme.backgroundCard, borderRadius: '20px', padding: '24px', margin: '20px', maxWidth: '320px', width: '100%' }}>
+                      <h3 style={{ margin: '0 0 20px', fontSize: '18px', color: theme.primary, textAlign: 'center' }}>🔑 {t('changePassword')}</h3>
                       
                       {passwordError && <p style={{ color: '#ef5350', fontSize: '13px', textAlign: 'center', margin: '0 0 16px' }}>{passwordError}</p>}
                       {passwordSuccess && <p style={{ color: '#4caf50', fontSize: '13px', textAlign: 'center', margin: '0 0 16px' }}>{passwordSuccess}</p>}
@@ -2316,7 +2370,7 @@ function App() {
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder="Yeni şifre"
-                          style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '2px solid #e0e0e0', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: `2px solid ${theme.border}`, fontSize: '14px', outline: 'none', boxSizing: 'border-box', background: theme.backgroundHover, color: theme.text }}
                         />
                       </div>
                       <div style={{ marginBottom: '16px' }}>
@@ -2325,12 +2379,12 @@ function App() {
                           value={confirmNewPassword}
                           onChange={(e) => setConfirmNewPassword(e.target.value)}
                           placeholder="Yeni şifre tekrar"
-                          style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '2px solid #e0e0e0', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: `2px solid ${theme.border}`, fontSize: '14px', outline: 'none', boxSizing: 'border-box', background: theme.backgroundHover, color: theme.text }}
                         />
                       </div>
                       <div style={{ display: 'flex', gap: '10px' }}>
-                        <button onClick={() => { setShowChangePassword(false); setPasswordError(''); setNewPassword(''); setConfirmNewPassword(''); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '2px solid #e0e0e0', background: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#666' }}>{t('cancel')}</button>
-                        <button onClick={handleChangePassword} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#2e7d32', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{t('save')}</button>
+                        <button onClick={() => { setShowChangePassword(false); setPasswordError(''); setNewPassword(''); setConfirmNewPassword(''); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `2px solid ${theme.border}`, background: theme.backgroundCard, fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: theme.textSecondary }}>{t('cancel')}</button>
+                        <button onClick={handleChangePassword} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: theme.primary, color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{t('save')}</button>
                       </div>
                     </div>
                   </div>
@@ -2339,16 +2393,16 @@ function App() {
                 {/* Badges Tab */}
                 {profileTab === 'badges' && (
                   <div>
-                    <p style={{ fontSize: '13px', color: '#666', margin: '0 0 16px' }}>Rozetleri kazan ve puanlarını artır!</p>
+                    <p style={{ fontSize: '13px', color: theme.textMuted, margin: '0 0 16px' }}>Rozetleri kazan ve puanlarını artır!</p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                       {BADGES.map(badge => {
                         const isEarned = userBadges.includes(badge.id);
                         return (
-                          <div key={badge.id} style={{ background: isEarned ? '#e8f5e9' : '#f8f8f8', borderRadius: '16px', padding: '16px', textAlign: 'center', opacity: isEarned ? 1 : 0.6, border: isEarned ? '2px solid #4caf50' : '2px solid transparent' }}>
+                          <div key={badge.id} style={{ background: isEarned ? (settings.darkMode ? '#3d4a2a' : '#e8f5e9') : theme.backgroundHover, borderRadius: '16px', padding: '16px', textAlign: 'center', opacity: isEarned ? 1 : 0.6, border: isEarned ? `2px solid ${theme.primary}` : '2px solid transparent' }}>
                             <div style={{ fontSize: '32px', marginBottom: '8px', filter: isEarned ? 'none' : 'grayscale(100%)' }}>{badge.icon}</div>
-                            <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: '600', color: isEarned ? '#2e7d32' : '#666' }}>{badge.name}</p>
-                            <p style={{ margin: 0, fontSize: '10px', color: '#999' }}>{badge.description}</p>
-                            {isEarned && <p style={{ margin: '8px 0 0', fontSize: '10px', color: '#4caf50', fontWeight: '600' }}>✓ Kazanıldı!</p>}
+                            <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: '600', color: isEarned ? theme.primary : theme.textSecondary }}>{badge.name}</p>
+                            <p style={{ margin: 0, fontSize: '10px', color: theme.textMuted }}>{badge.description}</p>
+                            {isEarned && <p style={{ margin: '8px 0 0', fontSize: '10px', color: theme.primary, fontWeight: '600' }}>✓ Kazanıldı!</p>}
                           </div>
                         );
                       })}
@@ -3469,7 +3523,15 @@ function App() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', filter: isLockedDay ? 'blur(4px)' : 'none' }}>{spot.name}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#689f38', background: '#f1f8e9', display: 'inline-block', padding: '2px 8px', borderRadius: '10px', filter: isLockedDay ? 'blur(4px)' : 'none' }}>{spot.type}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', filter: isLockedDay ? 'blur(4px)' : 'none' }}>
+                    <span style={{ fontSize: '11px', color: '#689f38', background: '#f1f8e9', padding: '2px 8px', borderRadius: '10px' }}>{spot.type}</span>
+                    {spot.rating > 0 && (
+                      <span style={{ fontSize: '11px', color: '#666', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <span style={{ color: '#ffc107' }}>★</span> {spot.rating.toFixed(1)}
+                        {spot.reviews > 0 && <span style={{ color: '#999' }}>({spot.reviews.toLocaleString()})</span>}
+                      </span>
+                    )}
+                  </div>
                   <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#9e9e9e' }}>⏱️ {spot.duration}</p>
                 </div>
                 {isLockedDay && (
@@ -3558,52 +3620,69 @@ function App() {
 
         {/* Spot Detail Modal */}
         {selectedSpot && (
-          <div onClick={() => setSelectedSpot(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 1000 }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ background: 'white', borderRadius: '24px 24px 0 0', width: '100%', maxHeight: '85vh', overflow: 'auto' }}>
-              <button onClick={() => setSelectedSpot(null)} style={{ position: 'absolute', top: '16px', right: '16px', background: '#f5f5f5', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '18px', cursor: 'pointer', zIndex: 10 }}>✕</button>
+          <div onClick={() => { setSelectedSpot(null); setSpotDetails(null); }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', zIndex: 1000 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: theme.backgroundCard, borderRadius: '24px 24px 0 0', width: '100%', maxHeight: '85vh', overflow: 'auto' }}>
+              <button onClick={() => { setSelectedSpot(null); setSpotDetails(null); }} style={{ position: 'absolute', top: '16px', right: '16px', background: theme.backgroundHover, border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '18px', cursor: 'pointer', zIndex: 10, color: theme.text }}>✕</button>
 
               <div style={{ padding: '24px 20px 16px' }}>
-                <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#1b5e20' }}>{selectedSpot.name}</h2>
+                <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: theme.primary }}>{selectedSpot.name}</h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-                  <span style={{ color: '#ffc107', fontSize: '16px' }}>★★★★★</span>
-                  <span style={{ fontWeight: '600', color: '#333' }}>{(SPOT_DETAILS[selectedSpot.name] || SPOT_DETAILS['default']).rating}</span>
-                  <span style={{ color: '#999', fontSize: '13px' }}>({(SPOT_DETAILS[selectedSpot.name] || SPOT_DETAILS['default']).reviews.toLocaleString()})</span>
+                  {spotDetailsLoading ? (
+                    <span style={{ color: theme.textMuted, fontSize: '13px' }}>Loading...</span>
+                  ) : spotDetails?.rating ? (
+                    <>
+                      <span style={{ color: '#ffc107', fontSize: '16px' }}>★</span>
+                      <span style={{ fontWeight: '600', color: theme.text }}>{spotDetails.rating.toFixed(1)}</span>
+                      {spotDetails.reviews > 0 && (
+                        <span style={{ color: theme.textMuted, fontSize: '13px' }}>({spotDetails.reviews.toLocaleString()} reviews)</span>
+                      )}
+                      {spotDetails.isOpen !== undefined && (
+                        <span style={{ background: spotDetails.isOpen ? '#4caf50' : '#ef5350', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>
+                          {spotDetails.isOpen ? 'Open' : 'Closed'}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span style={{ color: theme.textMuted, fontSize: '13px' }}>Rating not available</span>
+                  )}
                 </div>
-                <span style={{ display: 'inline-block', marginTop: '8px', background: '#f1f8e9', color: '#2e7d32', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '500' }}>🎯 {selectedSpot.type}</span>
+                <span style={{ display: 'inline-block', marginTop: '8px', background: settings.darkMode ? theme.backgroundHover : '#f1f8e9', color: theme.primary, padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '500' }}>🎯 {selectedSpot.type}</span>
               </div>
 
               <div style={{ margin: '0 20px', borderRadius: '16px', overflow: 'hidden', height: '160px', width: '160px' }}>
-                <img src={selectedSpot.image?.replace('w=100', 'w=300').replace('h=100', 'h=300')} alt={selectedSpot.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px' }} />
+                <img src={spotDetails?.image || selectedSpot.image?.replace('w=100', 'w=300').replace('h=100', 'h=300')} alt={selectedSpot.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px' }} />
               </div>
 
               <div style={{ padding: '20px' }}>
-                <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '600', color: '#333' }}>About this place</h3>
-                <p style={{ margin: 0, fontSize: '14px', color: '#666', lineHeight: '1.5' }}>{(SPOT_DETAILS[selectedSpot.name] || SPOT_DETAILS['default']).description}</p>
+                <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '600', color: theme.text }}>About this place</h3>
+                <p style={{ margin: 0, fontSize: '14px', color: theme.textSecondary, lineHeight: '1.5' }}>
+                  {spotDetails?.description || (SPOT_DETAILS[selectedSpot.name] || SPOT_DETAILS['default']).description}
+                </p>
               </div>
 
-              <div style={{ margin: '0 20px', background: '#fffde7', borderRadius: '16px', padding: '16px' }}>
-                <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>💡 Community Notes</h3>
+              <div style={{ margin: '0 20px', background: settings.darkMode ? '#3d3a2a' : '#fffde7', borderRadius: '16px', padding: '16px' }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: theme.text }}>💡 Community Notes</h3>
                 <ul style={{ margin: 0, paddingLeft: '20px' }}>
                   {(SPOT_DETAILS[selectedSpot.name] || SPOT_DETAILS['default']).tips.map((tip, i) => (
-                    <li key={i} style={{ fontSize: '13px', color: '#555', marginBottom: '8px', lineHeight: '1.4' }}>{tip}</li>
+                    <li key={i} style={{ fontSize: '13px', color: theme.textSecondary, marginBottom: '8px', lineHeight: '1.4' }}>{tip}</li>
                   ))}
                 </ul>
               </div>
 
               <div style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid #eee' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: `1px solid ${theme.border}` }}>
                   <span>📍</span>
-                  <span style={{ fontSize: '14px', color: '#333' }}>{selectedSpot.city}</span>
+                  <span style={{ fontSize: '14px', color: theme.text }}>{selectedSpot.city}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0' }}>
                   <span>⏱️</span>
-                  <span style={{ fontSize: '14px', color: '#333' }}>Recommended: {selectedSpot.duration}</span>
+                  <span style={{ fontSize: '14px', color: theme.text }}>Recommended: {selectedSpot.duration}</span>
                 </div>
               </div>
 
               <div style={{ padding: '16px 20px 32px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                <button style={{ background: 'white', border: '2px solid #e0e0e0', borderRadius: '25px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: "'DM Sans', sans-serif" }}>🔖 Save</button>
-                <button onClick={() => openGoogleMaps(selectedSpot.name, selectedSpot.city)} style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', border: 'none', borderRadius: '25px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: "'DM Sans', sans-serif" }}>🧭 Direction</button>
+                <button style={{ background: theme.backgroundCard, border: `2px solid ${theme.border}`, borderRadius: '25px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: "'DM Sans', sans-serif", color: theme.text }}>🔖 Save</button>
+                <button onClick={() => openGoogleMaps(selectedSpot.name, selectedSpot.city)} style={{ background: theme.primaryGradient, border: 'none', borderRadius: '25px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: "'DM Sans', sans-serif" }}>🧭 Direction</button>
               </div>
             </div>
           </div>
