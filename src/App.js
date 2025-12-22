@@ -2030,9 +2030,9 @@ function App() {
 
           {/* Results Grid */}
           {!placeSearchLoading && placeSearchResults.length > 0 && (
-            <div style={{ padding: '16px' }}>
-              <p style={{ fontSize: '12px', color: '#999', margin: '0 0 12px' }}>{placeSearchResults.length} places found</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+            <div style={{ padding: '12px' }}>
+              <p style={{ fontSize: '12px', color: '#999', margin: '0 0 10px', paddingLeft: '4px' }}>{placeSearchResults.length} places found</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                 {placeSearchResults.map((place, index) => {
                   const isAdded = manualSpots.find(s => s.name === place.name);
                   return (
@@ -2041,43 +2041,41 @@ function App() {
                       onClick={() => setSelectedPlaceInfo(place)}
                       style={{ 
                         background: 'white', 
-                        borderRadius: '16px', 
+                        borderRadius: '12px', 
                         overflow: 'hidden',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
                         cursor: 'pointer',
                         border: selectedPlaceInfo?.name === place.name ? '2px solid #2e7d32' : '2px solid transparent',
                         transition: 'all 0.2s'
                       }}
                     >
-                      <div style={{ paddingTop: '75%', position: 'relative' }}>
+                      <div style={{ paddingTop: '100%', position: 'relative' }}>
                         <img src={place.image} alt={place.name} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                         {place.isOpen !== undefined && (
                           <div style={{ 
                             position: 'absolute', 
-                            top: '8px', 
-                            left: '8px', 
+                            top: '4px', 
+                            left: '4px', 
                             background: place.isOpen ? '#4caf50' : '#ef5350', 
                             color: 'white', 
-                            padding: '2px 8px', 
-                            borderRadius: '10px', 
-                            fontSize: '10px', 
+                            padding: '2px 6px', 
+                            borderRadius: '8px', 
+                            fontSize: '8px', 
                             fontWeight: '600' 
                           }}>
                             {place.isOpen ? 'Open' : 'Closed'}
                           </div>
                         )}
                         {isAdded && (
-                          <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#2e7d32', color: 'white', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>✓</div>
+                          <div style={{ position: 'absolute', top: '4px', right: '4px', background: '#2e7d32', color: 'white', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>✓</div>
                         )}
                       </div>
-                      <div style={{ padding: '10px' }}>
-                        <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.name}</p>
-                        <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#999' }}>{place.type}</p>
+                      <div style={{ padding: '6px' }}>
+                        <p style={{ margin: 0, fontSize: '11px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.name}</p>
                         {place.rating > 0 && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                            <span style={{ color: '#ffc107', fontSize: '12px' }}>★</span>
-                            <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>{place.rating.toFixed(1)}</span>
-                            <span style={{ fontSize: '10px', color: '#999' }}>({place.reviews})</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
+                            <span style={{ color: '#ffc107', fontSize: '10px' }}>★</span>
+                            <span style={{ fontSize: '10px', fontWeight: '600', color: '#333' }}>{place.rating.toFixed(1)}</span>
                           </div>
                         )}
                       </div>
@@ -2720,4 +2718,4 @@ function App() {
   );
 }
 
-export default App;
+export default App;s
