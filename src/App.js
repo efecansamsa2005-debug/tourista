@@ -1125,9 +1125,10 @@ function App() {
       } else {
         console.log('Trip saved successfully:', data);
         
-        // Check for trip-related badges
+        // Check for trip-related badges (stored locally)
         const tripCount = myTrips.length + 1;
-        const currentBadges = [...userBadges];
+        const savedBadges = localStorage.getItem('tourista_badges');
+        const currentBadges = savedBadges ? JSON.parse(savedBadges) : [];
         const newBadges = [];
         
         // First trip badge
@@ -1154,28 +1155,27 @@ function App() {
           newBadges.push('explorer');
         }
         
-        // Award badges
+        // Save badges locally
         if (newBadges.length > 0) {
           const allBadges = [...currentBadges, ...newBadges];
           setUserBadges(allBadges);
           localStorage.setItem('tourista_badges', JSON.stringify(allBadges));
           
-          // Award 100 points for each badge
-          for (const badgeId of newBadges) {
-            await addPoints(100, `Badge earned: ${badgeId}`);
-          }
-        }
-        
-        // Award points for first 5 saved trips
-        if (tripCount <= 5) {
-          await addPoints(25, 'Trip saved');
+          // Award points (100 per badge + 25 for trip)
+          const bonusPoints = newBadges.length * 100 + (tripCount <= 5 ? 25 : 0);
+          const newPoints = userPoints + bonusPoints;
+          setUserPoints(newPoints);
+        } else if (tripCount <= 5) {
+          // Just trip save points
+          const newPoints = userPoints + 25;
+          setUserPoints(newPoints);
         }
       }
     } catch (err) {
       console.error('Error saving trip:', err);
       alert('Error: ' + err.message);
     }
-  }, [currentUser, myTrips, userBadges, addPoints]);
+  }, [currentUser, myTrips, userBadges, userPoints]);
 
   // Delete trip from Supabase
   const deleteTripFromSupabase = useCallback(async (tripId) => {
