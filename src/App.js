@@ -773,6 +773,12 @@ function App() {
   // Edit profile states
   const [editDisplayName, setEditDisplayName] = useState('');
 
+  // Review states
+  const [userRating, setUserRating] = useState(0);
+  const [userReviewText, setUserReviewText] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+
   // Save settings to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('tourista_settings', JSON.stringify(settings));
@@ -1269,6 +1275,46 @@ function App() {
   const saveDisplayNameToSupabase = useCallback(async (name) => {
     await updateUserProfile({ display_name: name });
   }, [updateUserProfile]);
+
+  // Submit review for a place
+  const submitReview = async (spotName, rating, reviewText) => {
+    if (!currentUser || rating === 0) return;
+    
+    setReviewSubmitting(true);
+    try {
+      // Save review to Supabase (you'll need to create reviews table)
+      const { error } = await supabase
+        .from('place_reviews')
+        .insert({
+          user_id: currentUser.id,
+          place_name: spotName,
+          rating: rating,
+          review_text: reviewText,
+          created_at: new Date().toISOString()
+        });
+      
+      if (!error) {
+        // Add points for review
+        await addPoints(50, 'Review submitted');
+        setReviewSubmitted(true);
+        setTimeout(() => {
+          setReviewSubmitted(false);
+          setUserRating(0);
+          setUserReviewText('');
+        }, 2000);
+      }
+    } catch (err) {
+      console.error('Error submitting review:', err);
+    }
+    setReviewSubmitting(false);
+  };
+
+  // Reset review state when spot changes
+  useEffect(() => {
+    setUserRating(0);
+    setUserReviewText('');
+    setReviewSubmitted(false);
+  }, [selectedSpot]);
 
   // Load trips when user changes
   useEffect(() => {
@@ -2524,20 +2570,20 @@ function App() {
   // ============================================
   if (screen === 'newTripSearch') {
     return (
-      <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif" }}>
-        <div style={{ background: 'white', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f5f5f5', borderRadius: '14px', padding: '4px 14px' }}>
-            <span onClick={() => setScreen('home')} style={{ fontSize: '18px', cursor: 'pointer', color: '#666' }}>←</span>
+      <div style={{ minHeight: '100vh', background: theme.background, fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ background: theme.backgroundCard, padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: theme.backgroundHover, borderRadius: '14px', padding: '4px 14px' }}>
+            <span onClick={() => setScreen('home')} style={{ fontSize: '18px', cursor: 'pointer', color: theme.textMuted }}>←</span>
             <input 
               type="text" 
               value={newTripCity} 
               onChange={(e) => setNewTripCity(e.target.value)} 
               placeholder="Search any city..." 
               autoFocus 
-              style={{ flex: 1, padding: '12px 0', border: 'none', background: 'transparent', fontSize: '15px', outline: 'none', fontFamily: "'DM Sans', sans-serif" }} 
+              style={{ flex: 1, padding: '12px 0', border: 'none', background: 'transparent', fontSize: '15px', outline: 'none', fontFamily: "'DM Sans', sans-serif", color: theme.text }} 
             />
             {newTripCity && (
-              <span onClick={() => { setNewTripCity(''); setCitySearchResults([]); }} style={{ fontSize: '16px', cursor: 'pointer', color: '#999' }}>✕</span>
+              <span onClick={() => { setNewTripCity(''); setCitySearchResults([]); }} style={{ fontSize: '16px', cursor: 'pointer', color: theme.textMuted }}>✕</span>
             )}
           </div>
         </div>
@@ -2545,7 +2591,7 @@ function App() {
         <div style={{ padding: '16px' }}>
           {citySearchLoading && (
             <div style={{ textAlign: 'center', padding: '20px' }}>
-              <p style={{ color: '#689f38', fontSize: '14px' }}>Searching cities...</p>
+              <p style={{ color: theme.primary, fontSize: '14px' }}>Searching cities...</p>
             </div>
           )}
 
@@ -2558,19 +2604,19 @@ function App() {
                   style={{ 
                     padding: '14px 8px', 
                     cursor: 'pointer', 
-                    borderBottom: index < citySearchResults.length - 1 ? '1px solid #e8e8e8' : 'none', 
-                    background: 'white', 
+                    borderBottom: index < citySearchResults.length - 1 ? `1px solid ${theme.border}` : 'none', 
+                    background: theme.backgroundCard, 
                     borderRadius: index === 0 ? '12px 12px 0 0' : index === citySearchResults.length - 1 ? '0 0 12px 12px' : '0' 
                   }}
                 >
-                  <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1b5e20' }}>{city.flag} {city.city}</p>
-                  <p style={{ margin: '3px 0 0', fontSize: '13px', color: '#689f38' }}>{city.country}</p>
+                  <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: theme.primary }}>{city.flag} {city.city}</p>
+                  <p style={{ margin: '3px 0 0', fontSize: '13px', color: theme.textMuted }}>{city.country}</p>
                 </div>
               ))}
             </div>
           ) : !citySearchLoading && newTripCity.length >= 2 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-              <p style={{ color: '#999', fontSize: '14px' }}>No cities found for "{newTripCity}"</p>
+              <p style={{ color: theme.textMuted, fontSize: '14px' }}>No cities found for "{newTripCity}"</p>
             </div>
           ) : !citySearchLoading && (
             <div>
@@ -3405,12 +3451,12 @@ function App() {
     const isLockedDay = isAiTrip && !isPremiumUser && selectedGuide.days > 1 && selectedDay > 1;
 
     return (
-      <div style={{ minHeight: '100vh', background: '#f5f5f5', fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ minHeight: '100vh', background: theme.background, fontFamily: "'DM Sans', sans-serif" }}>
         {/* Header */}
-        <div style={{ background: 'linear-gradient(135deg, #2e7d32 0%, #388e3c 100%)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: theme.primaryGradient, padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button onClick={() => setScreen('home')} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '10px', padding: '8px 12px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
           <h1 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: 0 }}>{selectedGuide.flag} {selectedGuide.city}</h1>
-          <button onClick={() => { if (!myTrips.find(t => t.id === selectedGuide.id)) { saveTripToSupabase(selectedGuide); setMyTrips(prev => [...prev, selectedGuide]); } }} style={{ background: myTrips.find(t => t.id === selectedGuide.id) ? 'rgba(255,255,255,0.3)' : 'white', border: 'none', borderRadius: '10px', padding: '8px 14px', color: myTrips.find(t => t.id === selectedGuide.id) ? 'white' : '#2e7d32', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+          <button onClick={() => { if (!myTrips.find(t => t.id === selectedGuide.id)) { saveTripToSupabase(selectedGuide); setMyTrips(prev => [...prev, selectedGuide]); } }} style={{ background: myTrips.find(t => t.id === selectedGuide.id) ? 'rgba(255,255,255,0.3)' : 'white', border: 'none', borderRadius: '10px', padding: '8px 14px', color: myTrips.find(t => t.id === selectedGuide.id) ? 'white' : theme.primary, cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
             {myTrips.find(t => t.id === selectedGuide.id) ? '✓ Saved' : '💾 Save'}
           </button>
         </div>
@@ -3462,9 +3508,9 @@ function App() {
         </div>
 
         {/* Trip Info */}
-        <div style={{ background: 'white', margin: '8px 16px', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-          <h2 style={{ margin: '0 0 8px', fontSize: '20px', color: '#1b5e20', fontWeight: '700' }}>{selectedGuide.title}</h2>
-          <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#689f38' }}>
+        <div style={{ background: theme.backgroundCard, margin: '8px 16px', borderRadius: '16px', padding: '16px', boxShadow: settings.darkMode ? 'none' : '0 2px 10px rgba(0,0,0,0.05)' }}>
+          <h2 style={{ margin: '0 0 8px', fontSize: '20px', color: theme.primary, fontWeight: '700' }}>{selectedGuide.title}</h2>
+          <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: theme.textMuted }}>
             <span>📅 {selectedGuide.days} days</span>
             <span>📍 {getTotalSpots(selectedGuide)} spots</span>
           </div>
@@ -3486,9 +3532,9 @@ function App() {
                   }
                 }} 
                 style={{ 
-                  background: selectedDay === day.day ? DAY_COLORS[index % DAY_COLORS.length] : 'white', 
-                  color: selectedDay === day.day ? 'white' : '#333', 
-                  border: selectedDay === day.day ? 'none' : '2px solid #e0e0e0', 
+                  background: selectedDay === day.day ? DAY_COLORS[index % DAY_COLORS.length] : theme.backgroundCard, 
+                  color: selectedDay === day.day ? 'white' : theme.text, 
+                  border: selectedDay === day.day ? 'none' : `2px solid ${theme.border}`, 
                   padding: '10px 20px', 
                   borderRadius: '20px', 
                   fontSize: '14px', 
@@ -3507,33 +3553,33 @@ function App() {
 
         {/* Day Title */}
         <div style={{ padding: '0 16px 12px' }}>
-          <h3 style={{ margin: 0, fontSize: '16px', color: '#1b5e20' }}>{currentDay.title}</h3>
+          <h3 style={{ margin: 0, fontSize: '16px', color: theme.primary }}>{currentDay.title}</h3>
         </div>
 
         {/* Spots List */}
         <div style={{ padding: '0 16px 100px' }}>
           {currentDay.spots.map((spot, index) => (
             <div key={index}>
-              <div onClick={() => !isLockedDay && setSelectedSpot({ ...spot, city: selectedGuide.city })} style={{ background: 'white', borderRadius: '14px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', cursor: isLockedDay ? 'default' : 'pointer', position: 'relative', overflow: 'hidden' }}>
+              <div onClick={() => !isLockedDay && setSelectedSpot({ ...spot, city: selectedGuide.city })} style={{ background: theme.backgroundCard, borderRadius: '14px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: settings.darkMode ? 'none' : '0 2px 8px rgba(0,0,0,0.05)', cursor: isLockedDay ? 'default' : 'pointer', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
                 <div style={{ width: '55px', height: '55px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
                   <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isLockedDay ? 'blur(4px)' : 'none' }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', filter: isLockedDay ? 'blur(4px)' : 'none' }}>{spot.name}</p>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: theme.primary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', filter: isLockedDay ? 'blur(4px)' : 'none' }}>{spot.name}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', filter: isLockedDay ? 'blur(4px)' : 'none' }}>
-                    <span style={{ fontSize: '11px', color: '#689f38', background: '#f1f8e9', padding: '2px 8px', borderRadius: '10px' }}>{spot.type}</span>
+                    <span style={{ fontSize: '11px', color: theme.primary, background: settings.darkMode ? theme.backgroundHover : '#f1f8e9', padding: '2px 8px', borderRadius: '10px' }}>{spot.type}</span>
                     {spot.rating > 0 && (
-                      <span style={{ fontSize: '11px', color: '#666', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                      <span style={{ fontSize: '11px', color: theme.textSecondary, display: 'flex', alignItems: 'center', gap: '2px' }}>
                         <span style={{ color: '#ffc107' }}>★</span> {spot.rating.toFixed(1)}
-                        {spot.reviews > 0 && <span style={{ color: '#999' }}>({spot.reviews.toLocaleString()})</span>}
+                        {spot.reviews > 0 && <span style={{ color: theme.textMuted }}>({spot.reviews.toLocaleString()})</span>}
                       </span>
                     )}
                   </div>
-                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#9e9e9e' }}>⏱️ {spot.duration}</p>
+                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: theme.textMuted }}>⏱️ {spot.duration}</p>
                 </div>
                 {isLockedDay && (
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: settings.darkMode ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ fontSize: '24px' }}>🔒</span>
                   </div>
                 )}
@@ -3548,10 +3594,10 @@ function App() {
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', filter: isLockedDay ? 'blur(3px)' : 'none' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '11px', color: '#666' }}>🚶 {walkTime} min</span>
-                          <span style={{ fontSize: '10px', color: '#999' }}>•</span>
-                          <span style={{ fontSize: '11px', color: '#666' }}>🚇 ~{Math.max(3, Math.round(walkTime / 3))} min</span>
-                          <span style={{ fontSize: '10px', color: '#999' }}>•</span>
+                          <span style={{ fontSize: '11px', color: theme.textSecondary }}>🚶 {walkTime} min</span>
+                          <span style={{ fontSize: '10px', color: theme.textMuted }}>•</span>
+                          <span style={{ fontSize: '11px', color: theme.textSecondary }}>🚇 ~{Math.max(3, Math.round(walkTime / 3))} min</span>
+                          <span style={{ fontSize: '10px', color: theme.textMuted }}>•</span>
                           <span style={{ fontSize: '11px', color: '#999' }}>{formatDistance(distance)}</span>
                         </div>
                         {!isLockedDay && (
@@ -3665,6 +3711,92 @@ function App() {
                     <li key={i} style={{ fontSize: '13px', color: theme.textSecondary, marginBottom: '8px', lineHeight: '1.4' }}>{tip}</li>
                   ))}
                 </ul>
+              </div>
+
+              {/* Review Section */}
+              <div style={{ margin: '16px 20px', background: theme.backgroundHover, borderRadius: '16px', padding: '16px' }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: theme.text }}>
+                  ✍️ {settings.language === 'tr' ? 'Değerlendir' : 'Rate & Review'}
+                </h3>
+                
+                {reviewSubmitted ? (
+                  <div style={{ textAlign: 'center', padding: '20px' }}>
+                    <span style={{ fontSize: '40px' }}>🎉</span>
+                    <p style={{ color: theme.primary, fontWeight: '600', margin: '12px 0 0' }}>
+                      {settings.language === 'tr' ? 'Teşekkürler! +50 puan kazandın!' : 'Thanks! You earned +50 points!'}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Star Rating */}
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <button
+                          key={star}
+                          onClick={() => setUserRating(star)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            fontSize: '32px',
+                            cursor: 'pointer',
+                            color: star <= userRating ? '#ffc107' : theme.border,
+                            transition: 'transform 0.1s',
+                            padding: '4px'
+                          }}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                    <p style={{ textAlign: 'center', fontSize: '12px', color: theme.textMuted, margin: '0 0 12px' }}>
+                      {userRating === 0 ? (settings.language === 'tr' ? 'Puan vermek için yıldızlara dokun' : 'Tap stars to rate') :
+                       userRating === 1 ? '😞' : userRating === 2 ? '😐' : userRating === 3 ? '🙂' : userRating === 4 ? '😊' : '🤩'}
+                    </p>
+                    
+                    {/* Review Text */}
+                    <textarea
+                      value={userReviewText}
+                      onChange={(e) => setUserReviewText(e.target.value)}
+                      placeholder={settings.language === 'tr' ? 'Deneyimini paylaş... (opsiyonel)' : 'Share your experience... (optional)'}
+                      style={{
+                        width: '100%',
+                        minHeight: '80px',
+                        padding: '12px',
+                        borderRadius: '12px',
+                        border: `2px solid ${theme.border}`,
+                        background: theme.backgroundCard,
+                        color: theme.text,
+                        fontSize: '14px',
+                        resize: 'none',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        fontFamily: "'DM Sans', sans-serif"
+                      }}
+                    />
+                    
+                    {/* Submit Button */}
+                    <button
+                      onClick={() => submitReview(selectedSpot.name, userRating, userReviewText)}
+                      disabled={userRating === 0 || reviewSubmitting}
+                      style={{
+                        width: '100%',
+                        marginTop: '12px',
+                        padding: '12px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: userRating === 0 ? theme.border : theme.primaryGradient,
+                        color: 'white',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: userRating === 0 ? 'default' : 'pointer',
+                        fontFamily: "'DM Sans', sans-serif",
+                        opacity: userRating === 0 ? 0.5 : 1
+                      }}
+                    >
+                      {reviewSubmitting ? '...' : (settings.language === 'tr' ? 'Gönder (+50 puan)' : 'Submit (+50 points)')}
+                    </button>
+                  </>
+                )}
               </div>
 
               <div style={{ padding: '20px' }}>
