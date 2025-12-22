@@ -22,7 +22,25 @@ const TRIP_CATEGORIES = [
   { id: 'art', emoji: '🎨', label: 'Art & Culture' },
   { id: 'cuisine', emoji: '🍽️', label: 'Local Cuisine' },
   { id: 'adventure', emoji: '🏔️', label: 'Adventure' },
-  { id: 'instagram', emoji: '📸', label: 'Instagram Spots' }
+  { id: 'instagram', emoji: '📸', label: 'Instagram Spots' },
+  { id: 'shopping', emoji: '🛍️', label: 'Shopping' },
+  { id: 'nature', emoji: '🌳', label: 'Nature & Parks' },
+  { id: 'beaches', emoji: '🏖️', label: 'Beaches' },
+  { id: 'museums', emoji: '🖼️', label: 'Museums' },
+  { id: 'history', emoji: '📜', label: 'History' },
+  { id: 'romantic', emoji: '💕', label: 'Romantic' },
+  { id: 'family', emoji: '👨‍👩‍👧‍👦', label: 'Family Friendly' },
+  { id: 'budget', emoji: '💰', label: 'Budget Travel' },
+  { id: 'luxury', emoji: '✨', label: 'Luxury' },
+  { id: 'cafes', emoji: '☕', label: 'Cafes' },
+  { id: 'bars', emoji: '🍺', label: 'Bars & Pubs' },
+  { id: 'wellness', emoji: '💆', label: 'Wellness & Spa' },
+  { id: 'sports', emoji: '⚽', label: 'Sports' },
+  { id: 'religious', emoji: '🛕', label: 'Religious Sites' },
+  { id: 'markets', emoji: '🏪', label: 'Local Markets' },
+  { id: 'viewpoints', emoji: '🌄', label: 'Viewpoints' },
+  { id: 'street_food', emoji: '🥡', label: 'Street Food' },
+  { id: 'hidden_gems', emoji: '💎', label: 'Hidden Gems' },
 ];
 
 const TRAVEL_GUIDES = [
