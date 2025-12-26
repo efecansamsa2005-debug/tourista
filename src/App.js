@@ -2937,7 +2937,7 @@ function App() {
 
         <div style={{ padding: '20px 20px 36px' }}>
           <h2 style={{ fontSize: '24px', fontWeight: '700', color: theme.primary, margin: '0 0 16px', textAlign: 'center' }}>Let's go to {newTripCityData?.city || newTripCity}!</h2>
-          <button onClick={() => setScreen('newTripPreferences')} style={{ width: '100%', background: theme.backgroundCard, color: theme.primary, border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: settings.darkMode ? 'none' : '0 4px 12px rgba(0,0,0,0.1)', fontFamily: "'DM Sans', sans-serif" }}>
+          <button onClick={() => setScreen('newTripDuration')} style={{ width: '100%', background: theme.backgroundCard, color: theme.primary, border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: settings.darkMode ? 'none' : '0 4px 12px rgba(0,0,0,0.1)', fontFamily: "'DM Sans', sans-serif" }}>
             Continue <span>→</span>
           </button>
         </div>
@@ -2986,7 +2986,7 @@ function App() {
         </div>
 
         <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '14px 20px 28px', background: theme.backgroundCard, boxShadow: settings.darkMode ? 'none' : '0 -4px 20px rgba(0,0,0,0.05)' }}>
-          <button onClick={() => setScreen('newTripDuration')} style={{ width: '100%', background: theme.primaryGradient, color: 'white', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+          <button onClick={() => generateAiTrip()} style={{ width: '100%', background: theme.primaryGradient, color: 'white', border: 'none', padding: '16px', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
             Continue →
           </button>
         </div>
@@ -3001,7 +3001,7 @@ function App() {
     return (
       <div style={{ minHeight: '100vh', background: settings.darkMode ? theme.background : 'linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%)', fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px' }}>
-          <button onClick={() => setScreen('newTripPreferences')} style={{ background: theme.backgroundCard, border: 'none', borderRadius: '50%', width: '40px', height: '40px', fontSize: '18px', cursor: 'pointer', color: theme.text }}>←</button>
+          <button onClick={() => setScreen('newTripConfirm')} style={{ background: theme.backgroundCard, border: 'none', borderRadius: '50%', width: '40px', height: '40px', fontSize: '18px', cursor: 'pointer', color: theme.text }}>←</button>
         </div>
 
         <div style={{ flex: 1, padding: '0 20px' }}>
@@ -3076,7 +3076,7 @@ function App() {
                 </div>
               </div>
 
-              <button onClick={() => { setShowAiPlanOffer(false); generateAiTrip(); }} style={{ width: '100%', background: theme.primaryGradient, color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontFamily: "'DM Sans', sans-serif" }}>
+              <button onClick={() => { setShowAiPlanOffer(false); setScreen('newTripPreferences'); }} style={{ width: '100%', background: theme.primaryGradient, color: 'white', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontFamily: "'DM Sans', sans-serif" }}>
                 <span>✨</span> Yes, plan for me!
               </button>
               <button onClick={() => { setShowAiPlanOffer(false); setScreen('manualPlanner'); }} style={{ width: '100%', background: 'transparent', color: theme.textMuted, border: 'none', padding: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
