@@ -1954,9 +1954,9 @@ function App() {
   };
 
   // Get photo URL from Google Places
-  const getPlacePhotoUrl = (photoName) => {
+  const getPlacePhotoUrl = (photoName, size = 300) => {
     if (!photoName) return 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300';
-    return `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=300&maxWidthPx=300&key=${GOOGLE_PLACES_API_KEY}`;
+    return `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=${size}&maxWidthPx=${size}&key=${GOOGLE_PLACES_API_KEY}`;
   };
 
   // AI Trip Generation with Google Places API
@@ -3501,7 +3501,8 @@ function App() {
             lng: place.location?.longitude || newTripCityData.lng,
             rating: place.rating || 0,
             reviews: place.userRatingCount || 0,
-            image: place.photos?.[0]?.name ? getPlacePhotoUrl(place.photos[0].name) : 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
+            image: place.photos?.[0]?.name ? getPlacePhotoUrl(place.photos[0].name, 400) : 'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=300',
+            photos: place.photos?.slice(0, 5).map(p => p.name) || [],
             description: place.editorialSummary?.text || `Popular ${category.label.toLowerCase()} in ${newTripCityData.city}`,
             isOpen: place.currentOpeningHours?.openNow,
             priceLevel: place.priceLevel
@@ -3593,11 +3594,11 @@ function App() {
             </div>
           )}
 
-          {/* Results Grid */}
+          {/* Results List */}
           {!placeSearchLoading && placeSearchResults.length > 0 && (
             <div style={{ padding: '12px' }}>
-              <p style={{ fontSize: '12px', color: '#999', margin: '0 0 10px', paddingLeft: '4px' }}>{placeSearchResults.length} places found</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              <p style={{ fontSize: '12px', color: theme.textMuted, margin: '0 0 10px', paddingLeft: '4px' }}>{placeSearchResults.length} places found</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {placeSearchResults.map((place, index) => {
                   const isAdded = manualSpots.find(s => s.name === place.name);
                   return (
@@ -3605,52 +3606,60 @@ function App() {
                       key={index}
                       onClick={() => setSelectedPlaceInfo(place)}
                       style={{ 
-                        background: 'white', 
-                        borderRadius: '12px', 
+                        background: theme.backgroundCard, 
+                        borderRadius: '14px', 
                         overflow: 'hidden',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                        boxShadow: settings.darkMode ? 'none' : '0 2px 8px rgba(0,0,0,0.08)',
                         cursor: 'pointer',
-                        border: selectedPlaceInfo?.name === place.name ? '2px solid #2e7d32' : '2px solid transparent',
-                        transition: 'all 0.2s'
+                        border: selectedPlaceInfo?.name === place.name ? `2px solid ${theme.primary}` : `2px solid transparent`,
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '10px'
                       }}
                     >
-                      <div style={{ paddingTop: '100%', position: 'relative' }}>
-                        <img src={place.image} alt={place.name} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                        {place.isOpen !== undefined && (
-                          <div style={{ 
-                            position: 'absolute', 
-                            top: '4px', 
-                            left: '4px', 
-                            background: place.isOpen ? '#4caf50' : '#ef5350', 
-                            color: 'white', 
-                            padding: '2px 6px', 
-                            borderRadius: '8px', 
-                            fontSize: '8px', 
-                            fontWeight: '600' 
-                          }}>
-                            {place.isOpen ? 'Open' : 'Closed'}
-                          </div>
-                        )}
+                      {/* Small square image */}
+                      <div style={{ width: '70px', height: '70px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                        <img src={place.image} alt={place.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         {isAdded && (
-                          <div style={{ position: 'absolute', top: '4px', right: '4px', background: '#2e7d32', color: 'white', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>✓</div>
+                          <div style={{ position: 'absolute', top: '4px', right: '4px', background: theme.primary, color: 'white', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>✓</div>
                         )}
                       </div>
-                      <div style={{ padding: '6px' }}>
-                        <p style={{ margin: 0, fontSize: '11px', fontWeight: '600', color: '#1b5e20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.name}</p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                      
+                      {/* Info */}
+                      <div style={{ flex: 1, marginLeft: '12px', minWidth: 0 }}>
+                        <p style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: '600', color: theme.primary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.name}</p>
+                        <p style={{ margin: '0 0 6px', fontSize: '11px', color: theme.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.type}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {place.rating > 0 && (
-                            <>
-                              <span style={{ color: '#ffc107', fontSize: '10px' }}>★</span>
-                              <span style={{ fontSize: '10px', fontWeight: '600', color: '#333' }}>{place.rating.toFixed(1)}</span>
-                            </>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                              <span style={{ color: '#ffc107', fontSize: '12px' }}>★</span>
+                              <span style={{ fontSize: '12px', fontWeight: '600', color: theme.text }}>{place.rating.toFixed(1)}</span>
+                              <span style={{ fontSize: '10px', color: theme.textMuted }}>({place.reviews})</span>
+                            </div>
                           )}
                           {getPriceDisplay(place.priceLevel) && (
-                            <span style={{ fontSize: '10px', color: '#4caf50', fontWeight: '600' }}>
+                            <span style={{ fontSize: '11px', color: '#4caf50', fontWeight: '600' }}>
                               {getPriceDisplay(place.priceLevel).text}
+                            </span>
+                          )}
+                          {place.isOpen !== undefined && (
+                            <span style={{ 
+                              background: place.isOpen ? '#e8f5e9' : '#ffebee', 
+                              color: place.isOpen ? '#4caf50' : '#ef5350', 
+                              padding: '2px 6px', 
+                              borderRadius: '6px', 
+                              fontSize: '9px', 
+                              fontWeight: '600' 
+                            }}>
+                              {place.isOpen ? 'Open' : 'Closed'}
                             </span>
                           )}
                         </div>
                       </div>
+                      
+                      {/* Arrow */}
+                      <span style={{ color: theme.textMuted, fontSize: '16px', marginLeft: '8px' }}>›</span>
                     </div>
                   );
                 })}
@@ -3687,70 +3696,92 @@ function App() {
             <div 
               onClick={(e) => e.stopPropagation()}
               style={{ 
-                background: 'white', 
+                background: theme.backgroundCard, 
                 borderRadius: '24px 24px 0 0', 
                 width: '100%',
-                maxHeight: '70vh',
+                maxHeight: '75vh',
                 overflow: 'auto'
               }}
             >
-              {/* Image Header */}
-              <div style={{ height: '180px', position: 'relative' }}>
-                <img src={selectedPlaceInfo.image} alt={selectedPlaceInfo.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {/* Close Button */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px 0' }}>
                 <button 
                   onClick={() => setSelectedPlaceInfo(null)}
-                  style={{ position: 'absolute', top: '12px', right: '12px', background: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
+                  style={{ background: theme.backgroundHover, border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontSize: '16px', color: theme.textMuted }}
                 >✕</button>
-                {selectedPlaceInfo.isOpen !== undefined && (
-                  <div style={{ 
-                    position: 'absolute', 
-                    bottom: '12px', 
-                    left: '12px', 
-                    background: selectedPlaceInfo.isOpen ? '#4caf50' : '#ef5350', 
-                    color: 'white', 
+              </div>
+
+              {/* Photo Gallery */}
+              <div style={{ padding: '8px 16px 16px' }}>
+                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '4px' }}>
+                  {selectedPlaceInfo.photos && selectedPlaceInfo.photos.length > 0 ? (
+                    selectedPlaceInfo.photos.map((photoName, idx) => (
+                      <div key={idx} style={{ width: '120px', height: '90px', borderRadius: '12px', overflow: 'hidden', flexShrink: 0 }}>
+                        <img 
+                          src={getPlacePhotoUrl(photoName, 400)} 
+                          alt={`${selectedPlaceInfo.name} ${idx + 1}`} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ width: '120px', height: '90px', borderRadius: '12px', overflow: 'hidden', flexShrink: 0 }}>
+                      <img src={selectedPlaceInfo.image} alt={selectedPlaceInfo.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Open/Closed Badge */}
+              {selectedPlaceInfo.isOpen !== undefined && (
+                <div style={{ padding: '0 20px 12px' }}>
+                  <span style={{ 
+                    background: selectedPlaceInfo.isOpen ? '#e8f5e9' : '#ffebee', 
+                    color: selectedPlaceInfo.isOpen ? '#4caf50' : '#ef5350', 
                     padding: '6px 14px', 
                     borderRadius: '20px', 
                     fontSize: '12px', 
-                    fontWeight: '600' 
+                    fontWeight: '600',
+                    display: 'inline-block'
                   }}>
                     {selectedPlaceInfo.isOpen ? '🟢 Open Now' : '🔴 Closed'}
-                  </div>
-                )}
-              </div>
+                  </span>
+                </div>
+              )}
 
               {/* Info Content */}
-              <div style={{ padding: '20px' }}>
-                <h2 style={{ margin: '0 0 8px', fontSize: '22px', fontWeight: '700', color: '#1b5e20' }}>{selectedPlaceInfo.name}</h2>
+              <div style={{ padding: '0 20px 20px' }}>
+                <h2 style={{ margin: '0 0 8px', fontSize: '22px', fontWeight: '700', color: theme.primary }}>{selectedPlaceInfo.name}</h2>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                  <span style={{ background: '#f1f8e9', color: '#2e7d32', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '500' }}>{selectedPlaceInfo.type}</span>
+                  <span style={{ background: settings.darkMode ? theme.backgroundHover : '#f1f8e9', color: theme.primary, padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '500' }}>{selectedPlaceInfo.type}</span>
                   {selectedPlaceInfo.priceLevel && (
-                    <span style={{ color: '#666', fontSize: '13px' }}>{'💵'.repeat(selectedPlaceInfo.priceLevel)}</span>
+                    <span style={{ color: theme.textSecondary, fontSize: '13px' }}>{'💵'.repeat(selectedPlaceInfo.priceLevel)}</span>
                   )}
                 </div>
 
                 {selectedPlaceInfo.rating > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                     <span style={{ color: '#ffc107', fontSize: '18px' }}>★</span>
-                    <span style={{ fontSize: '16px', fontWeight: '700', color: '#333' }}>{selectedPlaceInfo.rating.toFixed(1)}</span>
-                    <span style={{ fontSize: '14px', color: '#999' }}>({selectedPlaceInfo.reviews.toLocaleString()} reviews)</span>
+                    <span style={{ fontSize: '16px', fontWeight: '700', color: theme.text }}>{selectedPlaceInfo.rating.toFixed(1)}</span>
+                    <span style={{ fontSize: '14px', color: theme.textMuted }}>({selectedPlaceInfo.reviews.toLocaleString()} reviews)</span>
                   </div>
                 )}
 
-                <p style={{ fontSize: '14px', color: '#666', lineHeight: '1.6', margin: '0 0 16px' }}>
+                <p style={{ fontSize: '14px', color: theme.textSecondary, lineHeight: '1.6', margin: '0 0 16px' }}>
                   {selectedPlaceInfo.description}
                 </p>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: '#f5f5f5', borderRadius: '12px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: theme.backgroundHover, borderRadius: '12px', marginBottom: '20px' }}>
                   <span style={{ fontSize: '16px' }}>📍</span>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#666', flex: 1 }}>{selectedPlaceInfo.address}</p>
+                  <p style={{ margin: 0, fontSize: '13px', color: theme.textSecondary, flex: 1 }}>{selectedPlaceInfo.address}</p>
                 </div>
 
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button 
                     onClick={() => openGoogleMaps(selectedPlaceInfo.name, newTripCityData.city)}
-                    style={{ flex: 1, background: 'white', border: '2px solid #e0e0e0', borderRadius: '14px', padding: '14px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: "'DM Sans', sans-serif" }}
+                    style={{ flex: 1, background: theme.backgroundCard, border: `2px solid ${theme.border}`, borderRadius: '14px', padding: '14px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: "'DM Sans', sans-serif", color: theme.text }}
                   >
                     🗺️ Directions
                   </button>
@@ -3762,7 +3793,7 @@ function App() {
                     disabled={manualSpots.find(s => s.name === selectedPlaceInfo.name)}
                     style={{ 
                       flex: 1, 
-                      background: manualSpots.find(s => s.name === selectedPlaceInfo.name) ? '#c8e6c9' : 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)', 
+                      background: manualSpots.find(s => s.name === selectedPlaceInfo.name) ? '#c8e6c9' : theme.primaryGradient, 
                       border: 'none', 
                       borderRadius: '14px', 
                       padding: '14px', 
