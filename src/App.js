@@ -752,6 +752,9 @@ function App() {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showHelpScreen, setShowHelpScreen] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showTermsOfUse, setShowTermsOfUse] = useState(false);
+  const [showKVKK, setShowKVKK] = useState(false);
 
   // Settings states (persisted to localStorage)
   const [settings, setSettings] = useState(() => {
@@ -2653,17 +2656,17 @@ function App() {
                       <div style={{ marginBottom: '24px' }}>
                         <h3 style={{ fontSize: '12px', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>📜 {settings.language === 'tr' ? 'Yasal' : 'Legal'}</h3>
                         <div style={{ background: theme.backgroundHover, borderRadius: '16px', overflow: 'hidden' }}>
-                          <div onClick={() => alert(`GİZLİLİK POLİTİKASI\n\nSon Güncelleme: Ocak 2025\n\n1. TOPLANAN VERİLER\nTOURISTA uygulaması aşağıdaki verileri toplar:\n• E-posta adresi (hesap oluşturma için)\n• Seyahat planları ve tercihleriniz\n• Uygulama kullanım verileri\n• Konum verisi (sadece izin verildiğinde)\n\n2. VERİLERİN KULLANIMI\nTopladığımız verileri şu amaçlarla kullanırız:\n• Hesabınızı oluşturmak ve yönetmek\n• Kişiselleştirilmiş seyahat önerileri sunmak\n• Uygulama deneyimini iyileştirmek\n• Destek hizmeti sağlamak\n\n3. ÜÇÜNCÜ TARAF HİZMETLER\nUygulamamız şu hizmetleri kullanır:\n• Supabase (veritabanı ve kimlik doğrulama)\n• Google Places API (mekan bilgileri)\n\n4. VERİ GÜVENLİĞİ\nVerileriniz şifreleme ile korunur ve güvenli sunucularda saklanır.\n\n5. HAKLARINIZ\n• Verilerinize erişim talep edebilirsiniz\n• Verilerinizin silinmesini isteyebilirsiniz\n• Verilerinizi dışa aktarabilirsiniz\n\nİletişim: touristadestek@gmail.com\nVeri Sorumlusu: Efe Can Samsa\nİstanbul, Türkiye`)} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderBottom: `1px solid ${theme.border}` }}>
+                          <div onClick={() => setShowPrivacyPolicy(true)} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderBottom: `1px solid ${theme.border}` }}>
                             <span style={{ fontSize: '20px' }}>🔒</span>
                             <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{settings.language === 'tr' ? 'Gizlilik Politikası' : 'Privacy Policy'}</span>
                             <span style={{ color: theme.textMuted }}>›</span>
                           </div>
-                          <div onClick={() => alert(`KULLANIM ŞARTLARI\n\nSon Güncelleme: Ocak 2025\n\n1. KABUL\nTOURISTA uygulamasını kullanarak bu şartları kabul etmiş olursunuz.\n\n2. HİZMET TANIMI\nTOURISTA, seyahat planlama ve keşif hizmeti sunan bir mobil uygulamadır.\n\n3. KULLANICI SORUMLULUKLARI\n• Doğru ve güncel bilgi sağlamak\n• Hesap güvenliğini korumak\n• Yasalara uygun kullanım\n• Diğer kullanıcılara saygılı davranmak\n\n4. YASAKLI DAVRANIŞLAR\n• Sahte hesap oluşturmak\n• Spam veya zararlı içerik paylaşmak\n• Uygulamayı kötüye kullanmak\n• Diğer kullanıcıları taciz etmek\n\n5. FİKRİ MÜLKİYET\nUygulama ve içeriği Efe Can Samsa'ya aittir.\n\n6. SORUMLULUK REDDİ\n• Seyahat önerileri bilgi amaçlıdır\n• Mekan bilgilerinin doğruluğu garanti edilmez\n• Kullanıcı kendi seyahat kararlarından sorumludur\n\n7. DEĞİŞİKLİKLER\nBu şartlar önceden haber verilmeksizin değiştirilebilir.\n\nİletişim: touristadestek@gmail.com`)} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderBottom: `1px solid ${theme.border}` }}>
+                          <div onClick={() => setShowTermsOfUse(true)} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderBottom: `1px solid ${theme.border}` }}>
                             <span style={{ fontSize: '20px' }}>📋</span>
                             <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{settings.language === 'tr' ? 'Kullanım Şartları' : 'Terms of Use'}</span>
                             <span style={{ color: theme.textMuted }}>›</span>
                           </div>
-                          <div onClick={() => alert(`KVKK AYDINLATMA METNİ\n\n6698 Sayılı Kişisel Verilerin Korunması Kanunu Kapsamında Aydınlatma Metni\n\nVeri Sorumlusu: Efe Can Samsa\nAdres: İstanbul, Türkiye\nE-posta: touristadestek@gmail.com\n\n1. KİŞİSEL VERİLERİN İŞLENME AMACI\nKişisel verileriniz;\n• Üyelik işlemlerinin gerçekleştirilmesi\n• Hizmetlerimizin sunulması\n• Kullanıcı deneyiminin iyileştirilmesi\n• Yasal yükümlülüklerin yerine getirilmesi\namaçlarıyla işlenmektedir.\n\n2. İŞLENEN KİŞİSEL VERİLER\n• Kimlik bilgileri (ad, e-posta)\n• İletişim bilgileri\n• Uygulama kullanım verileri\n• Konum verileri (izin dahilinde)\n\n3. KİŞİSEL VERİLERİN AKTARIMI\nVerileriniz;\n• Yasal zorunluluk halinde yetkili kurumlarla\n• Hizmet sağlayıcılarımızla (Supabase, Google)\npaylaşılabilir.\n\n4. VERİ SAHİBİ HAKLARI\nKVKK Madde 11 kapsamında;\n• Verilerinizin işlenip işlenmediğini öğrenme\n• İşlenmişse bilgi talep etme\n• Amaca uygun kullanılıp kullanılmadığını öğrenme\n• Yurt içi/dışı aktarıldığı kişileri bilme\n• Eksik/yanlış işlenmişse düzeltme isteme\n• Silinmesini veya yok edilmesini isteme\n• Düzeltme/silme işlemlerinin aktarılan 3. kişilere bildirilmesini isteme\n• Otomatik sistemlerle analiz sonucu aleyhe çıkan sonuca itiraz etme\n• Kanuna aykırı işleme sebebiyle zarara uğramanız halinde tazminat talep etme\nhaklarına sahipsiniz.\n\n5. BAŞVURU YÖNTEMİ\nHaklarınızı kullanmak için touristadestek@gmail.com adresine başvurabilirsiniz.`)} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                          <div onClick={() => setShowKVKK(true)} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                             <span style={{ fontSize: '20px' }}>🇹🇷</span>
                             <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>KVKK Aydınlatma Metni</span>
                             <span style={{ color: theme.textMuted }}>›</span>
@@ -2694,6 +2697,243 @@ function App() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Privacy Policy Page */}
+                    {showPrivacyPolicy && (
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: theme.backgroundCard, zIndex: 20, overflowY: 'auto' }}>
+                        <div style={{ background: theme.primaryGradient, padding: '20px', paddingTop: '40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <button onClick={() => setShowPrivacyPolicy(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
+                          <h2 style={{ color: 'white', fontSize: '18px', margin: 0, fontWeight: '600' }}>🔒 {settings.language === 'tr' ? 'Gizlilik Politikası' : 'Privacy Policy'}</h2>
+                        </div>
+                        <div style={{ padding: '20px' }}>
+                          <p style={{ fontSize: '12px', color: theme.textMuted, margin: '0 0 20px' }}>{settings.language === 'tr' ? 'Son Güncelleme: Ocak 2025' : 'Last Updated: January 2025'}</p>
+                          
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>📊 1. {settings.language === 'tr' ? 'Toplanan Veriler' : 'Collected Data'}</h3>
+                            <p style={{ fontSize: '14px', color: theme.textSecondary, margin: 0, lineHeight: '1.6' }}>
+                              {settings.language === 'tr' 
+                                ? 'TOURISTA uygulaması aşağıdaki verileri toplar:' 
+                                : 'TOURISTA app collects the following data:'}
+                            </p>
+                            <ul style={{ margin: '12px 0 0', paddingLeft: '20px', color: theme.textSecondary, fontSize: '14px', lineHeight: '1.8' }}>
+                              <li>{settings.language === 'tr' ? 'E-posta adresi (hesap oluşturma için)' : 'Email address (for account creation)'}</li>
+                              <li>{settings.language === 'tr' ? 'Seyahat planları ve tercihleriniz' : 'Your travel plans and preferences'}</li>
+                              <li>{settings.language === 'tr' ? 'Uygulama kullanım verileri' : 'App usage data'}</li>
+                              <li>{settings.language === 'tr' ? 'Konum verisi (sadece izin verildiğinde)' : 'Location data (only when permitted)'}</li>
+                            </ul>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>🎯 2. {settings.language === 'tr' ? 'Verilerin Kullanımı' : 'Data Usage'}</h3>
+                            <p style={{ fontSize: '14px', color: theme.textSecondary, margin: 0, lineHeight: '1.6' }}>
+                              {settings.language === 'tr' 
+                                ? 'Topladığımız verileri şu amaçlarla kullanırız:' 
+                                : 'We use collected data for:'}
+                            </p>
+                            <ul style={{ margin: '12px 0 0', paddingLeft: '20px', color: theme.textSecondary, fontSize: '14px', lineHeight: '1.8' }}>
+                              <li>{settings.language === 'tr' ? 'Hesabınızı oluşturmak ve yönetmek' : 'Creating and managing your account'}</li>
+                              <li>{settings.language === 'tr' ? 'Kişiselleştirilmiş seyahat önerileri sunmak' : 'Providing personalized travel recommendations'}</li>
+                              <li>{settings.language === 'tr' ? 'Uygulama deneyimini iyileştirmek' : 'Improving app experience'}</li>
+                              <li>{settings.language === 'tr' ? 'Destek hizmeti sağlamak' : 'Providing support services'}</li>
+                            </ul>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>🔗 3. {settings.language === 'tr' ? 'Üçüncü Taraf Hizmetler' : 'Third Party Services'}</h3>
+                            <p style={{ fontSize: '14px', color: theme.textSecondary, margin: 0, lineHeight: '1.6' }}>
+                              {settings.language === 'tr' ? 'Uygulamamız şu hizmetleri kullanır:' : 'Our app uses these services:'}
+                            </p>
+                            <ul style={{ margin: '12px 0 0', paddingLeft: '20px', color: theme.textSecondary, fontSize: '14px', lineHeight: '1.8' }}>
+                              <li>Supabase ({settings.language === 'tr' ? 'veritabanı ve kimlik doğrulama' : 'database and authentication'})</li>
+                              <li>Google Places API ({settings.language === 'tr' ? 'mekan bilgileri' : 'place information'})</li>
+                            </ul>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>🛡️ 4. {settings.language === 'tr' ? 'Veri Güvenliği' : 'Data Security'}</h3>
+                            <p style={{ fontSize: '14px', color: theme.textSecondary, margin: 0, lineHeight: '1.6' }}>
+                              {settings.language === 'tr' 
+                                ? 'Verileriniz şifreleme ile korunur ve güvenli sunucularda saklanır.' 
+                                : 'Your data is protected with encryption and stored on secure servers.'}
+                            </p>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>✋ 5. {settings.language === 'tr' ? 'Haklarınız' : 'Your Rights'}</h3>
+                            <ul style={{ margin: '0', paddingLeft: '20px', color: theme.textSecondary, fontSize: '14px', lineHeight: '1.8' }}>
+                              <li>{settings.language === 'tr' ? 'Verilerinize erişim talep edebilirsiniz' : 'You can request access to your data'}</li>
+                              <li>{settings.language === 'tr' ? 'Verilerinizin silinmesini isteyebilirsiniz' : 'You can request deletion of your data'}</li>
+                              <li>{settings.language === 'tr' ? 'Verilerinizi dışa aktarabilirsiniz' : 'You can export your data'}</li>
+                            </ul>
+                          </div>
+
+                          <div style={{ background: settings.darkMode ? theme.backgroundHover : '#e8f5e9', borderRadius: '16px', padding: '20px', textAlign: 'center' }}>
+                            <p style={{ fontSize: '13px', color: theme.textSecondary, margin: '0 0 8px' }}>{settings.language === 'tr' ? 'İletişim' : 'Contact'}</p>
+                            <p style={{ fontSize: '14px', color: theme.primary, margin: '0 0 4px', fontWeight: '600' }}>touristadestek@gmail.com</p>
+                            <p style={{ fontSize: '12px', color: theme.textMuted, margin: 0 }}>{settings.language === 'tr' ? 'Veri Sorumlusu' : 'Data Controller'}: Efe Can Samsa</p>
+                            <p style={{ fontSize: '12px', color: theme.textMuted, margin: '4px 0 0' }}>İstanbul, Türkiye</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Terms of Use Page */}
+                    {showTermsOfUse && (
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: theme.backgroundCard, zIndex: 20, overflowY: 'auto' }}>
+                        <div style={{ background: theme.primaryGradient, padding: '20px', paddingTop: '40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <button onClick={() => setShowTermsOfUse(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
+                          <h2 style={{ color: 'white', fontSize: '18px', margin: 0, fontWeight: '600' }}>📋 {settings.language === 'tr' ? 'Kullanım Şartları' : 'Terms of Use'}</h2>
+                        </div>
+                        <div style={{ padding: '20px' }}>
+                          <p style={{ fontSize: '12px', color: theme.textMuted, margin: '0 0 20px' }}>{settings.language === 'tr' ? 'Son Güncelleme: Ocak 2025' : 'Last Updated: January 2025'}</p>
+                          
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>✅ 1. {settings.language === 'tr' ? 'Kabul' : 'Acceptance'}</h3>
+                            <p style={{ fontSize: '14px', color: theme.textSecondary, margin: 0, lineHeight: '1.6' }}>
+                              {settings.language === 'tr' 
+                                ? 'TOURISTA uygulamasını kullanarak bu şartları kabul etmiş olursunuz.' 
+                                : 'By using the TOURISTA app, you accept these terms.'}
+                            </p>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>📱 2. {settings.language === 'tr' ? 'Hizmet Tanımı' : 'Service Description'}</h3>
+                            <p style={{ fontSize: '14px', color: theme.textSecondary, margin: 0, lineHeight: '1.6' }}>
+                              {settings.language === 'tr' 
+                                ? 'TOURISTA, seyahat planlama ve keşif hizmeti sunan bir mobil uygulamadır.' 
+                                : 'TOURISTA is a mobile application providing travel planning and discovery services.'}
+                            </p>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>👤 3. {settings.language === 'tr' ? 'Kullanıcı Sorumlulukları' : 'User Responsibilities'}</h3>
+                            <ul style={{ margin: '0', paddingLeft: '20px', color: theme.textSecondary, fontSize: '14px', lineHeight: '1.8' }}>
+                              <li>{settings.language === 'tr' ? 'Doğru ve güncel bilgi sağlamak' : 'Provide accurate and up-to-date information'}</li>
+                              <li>{settings.language === 'tr' ? 'Hesap güvenliğini korumak' : 'Maintain account security'}</li>
+                              <li>{settings.language === 'tr' ? 'Yasalara uygun kullanım' : 'Comply with laws'}</li>
+                              <li>{settings.language === 'tr' ? 'Diğer kullanıcılara saygılı davranmak' : 'Respect other users'}</li>
+                            </ul>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>🚫 4. {settings.language === 'tr' ? 'Yasaklı Davranışlar' : 'Prohibited Actions'}</h3>
+                            <ul style={{ margin: '0', paddingLeft: '20px', color: theme.textSecondary, fontSize: '14px', lineHeight: '1.8' }}>
+                              <li>{settings.language === 'tr' ? 'Sahte hesap oluşturmak' : 'Creating fake accounts'}</li>
+                              <li>{settings.language === 'tr' ? 'Spam veya zararlı içerik paylaşmak' : 'Sharing spam or harmful content'}</li>
+                              <li>{settings.language === 'tr' ? 'Uygulamayı kötüye kullanmak' : 'Misusing the application'}</li>
+                              <li>{settings.language === 'tr' ? 'Diğer kullanıcıları taciz etmek' : 'Harassing other users'}</li>
+                            </ul>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>©️ 5. {settings.language === 'tr' ? 'Fikri Mülkiyet' : 'Intellectual Property'}</h3>
+                            <p style={{ fontSize: '14px', color: theme.textSecondary, margin: 0, lineHeight: '1.6' }}>
+                              {settings.language === 'tr' 
+                                ? 'Uygulama ve içeriği Efe Can Samsa\'ya aittir.' 
+                                : 'The application and its content belong to Efe Can Samsa.'}
+                            </p>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>⚠️ 6. {settings.language === 'tr' ? 'Sorumluluk Reddi' : 'Disclaimer'}</h3>
+                            <ul style={{ margin: '0', paddingLeft: '20px', color: theme.textSecondary, fontSize: '14px', lineHeight: '1.8' }}>
+                              <li>{settings.language === 'tr' ? 'Seyahat önerileri bilgi amaçlıdır' : 'Travel recommendations are for informational purposes'}</li>
+                              <li>{settings.language === 'tr' ? 'Mekan bilgilerinin doğruluğu garanti edilmez' : 'Accuracy of place information is not guaranteed'}</li>
+                              <li>{settings.language === 'tr' ? 'Kullanıcı kendi seyahat kararlarından sorumludur' : 'User is responsible for their own travel decisions'}</li>
+                            </ul>
+                          </div>
+
+                          <div style={{ background: settings.darkMode ? theme.backgroundHover : '#e8f5e9', borderRadius: '16px', padding: '20px', textAlign: 'center' }}>
+                            <p style={{ fontSize: '13px', color: theme.textSecondary, margin: '0 0 8px' }}>{settings.language === 'tr' ? 'İletişim' : 'Contact'}</p>
+                            <p style={{ fontSize: '14px', color: theme.primary, margin: 0, fontWeight: '600' }}>touristadestek@gmail.com</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* KVKK Page */}
+                    {showKVKK && (
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: theme.backgroundCard, zIndex: 20, overflowY: 'auto' }}>
+                        <div style={{ background: theme.primaryGradient, padding: '20px', paddingTop: '40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <button onClick={() => setShowKVKK(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
+                          <h2 style={{ color: 'white', fontSize: '18px', margin: 0, fontWeight: '600' }}>🇹🇷 KVKK Aydınlatma Metni</h2>
+                        </div>
+                        <div style={{ padding: '20px' }}>
+                          <div style={{ background: settings.darkMode ? theme.backgroundHover : '#fff3e0', borderRadius: '16px', padding: '16px', marginBottom: '20px' }}>
+                            <p style={{ fontSize: '13px', color: theme.textSecondary, margin: 0, lineHeight: '1.6' }}>
+                              6698 Sayılı Kişisel Verilerin Korunması Kanunu Kapsamında Aydınlatma Metni
+                            </p>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '14px', color: theme.primary, margin: '0 0 12px', fontWeight: '600' }}>Veri Sorumlusu</h3>
+                            <p style={{ fontSize: '14px', color: theme.textSecondary, margin: '0 0 4px' }}><strong>Ad:</strong> Efe Can Samsa</p>
+                            <p style={{ fontSize: '14px', color: theme.textSecondary, margin: '0 0 4px' }}><strong>Adres:</strong> İstanbul, Türkiye</p>
+                            <p style={{ fontSize: '14px', color: theme.textSecondary, margin: 0 }}><strong>E-posta:</strong> touristadestek@gmail.com</p>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>🎯 1. Kişisel Verilerin İşlenme Amacı</h3>
+                            <p style={{ fontSize: '14px', color: theme.textSecondary, margin: '0 0 12px', lineHeight: '1.6' }}>
+                              Kişisel verileriniz aşağıdaki amaçlarla işlenmektedir:
+                            </p>
+                            <ul style={{ margin: '0', paddingLeft: '20px', color: theme.textSecondary, fontSize: '14px', lineHeight: '1.8' }}>
+                              <li>Üyelik işlemlerinin gerçekleştirilmesi</li>
+                              <li>Hizmetlerimizin sunulması</li>
+                              <li>Kullanıcı deneyiminin iyileştirilmesi</li>
+                              <li>Yasal yükümlülüklerin yerine getirilmesi</li>
+                            </ul>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>📋 2. İşlenen Kişisel Veriler</h3>
+                            <ul style={{ margin: '0', paddingLeft: '20px', color: theme.textSecondary, fontSize: '14px', lineHeight: '1.8' }}>
+                              <li>Kimlik bilgileri (ad, e-posta)</li>
+                              <li>İletişim bilgileri</li>
+                              <li>Uygulama kullanım verileri</li>
+                              <li>Konum verileri (izin dahilinde)</li>
+                            </ul>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>🔄 3. Kişisel Verilerin Aktarımı</h3>
+                            <p style={{ fontSize: '14px', color: theme.textSecondary, margin: '0 0 12px', lineHeight: '1.6' }}>
+                              Verileriniz aşağıdaki taraflarla paylaşılabilir:
+                            </p>
+                            <ul style={{ margin: '0', paddingLeft: '20px', color: theme.textSecondary, fontSize: '14px', lineHeight: '1.8' }}>
+                              <li>Yasal zorunluluk halinde yetkili kurumlarla</li>
+                              <li>Hizmet sağlayıcılarımızla (Supabase, Google)</li>
+                            </ul>
+                          </div>
+
+                          <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '16px', color: theme.primary, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>⚖️ 4. Veri Sahibi Hakları (KVKK Madde 11)</h3>
+                            <p style={{ fontSize: '14px', color: theme.textSecondary, margin: '0 0 12px', lineHeight: '1.6' }}>
+                              KVKK kapsamında aşağıdaki haklara sahipsiniz:
+                            </p>
+                            <ul style={{ margin: '0', paddingLeft: '20px', color: theme.textSecondary, fontSize: '13px', lineHeight: '2' }}>
+                              <li>Verilerinizin işlenip işlenmediğini öğrenme</li>
+                              <li>İşlenmişse bilgi talep etme</li>
+                              <li>Amaca uygun kullanılıp kullanılmadığını öğrenme</li>
+                              <li>Yurt içi/dışı aktarıldığı kişileri bilme</li>
+                              <li>Eksik/yanlış işlenmişse düzeltme isteme</li>
+                              <li>Silinmesini veya yok edilmesini isteme</li>
+                              <li>Düzeltme/silme işlemlerinin 3. kişilere bildirilmesini isteme</li>
+                              <li>Otomatik analiz sonucu aleyhe çıkan sonuca itiraz etme</li>
+                              <li>Kanuna aykırı işleme sebebiyle tazminat talep etme</li>
+                            </ul>
+                          </div>
+
+                          <div style={{ background: settings.darkMode ? theme.backgroundHover : '#e8f5e9', borderRadius: '16px', padding: '20px', textAlign: 'center' }}>
+                            <h3 style={{ fontSize: '14px', color: theme.primary, margin: '0 0 12px' }}>📬 Başvuru Yöntemi</h3>
+                            <p style={{ fontSize: '13px', color: theme.textSecondary, margin: '0 0 12px', lineHeight: '1.6' }}>
+                              Haklarınızı kullanmak için aşağıdaki adrese başvurabilirsiniz:
+                            </p>
+                            <p style={{ fontSize: '15px', color: theme.primary, margin: 0, fontWeight: '600' }}>touristadestek@gmail.com</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
