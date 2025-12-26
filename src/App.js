@@ -712,6 +712,10 @@ function App() {
   const [spotDetails, setSpotDetails] = useState(null);
   const [spotDetailsLoading, setSpotDetailsLoading] = useState(false);
   const [tripToDelete, setTripToDelete] = useState(null);
+  const [draggedSpot, setDraggedSpot] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [showDeleteZone, setShowDeleteZone] = useState(false);
+  const [isOverDeleteZone, setIsOverDeleteZone] = useState(false);
   
   // New trip creation states
   const [newTripCity, setNewTripCity] = useState('');
@@ -966,25 +970,36 @@ function App() {
 
   // Badge & Level definitions
   const LEVELS = [
-    { name: 'Gezgin', minPoints: 0, icon: '🚶', color: '#9e9e9e' },
-    { name: 'Kaşif', minPoints: 500, icon: '🧭', color: '#8d6e63' },
-    { name: 'Rehber', minPoints: 2000, icon: '🗺️', color: '#42a5f5' },
-    { name: 'Uzman', minPoints: 5000, icon: '⭐', color: '#ab47bc' },
-    { name: 'Efsane', minPoints: 10000, icon: '👑', color: '#ffd700' }
+    { name: { tr: 'Gezgin', en: 'Traveler' }, minPoints: 0, icon: '🚶', color: '#9e9e9e' },
+    { name: { tr: 'Kaşif', en: 'Explorer' }, minPoints: 500, icon: '🧭', color: '#8d6e63' },
+    { name: { tr: 'Rehber', en: 'Guide' }, minPoints: 2000, icon: '🗺️', color: '#42a5f5' },
+    { name: { tr: 'Uzman', en: 'Expert' }, minPoints: 5000, icon: '⭐', color: '#ab47bc' },
+    { name: { tr: 'Efsane', en: 'Legend' }, minPoints: 10000, icon: '👑', color: '#ffd700' }
   ];
 
   const BADGES = [
-    { id: 'first_review', name: 'İlk Adım', icon: '🎯', description: 'İlk yorumunu yap', requirement: 1, type: 'reviews' },
-    { id: 'reviewer_10', name: 'Yorumcu', icon: '✍️', description: '10 yorum yap', requirement: 10, type: 'reviews' },
-    { id: 'reviewer_50', name: 'Eleştirmen', icon: '📝', description: '50 yorum yap', requirement: 50, type: 'reviews' },
-    { id: 'first_trip', name: 'Planlayıcı', icon: '🗓️', description: 'İlk seyahatini oluştur', requirement: 1, type: 'trips' },
-    { id: 'trips_5', name: 'Seyahat Tutkunu', icon: '✈️', description: '5 seyahat oluştur', requirement: 5, type: 'trips' },
-    { id: 'trips_10', name: 'Dünya Gezgini', icon: '🌍', description: '10 seyahat oluştur', requirement: 10, type: 'trips' },
-    { id: 'daily_login', name: 'Sadık Gezgin', icon: '📅', description: '7 gün üst üste giriş yap', requirement: 7, type: 'streak' },
-    { id: 'profile_complete', name: 'Tanıtım', icon: '👤', description: 'Profilini tamamla', requirement: 1, type: 'profile' },
-    { id: 'first_save', name: 'Koleksiyoncu', icon: '🔖', description: 'İlk seyahatini kaydet', requirement: 1, type: 'saves' },
-    { id: 'explorer', name: 'Kaşif', icon: '🧭', description: '3 farklı şehirde trip oluştur', requirement: 3, type: 'cities' }
+    { id: 'first_review', name: { tr: 'İlk Adım', en: 'First Step' }, icon: '🎯', description: { tr: 'İlk yorumunu yap', en: 'Write your first review' }, requirement: 1, type: 'reviews' },
+    { id: 'reviewer_10', name: { tr: 'Yorumcu', en: 'Reviewer' }, icon: '✍️', description: { tr: '10 yorum yap', en: 'Write 10 reviews' }, requirement: 10, type: 'reviews' },
+    { id: 'reviewer_50', name: { tr: 'Eleştirmen', en: 'Critic' }, icon: '📝', description: { tr: '50 yorum yap', en: 'Write 50 reviews' }, requirement: 50, type: 'reviews' },
+    { id: 'first_trip', name: { tr: 'Planlayıcı', en: 'Planner' }, icon: '🗓️', description: { tr: 'İlk seyahatini oluştur', en: 'Create your first trip' }, requirement: 1, type: 'trips' },
+    { id: 'trips_5', name: { tr: 'Seyahat Tutkunu', en: 'Travel Lover' }, icon: '✈️', description: { tr: '5 seyahat oluştur', en: 'Create 5 trips' }, requirement: 5, type: 'trips' },
+    { id: 'trips_10', name: { tr: 'Dünya Gezgini', en: 'World Traveler' }, icon: '🌍', description: { tr: '10 seyahat oluştur', en: 'Create 10 trips' }, requirement: 10, type: 'trips' },
+    { id: 'daily_login', name: { tr: 'Sadık Gezgin', en: 'Loyal Traveler' }, icon: '📅', description: { tr: '7 gün üst üste giriş yap', en: 'Login 7 days in a row' }, requirement: 7, type: 'streak' },
+    { id: 'profile_complete', name: { tr: 'Tanıtım', en: 'Introduction' }, icon: '👤', description: { tr: 'Profilini tamamla', en: 'Complete your profile' }, requirement: 1, type: 'profile' },
+    { id: 'first_save', name: { tr: 'Koleksiyoncu', en: 'Collector' }, icon: '🔖', description: { tr: 'İlk seyahatini kaydet', en: 'Save your first trip' }, requirement: 1, type: 'saves' },
+    { id: 'explorer', name: { tr: 'Kaşif', en: 'Explorer' }, icon: '🧭', description: { tr: '3 farklı şehirde trip oluştur', en: 'Create trips in 3 different cities' }, requirement: 3, type: 'cities' }
   ];
+
+  // Helper to get localized name
+  const getLocalizedName = (item) => {
+    if (typeof item.name === 'string') return item.name;
+    return item.name[settings.language] || item.name.tr;
+  };
+
+  const getLocalizedDesc = (item) => {
+    if (typeof item.description === 'string') return item.description;
+    return item.description[settings.language] || item.description.tr;
+  };
 
   // Get user's current level
   const getUserLevel = (points) => {
@@ -997,7 +1012,7 @@ function App() {
   // Get progress to next level
   const getNextLevelProgress = (points) => {
     const currentLevel = getUserLevel(points);
-    const currentIndex = LEVELS.findIndex(l => l.name === currentLevel.name);
+    const currentIndex = LEVELS.findIndex(l => l.minPoints === currentLevel.minPoints);
     if (currentIndex >= LEVELS.length - 1) return { progress: 100, nextLevel: null, pointsNeeded: 0 };
     
     const nextLevel = LEVELS[currentIndex + 1];
@@ -1661,6 +1676,51 @@ function App() {
     window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=transit`, '_blank');
   };
 
+  // Reorder spots in a trip day
+  const reorderSpots = (fromIndex, toIndex) => {
+    if (!selectedGuide || fromIndex === toIndex) return;
+    
+    const updatedGuide = { ...selectedGuide };
+    const dayIndex = updatedGuide.itinerary.findIndex(d => d.day === selectedDay);
+    if (dayIndex === -1) return;
+    
+    const spots = [...updatedGuide.itinerary[dayIndex].spots];
+    const [movedSpot] = spots.splice(fromIndex, 1);
+    spots.splice(toIndex, 0, movedSpot);
+    updatedGuide.itinerary[dayIndex].spots = spots;
+    
+    setSelectedGuide(updatedGuide);
+    // Update in myTrips if it exists there
+    setMyTrips(prev => prev.map(t => t.id === updatedGuide.id ? updatedGuide : t));
+    // Update in Supabase
+    updateTripInSupabase(updatedGuide);
+  };
+
+  // Delete a spot from trip day
+  const deleteSpotFromTrip = (spotIndex) => {
+    if (!selectedGuide) return;
+    
+    const updatedGuide = { ...selectedGuide };
+    const dayIndex = updatedGuide.itinerary.findIndex(d => d.day === selectedDay);
+    if (dayIndex === -1) return;
+    
+    updatedGuide.itinerary[dayIndex].spots = updatedGuide.itinerary[dayIndex].spots.filter((_, i) => i !== spotIndex);
+    
+    setSelectedGuide(updatedGuide);
+    setMyTrips(prev => prev.map(t => t.id === updatedGuide.id ? updatedGuide : t));
+    updateTripInSupabase(updatedGuide);
+  };
+
+  // Update trip in Supabase
+  const updateTripInSupabase = async (trip) => {
+    if (!currentUser) return;
+    try {
+      await supabase.from('trips').update({ trip_data: trip }).eq('id', trip.id).eq('user_id', currentUser.id);
+    } catch (error) {
+      console.error('Error updating trip:', error);
+    }
+  };
+
   // Calculate distance between two coordinates (Haversine formula)
   const calculateDistance = (lat1, lng1, lat2, lng2) => {
     const R = 6371; // Earth's radius in km
@@ -2248,7 +2308,7 @@ function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
             <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '20px', padding: '4px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '14px' }}>{getUserLevel(userPoints).icon}</span>
-              <span style={{ color: 'white', fontSize: '12px', fontWeight: '600' }}>{getUserLevel(userPoints).name}</span>
+              <span style={{ color: 'white', fontSize: '12px', fontWeight: '600' }}>{getLocalizedName(getUserLevel(userPoints))}</span>
               <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>•</span>
               <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: '12px' }}>{userPoints} {t('points')}</span>
             </div>
@@ -2351,7 +2411,7 @@ function App() {
                     <h2 style={{ color: 'white', fontSize: '18px', margin: '0 0 4px', fontWeight: '700' }}>{getDisplayName()}</h2>
                     <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', margin: 0 }}>{currentUser?.email}</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
-                      <span style={{ background: getUserLevel(userPoints).color, color: 'white', padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>{getUserLevel(userPoints).name}</span>
+                      <span style={{ background: getUserLevel(userPoints).color, color: 'white', padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>{getLocalizedName(getUserLevel(userPoints))}</span>
                     </div>
                   </div>
                 </div>
@@ -2368,7 +2428,7 @@ function App() {
                         <div style={{ background: 'white', height: '100%', width: `${getNextLevelProgress(userPoints).progress}%`, borderRadius: '10px', transition: 'width 0.3s' }} />
                       </div>
                       <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '11px', margin: 0 }}>
-                        {getNextLevelProgress(userPoints).pointsNeeded} puan ile <strong>{getNextLevelProgress(userPoints).nextLevel.icon} {getNextLevelProgress(userPoints).nextLevel.name}</strong> seviyesine ulaş!
+                        {getNextLevelProgress(userPoints).pointsNeeded} {settings.language === 'tr' ? 'puan ile' : 'points to'} <strong>{getNextLevelProgress(userPoints).nextLevel.icon} {getLocalizedName(getNextLevelProgress(userPoints).nextLevel)}</strong> {settings.language === 'tr' ? 'seviyesine ulaş!' : 'level!'}
                       </p>
                     </>
                   )}
@@ -3041,16 +3101,16 @@ function App() {
                 {/* Badges Tab */}
                 {profileTab === 'badges' && (
                   <div>
-                    <p style={{ fontSize: '13px', color: theme.textMuted, margin: '0 0 16px' }}>Rozetleri kazan ve puanlarını artır!</p>
+                    <p style={{ fontSize: '13px', color: theme.textMuted, margin: '0 0 16px' }}>{settings.language === 'tr' ? 'Rozetleri kazan ve puanlarını artır!' : 'Earn badges and increase your points!'}</p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                       {BADGES.map(badge => {
                         const isEarned = userBadges.includes(badge.id);
                         return (
                           <div key={badge.id} style={{ background: isEarned ? (settings.darkMode ? '#3d4a2a' : '#e8f5e9') : theme.backgroundHover, borderRadius: '16px', padding: '16px', textAlign: 'center', opacity: isEarned ? 1 : 0.6, border: isEarned ? `2px solid ${theme.primary}` : '2px solid transparent' }}>
                             <div style={{ fontSize: '32px', marginBottom: '8px', filter: isEarned ? 'none' : 'grayscale(100%)' }}>{badge.icon}</div>
-                            <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: '600', color: isEarned ? theme.primary : theme.textSecondary }}>{badge.name}</p>
-                            <p style={{ margin: 0, fontSize: '10px', color: theme.textMuted }}>{badge.description}</p>
-                            {isEarned && <p style={{ margin: '8px 0 0', fontSize: '10px', color: theme.primary, fontWeight: '600' }}>✓ Kazanıldı!</p>}
+                            <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: '600', color: isEarned ? theme.primary : theme.textSecondary }}>{getLocalizedName(badge)}</p>
+                            <p style={{ margin: 0, fontSize: '10px', color: theme.textMuted }}>{getLocalizedDesc(badge)}</p>
+                            {isEarned && <p style={{ margin: '8px 0 0', fontSize: '10px', color: theme.primary, fontWeight: '600' }}>✓ {settings.language === 'tr' ? 'Kazanıldı!' : 'Earned!'}</p>}
                           </div>
                         );
                       })}
@@ -3065,16 +3125,16 @@ function App() {
                     <div style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontSize: '20px' }}>{getUserLevel(userPoints).icon}</span>
                       <div>
-                        <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: theme.text }}>{getUserLevel(userPoints).name} Ligi</p>
-                        <p style={{ margin: '2px 0 0', fontSize: '11px', color: theme.textMuted }}>Aynı seviyedeki gezginlerle yarış!</p>
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: theme.text }}>{getLocalizedName(getUserLevel(userPoints))} {settings.language === 'tr' ? 'Ligi' : 'League'}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: '11px', color: theme.textMuted }}>{settings.language === 'tr' ? 'Aynı seviyedeki gezginlerle yarış!' : 'Compete with travelers at your level!'}</p>
                       </div>
                     </div>
 
                     {!settings.showOnLeaderboard ? (
                       <div style={{ textAlign: 'center', padding: '40px 20px' }}>
                         <span style={{ fontSize: '48px' }}>🙈</span>
-                        <p style={{ color: theme.text, fontSize: '14px', margin: '16px 0 8px' }}>Liderlik tablosunda görünmüyorsun</p>
-                        <p style={{ color: theme.textMuted, fontSize: '12px', margin: '0 0 16px' }}>Ayarlardan "Liderlik Tablosunda Görün" seçeneğini aç</p>
+                        <p style={{ color: theme.text, fontSize: '14px', margin: '16px 0 8px' }}>{settings.language === 'tr' ? 'Liderlik tablosunda görünmüyorsun' : 'You are not visible on leaderboard'}</p>
+                        <p style={{ color: theme.textMuted, fontSize: '12px', margin: '0 0 16px' }}>{settings.language === 'tr' ? 'Ayarlardan "Liderlik Tablosunda Görün" seçeneğini aç' : 'Enable "Show on Leaderboard" in settings'}</p>
                       </div>
                     ) : leaderboard.length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '40px 20px' }}>
@@ -4187,15 +4247,70 @@ function App() {
         </div>
 
         {/* Day Title */}
-        <div style={{ padding: '0 16px 12px' }}>
+        <div style={{ padding: '0 16px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0, fontSize: '16px', color: theme.primary }}>{currentDay.title}</h3>
+          {!isLockedDay && myTrips.find(t => t.id === selectedGuide.id) && (
+            <span style={{ fontSize: '11px', color: theme.textMuted }}>💡 {settings.language === 'tr' ? 'Sıralamak için sürükle' : 'Drag to reorder'}</span>
+          )}
         </div>
 
         {/* Spots List */}
-        <div style={{ padding: '0 16px 100px' }}>
+        <div style={{ padding: '0 16px 100px', position: 'relative' }}>
           {currentDay.spots.map((spot, index) => (
             <div key={index}>
-              <div onClick={() => !isLockedDay && setSelectedSpot({ ...spot, city: selectedGuide.city })} style={{ background: theme.backgroundCard, borderRadius: '14px', padding: '12px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: settings.darkMode ? 'none' : '0 2px 8px rgba(0,0,0,0.05)', cursor: isLockedDay ? 'default' : 'pointer', position: 'relative', overflow: 'hidden' }}>
+              <div 
+                draggable={!isLockedDay && myTrips.find(t => t.id === selectedGuide.id)}
+                onDragStart={(e) => {
+                  setDraggedSpot(index);
+                  setShowDeleteZone(true);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragEnd={() => {
+                  if (isOverDeleteZone && draggedSpot !== null) {
+                    deleteSpotFromTrip(draggedSpot);
+                  } else if (draggedSpot !== null && dragOverIndex !== null && draggedSpot !== dragOverIndex) {
+                    reorderSpots(draggedSpot, dragOverIndex);
+                  }
+                  setDraggedSpot(null);
+                  setDragOverIndex(null);
+                  setShowDeleteZone(false);
+                  setIsOverDeleteZone(false);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (draggedSpot !== null && draggedSpot !== index) {
+                    setDragOverIndex(index);
+                  }
+                }}
+                onDragLeave={() => {
+                  setDragOverIndex(null);
+                }}
+                onClick={() => !isLockedDay && setSelectedSpot({ ...spot, city: selectedGuide.city })} 
+                style={{ 
+                  background: dragOverIndex === index ? (settings.darkMode ? '#3d4a2a' : '#c8e6c9') : theme.backgroundCard, 
+                  borderRadius: '14px', 
+                  padding: '12px', 
+                  display: 'flex', 
+                  gap: '12px', 
+                  alignItems: 'center', 
+                  boxShadow: draggedSpot === index ? '0 8px 24px rgba(0,0,0,0.2)' : (settings.darkMode ? 'none' : '0 2px 8px rgba(0,0,0,0.05)'), 
+                  cursor: isLockedDay ? 'default' : 'grab', 
+                  position: 'relative', 
+                  overflow: 'hidden',
+                  opacity: draggedSpot === index ? 0.5 : 1,
+                  transform: draggedSpot === index ? 'scale(1.02)' : 'scale(1)',
+                  transition: 'all 0.2s ease',
+                  border: dragOverIndex === index ? `2px dashed ${theme.primary}` : '2px solid transparent'
+                }}
+              >
+                {/* Drag Handle */}
+                {!isLockedDay && myTrips.find(t => t.id === selectedGuide.id) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '4px', cursor: 'grab' }}>
+                    <div style={{ width: '12px', height: '2px', background: theme.textMuted, borderRadius: '1px' }} />
+                    <div style={{ width: '12px', height: '2px', background: theme.textMuted, borderRadius: '1px' }} />
+                    <div style={{ width: '12px', height: '2px', background: theme.textMuted, borderRadius: '1px' }} />
+                  </div>
+                )}
                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length], color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>{index + 1}</div>
                 <div style={{ width: '55px', height: '55px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
                   <img src={spot.image} alt={spot.name} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isLockedDay ? 'blur(4px)' : 'none' }} />
@@ -4221,7 +4336,7 @@ function App() {
               </div>
               {index < currentDay.spots.length - 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0 8px 14px', gap: '8px' }}>
-                  <div style={{ width: '2px', height: '32px', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length] + '40', marginLeft: '13px' }} />
+                  <div style={{ width: '2px', height: '32px', background: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length] + '40', marginLeft: myTrips.find(t => t.id === selectedGuide.id) ? '33px' : '13px' }} />
                   {(() => {
                     const nextSpot = currentDay.spots[index + 1];
                     const distance = calculateDistance(spot.lat, spot.lng, nextSpot.lat, nextSpot.lng);
@@ -4245,6 +4360,35 @@ function App() {
               )}
             </div>
           ))}
+
+          {/* Delete Zone - appears when dragging */}
+          {showDeleteZone && (
+            <div 
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsOverDeleteZone(true);
+              }}
+              onDragLeave={() => setIsOverDeleteZone(false)}
+              style={{ 
+                position: 'fixed', 
+                bottom: '20px', 
+                right: '20px', 
+                width: '70px', 
+                height: '70px', 
+                borderRadius: '50%', 
+                background: isOverDeleteZone ? '#ef5350' : '#ffcdd2', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                transition: 'all 0.2s ease',
+                transform: isOverDeleteZone ? 'scale(1.2)' : 'scale(1)',
+                zIndex: 1000
+              }}
+            >
+              <span style={{ fontSize: '28px' }}>🗑️</span>
+            </div>
+          )}
           
           {/* Paywall Card for AI trips */}
           {isLockedDay && (
