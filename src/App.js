@@ -751,6 +751,7 @@ function App() {
   const [showSettingsScreen, setShowSettingsScreen] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showHelpScreen, setShowHelpScreen] = useState(false);
 
   // Settings states (persisted to localStorage)
   const [settings, setSettings] = useState(() => {
@@ -2434,7 +2435,7 @@ function App() {
                         <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('premium')}</span>
                         <span style={{ background: isPremiumUser ? '#4caf50' : '#ff9800', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '10px' }}>{isPremiumUser ? 'Aktif' : 'Yükselt'}</span>
                       </div>
-                      <div style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                      <div onClick={() => setShowHelpScreen(true)} style={{ background: theme.backgroundHover, borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                         <span style={{ fontSize: '20px' }}>❓</span>
                         <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{t('help')}</span>
                         <span style={{ color: theme.textMuted }}>›</span>
@@ -2596,6 +2597,101 @@ function App() {
                       <div style={{ display: 'flex', gap: '10px' }}>
                         <button onClick={() => { setShowChangePassword(false); setPasswordError(''); setNewPassword(''); setConfirmNewPassword(''); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `2px solid ${theme.border}`, background: theme.backgroundCard, fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: theme.textSecondary }}>{t('cancel')}</button>
                         <button onClick={handleChangePassword} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: theme.primary, color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{t('save')}</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Help Screen */}
+                {showHelpScreen && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: theme.backgroundCard, zIndex: 10, overflowY: 'auto' }}>
+                    {/* Help Header */}
+                    <div style={{ background: theme.primaryGradient, padding: '20px', paddingTop: '40px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <button onClick={() => setShowHelpScreen(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', color: 'white', cursor: 'pointer', fontSize: '16px' }}>←</button>
+                      <h2 style={{ color: 'white', fontSize: '20px', margin: 0, fontWeight: '600' }}>❓ {t('help')}</h2>
+                    </div>
+
+                    <div style={{ padding: '20px' }}>
+                      {/* Contact Section */}
+                      <div style={{ marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '12px', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>📬 {settings.language === 'tr' ? 'İletişim' : 'Contact'}</h3>
+                        <div style={{ background: theme.backgroundHover, borderRadius: '16px', overflow: 'hidden' }}>
+                          <a href="mailto:touristadestek@gmail.com" style={{ textDecoration: 'none', display: 'block', padding: '16px', borderBottom: `1px solid ${theme.border}` }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <span style={{ fontSize: '20px' }}>📧</span>
+                              <div style={{ flex: 1 }}>
+                                <p style={{ margin: 0, fontSize: '14px', color: theme.text }}>{settings.language === 'tr' ? 'Bize Ulaşın' : 'Contact Us'}</p>
+                                <p style={{ margin: '2px 0 0', fontSize: '12px', color: theme.textMuted }}>touristadestek@gmail.com</p>
+                              </div>
+                              <span style={{ color: theme.textMuted }}>›</span>
+                            </div>
+                          </a>
+                          <a href="mailto:touristadestek@gmail.com?subject=Hata%20Bildirimi" style={{ textDecoration: 'none', display: 'block', padding: '16px', borderBottom: `1px solid ${theme.border}` }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <span style={{ fontSize: '20px' }}>🐛</span>
+                              <div style={{ flex: 1 }}>
+                                <p style={{ margin: 0, fontSize: '14px', color: theme.text }}>{settings.language === 'tr' ? 'Hata Bildir' : 'Report Bug'}</p>
+                                <p style={{ margin: '2px 0 0', fontSize: '12px', color: theme.textMuted }}>{settings.language === 'tr' ? 'Bir sorun mu buldun?' : 'Found an issue?'}</p>
+                              </div>
+                              <span style={{ color: theme.textMuted }}>›</span>
+                            </div>
+                          </a>
+                          <a href="mailto:touristadestek@gmail.com?subject=Öneri" style={{ textDecoration: 'none', display: 'block', padding: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <span style={{ fontSize: '20px' }}>💡</span>
+                              <div style={{ flex: 1 }}>
+                                <p style={{ margin: 0, fontSize: '14px', color: theme.text }}>{settings.language === 'tr' ? 'Öneride Bulun' : 'Suggest Feature'}</p>
+                                <p style={{ margin: '2px 0 0', fontSize: '12px', color: theme.textMuted }}>{settings.language === 'tr' ? 'Fikirlerini paylaş' : 'Share your ideas'}</p>
+                              </div>
+                              <span style={{ color: theme.textMuted }}>›</span>
+                            </div>
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Legal Section */}
+                      <div style={{ marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '12px', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>📜 {settings.language === 'tr' ? 'Yasal' : 'Legal'}</h3>
+                        <div style={{ background: theme.backgroundHover, borderRadius: '16px', overflow: 'hidden' }}>
+                          <div onClick={() => alert(`GİZLİLİK POLİTİKASI\n\nSon Güncelleme: Ocak 2025\n\n1. TOPLANAN VERİLER\nTOURISTA uygulaması aşağıdaki verileri toplar:\n• E-posta adresi (hesap oluşturma için)\n• Seyahat planları ve tercihleriniz\n• Uygulama kullanım verileri\n• Konum verisi (sadece izin verildiğinde)\n\n2. VERİLERİN KULLANIMI\nTopladığımız verileri şu amaçlarla kullanırız:\n• Hesabınızı oluşturmak ve yönetmek\n• Kişiselleştirilmiş seyahat önerileri sunmak\n• Uygulama deneyimini iyileştirmek\n• Destek hizmeti sağlamak\n\n3. ÜÇÜNCÜ TARAF HİZMETLER\nUygulamamız şu hizmetleri kullanır:\n• Supabase (veritabanı ve kimlik doğrulama)\n• Google Places API (mekan bilgileri)\n\n4. VERİ GÜVENLİĞİ\nVerileriniz şifreleme ile korunur ve güvenli sunucularda saklanır.\n\n5. HAKLARINIZ\n• Verilerinize erişim talep edebilirsiniz\n• Verilerinizin silinmesini isteyebilirsiniz\n• Verilerinizi dışa aktarabilirsiniz\n\nİletişim: touristadestek@gmail.com\nVeri Sorumlusu: Efe Can Samsa\nİstanbul, Türkiye`)} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderBottom: `1px solid ${theme.border}` }}>
+                            <span style={{ fontSize: '20px' }}>🔒</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{settings.language === 'tr' ? 'Gizlilik Politikası' : 'Privacy Policy'}</span>
+                            <span style={{ color: theme.textMuted }}>›</span>
+                          </div>
+                          <div onClick={() => alert(`KULLANIM ŞARTLARI\n\nSon Güncelleme: Ocak 2025\n\n1. KABUL\nTOURISTA uygulamasını kullanarak bu şartları kabul etmiş olursunuz.\n\n2. HİZMET TANIMI\nTOURISTA, seyahat planlama ve keşif hizmeti sunan bir mobil uygulamadır.\n\n3. KULLANICI SORUMLULUKLARI\n• Doğru ve güncel bilgi sağlamak\n• Hesap güvenliğini korumak\n• Yasalara uygun kullanım\n• Diğer kullanıcılara saygılı davranmak\n\n4. YASAKLI DAVRANIŞLAR\n• Sahte hesap oluşturmak\n• Spam veya zararlı içerik paylaşmak\n• Uygulamayı kötüye kullanmak\n• Diğer kullanıcıları taciz etmek\n\n5. FİKRİ MÜLKİYET\nUygulama ve içeriği Efe Can Samsa'ya aittir.\n\n6. SORUMLULUK REDDİ\n• Seyahat önerileri bilgi amaçlıdır\n• Mekan bilgilerinin doğruluğu garanti edilmez\n• Kullanıcı kendi seyahat kararlarından sorumludur\n\n7. DEĞİŞİKLİKLER\nBu şartlar önceden haber verilmeksizin değiştirilebilir.\n\nİletişim: touristadestek@gmail.com`)} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderBottom: `1px solid ${theme.border}` }}>
+                            <span style={{ fontSize: '20px' }}>📋</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>{settings.language === 'tr' ? 'Kullanım Şartları' : 'Terms of Use'}</span>
+                            <span style={{ color: theme.textMuted }}>›</span>
+                          </div>
+                          <div onClick={() => alert(`KVKK AYDINLATMA METNİ\n\n6698 Sayılı Kişisel Verilerin Korunması Kanunu Kapsamında Aydınlatma Metni\n\nVeri Sorumlusu: Efe Can Samsa\nAdres: İstanbul, Türkiye\nE-posta: touristadestek@gmail.com\n\n1. KİŞİSEL VERİLERİN İŞLENME AMACI\nKişisel verileriniz;\n• Üyelik işlemlerinin gerçekleştirilmesi\n• Hizmetlerimizin sunulması\n• Kullanıcı deneyiminin iyileştirilmesi\n• Yasal yükümlülüklerin yerine getirilmesi\namaçlarıyla işlenmektedir.\n\n2. İŞLENEN KİŞİSEL VERİLER\n• Kimlik bilgileri (ad, e-posta)\n• İletişim bilgileri\n• Uygulama kullanım verileri\n• Konum verileri (izin dahilinde)\n\n3. KİŞİSEL VERİLERİN AKTARIMI\nVerileriniz;\n• Yasal zorunluluk halinde yetkili kurumlarla\n• Hizmet sağlayıcılarımızla (Supabase, Google)\npaylaşılabilir.\n\n4. VERİ SAHİBİ HAKLARI\nKVKK Madde 11 kapsamında;\n• Verilerinizin işlenip işlenmediğini öğrenme\n• İşlenmişse bilgi talep etme\n• Amaca uygun kullanılıp kullanılmadığını öğrenme\n• Yurt içi/dışı aktarıldığı kişileri bilme\n• Eksik/yanlış işlenmişse düzeltme isteme\n• Silinmesini veya yok edilmesini isteme\n• Düzeltme/silme işlemlerinin aktarılan 3. kişilere bildirilmesini isteme\n• Otomatik sistemlerle analiz sonucu aleyhe çıkan sonuca itiraz etme\n• Kanuna aykırı işleme sebebiyle zarara uğramanız halinde tazminat talep etme\nhaklarına sahipsiniz.\n\n5. BAŞVURU YÖNTEMİ\nHaklarınızı kullanmak için touristadestek@gmail.com adresine başvurabilirsiniz.`)} style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                            <span style={{ fontSize: '20px' }}>🇹🇷</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: theme.text }}>KVKK Aydınlatma Metni</span>
+                            <span style={{ color: theme.textMuted }}>›</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* About Section */}
+                      <div style={{ marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '12px', color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>ℹ️ {settings.language === 'tr' ? 'Hakkında' : 'About'}</h3>
+                        <div style={{ background: theme.backgroundHover, borderRadius: '16px', padding: '20px', textAlign: 'center' }}>
+                          <div style={{ width: '80px', height: '80px', background: theme.primaryGradient, borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '36px' }}>🌍</div>
+                          <h4 style={{ margin: '0 0 4px', fontSize: '22px', fontWeight: '700', color: theme.primary }}>TOURISTA</h4>
+                          <p style={{ margin: '0 0 12px', fontSize: '13px', color: theme.textMuted }}>{settings.language === 'tr' ? 'Seyahat Planlama Asistanın' : 'Your Travel Planning Assistant'}</p>
+                          <p style={{ margin: '0 0 16px', fontSize: '12px', color: theme.textMuted }}>Versiyon 1.0.0</p>
+                          <div style={{ borderTop: `1px solid ${theme.border}`, paddingTop: '16px', marginTop: '16px' }}>
+                            <p style={{ margin: '0 0 4px', fontSize: '12px', color: theme.textMuted }}>{settings.language === 'tr' ? 'Geliştirici' : 'Developer'}</p>
+                            <p style={{ margin: '0', fontSize: '14px', color: theme.text, fontWeight: '600' }}>Efe Can Samsa</p>
+                            <p style={{ margin: '8px 0 0', fontSize: '12px', color: theme.textMuted }}>İstanbul, Türkiye 🇹🇷</p>
+                          </div>
+                          <div style={{ marginTop: '20px', padding: '12px', background: settings.darkMode ? theme.backgroundCard : '#e8f5e9', borderRadius: '12px' }}>
+                            <p style={{ margin: 0, fontSize: '12px', color: theme.textSecondary }}>
+                              {settings.language === 'tr' 
+                                ? '❤️ Sevgiyle yapıldı. Geri bildirimleriniz bizim için değerli!' 
+                                : '❤️ Made with love. Your feedback is valuable!'}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
